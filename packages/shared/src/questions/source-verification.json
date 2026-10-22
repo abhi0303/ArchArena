@@ -1,0 +1,338 @@
+{
+  "https://agones.dev/site/docs/": {
+    "status": 200,
+    "checkedAt": "2026-10-22T14:05:06.119Z"
+  },
+  "https://aws.amazon.com/builders-library/avoiding-insurmountable-queue-backlogs/": {
+    "status": 200,
+    "checkedAt": "2026-10-22T14:05:07.308Z"
+  },
+  "https://aws.amazon.com/builders-library/leader-election-in-distributed-systems/": {
+    "status": 200,
+    "checkedAt": "2026-10-22T14:05:07.182Z"
+  },
+  "https://aws.amazon.com/builders-library/timeouts-retries-and-backoff-with-jitter/": {
+    "status": 200,
+    "checkedAt": "2026-10-22T14:05:07.131Z"
+  },
+  "https://aws.amazon.com/builders-library/using-load-shedding-to-avoid-overload/": {
+    "status": 200,
+    "checkedAt": "2026-10-22T14:05:07.594Z"
+  },
+  "https://aws.amazon.com/s3/consistency/": {
+    "status": 200,
+    "checkedAt": "2026-10-22T14:05:06.055Z"
+  },
+  "https://blog.cloudflare.com/counting-things-a-lot-of-different-things/": {
+    "status": 200,
+    "checkedAt": "2026-10-22T14:05:06.165Z"
+  },
+  "https://blog.whatsapp.com/1-million-is-so-2011": {
+    "status": 200,
+    "checkedAt": "2026-10-22T14:05:06.623Z"
+  },
+  "https://crdt.tech/": {
+    "status": 200,
+    "checkedAt": "2026-10-22T14:05:06.511Z"
+  },
+  "https://developer.apple.com/streaming/": {
+    "status": 200,
+    "checkedAt": "2026-10-22T14:05:06.829Z"
+  },
+  "https://developer.mozilla.org/en-US/docs/Web/API/WebSockets_API": {
+    "status": 200,
+    "checkedAt": "2026-10-22T14:05:06.701Z"
+  },
+  "https://developer.valvesoftware.com/wiki/Source_Multiplayer_Networking": {
+    "status": 200,
+    "checkedAt": "2026-10-22T14:05:08.844Z"
+  },
+  "https://discord.com/blog/how-discord-stores-trillions-of-messages": {
+    "status": 200,
+    "checkedAt": "2026-10-22T14:05:06.941Z"
+  },
+  "https://drive.googleblog.com/2010/09/whats-different-about-new-google-docs.html": {
+    "status": 200,
+    "checkedAt": "2026-10-22T14:05:08.425Z"
+  },
+  "https://dropbox.tech/infrastructure/inside-the-magic-pocket": {
+    "status": 200,
+    "checkedAt": "2026-10-22T14:05:08.062Z"
+  },
+  "https://dropbox.tech/infrastructure/streaming-file-synchronization": {
+    "status": 200,
+    "checkedAt": "2026-10-22T14:05:08.075Z"
+  },
+  "https://engineering.atspotify.com/": {
+    "status": 200,
+    "checkedAt": "2026-10-22T14:05:09.234Z"
+  },
+  "https://etcd.io/docs/": {
+    "status": 200,
+    "checkedAt": "2026-10-22T14:05:08.135Z"
+  },
+  "https://firecracker-microvm.github.io/": {
+    "status": 200,
+    "checkedAt": "2026-10-22T14:05:08.444Z"
+  },
+  "https://github.com/donnemartin/system-design-primer": {
+    "status": 200,
+    "checkedAt": "2026-10-22T14:05:08.885Z"
+  },
+  "https://github.com/donnemartin/system-design-primer/blob/master/solutions/system_design/pastebin/README.md": {
+    "status": 200,
+    "checkedAt": "2026-10-22T14:05:08.938Z"
+  },
+  "https://github.com/donnemartin/system-design-primer/blob/master/solutions/system_design/query_cache/README.md": {
+    "status": 200,
+    "checkedAt": "2026-10-22T14:05:09.301Z"
+  },
+  "https://github.com/donnemartin/system-design-primer/blob/master/solutions/system_design/social_graph/README.md": {
+    "status": 200,
+    "checkedAt": "2026-10-22T14:05:09.191Z"
+  },
+  "https://github.com/donnemartin/system-design-primer/blob/master/solutions/system_design/twitter/README.md": {
+    "status": 200,
+    "checkedAt": "2026-10-22T14:05:09.688Z"
+  },
+  "https://github.com/donnemartin/system-design-primer/blob/master/solutions/system_design/web_crawler/README.md": {
+    "status": 200,
+    "checkedAt": "2026-10-22T14:05:09.624Z"
+  },
+  "https://github.com/judge0/judge0": {
+    "status": 200,
+    "checkedAt": "2026-10-22T14:05:09.824Z"
+  },
+  "https://github.com/twitter-archive/snowflake": {
+    "status": 200,
+    "checkedAt": "2026-10-22T14:05:09.867Z"
+  },
+  "https://h3geo.org/": {
+    "status": 200,
+    "checkedAt": "2026-10-22T14:05:09.273Z"
+  },
+  "https://instagram-engineering.com/sharding-ids-at-instagram-1cf5a71e5a5c": {
+    "status": 0,
+    "checkedAt": "2026-10-22T14:05:30.210Z"
+  },
+  "https://kafka.apache.org/documentation/": {
+    "status": 200,
+    "checkedAt": "2026-10-22T14:05:09.342Z"
+  },
+  "https://kafka.apache.org/documentation/#design": {
+    "status": 200,
+    "checkedAt": "2026-10-22T14:05:09.379Z"
+  },
+  "https://learn.microsoft.com/en-us/azure/architecture/guide/multitenant/overview": {
+    "status": 200,
+    "checkedAt": "2026-10-22T14:05:09.450Z"
+  },
+  "https://learn.microsoft.com/en-us/azure/architecture/patterns/cache-aside": {
+    "status": 200,
+    "checkedAt": "2026-10-22T14:05:09.505Z"
+  },
+  "https://learn.microsoft.com/en-us/azure/architecture/patterns/compensating-transaction": {
+    "status": 200,
+    "checkedAt": "2026-10-22T14:05:09.552Z"
+  },
+  "https://learn.microsoft.com/en-us/azure/architecture/patterns/competing-consumers": {
+    "status": 200,
+    "checkedAt": "2026-10-22T14:05:09.603Z"
+  },
+  "https://learn.microsoft.com/en-us/azure/architecture/patterns/event-sourcing": {
+    "status": 200,
+    "checkedAt": "2026-10-22T14:05:09.650Z"
+  },
+  "https://learn.microsoft.com/en-us/azure/architecture/patterns/gateway-routing": {
+    "status": 200,
+    "checkedAt": "2026-10-22T14:05:09.682Z"
+  },
+  "https://learn.microsoft.com/en-us/azure/architecture/patterns/geodes": {
+    "status": 200,
+    "checkedAt": "2026-10-22T14:05:09.696Z"
+  },
+  "https://learn.microsoft.com/en-us/azure/architecture/patterns/pipes-and-filters": {
+    "status": 200,
+    "checkedAt": "2026-10-22T14:05:09.727Z"
+  },
+  "https://learn.microsoft.com/en-us/azure/architecture/patterns/priority-queue": {
+    "status": 200,
+    "checkedAt": "2026-10-22T14:05:09.737Z"
+  },
+  "https://learn.microsoft.com/en-us/azure/architecture/patterns/queue-based-load-leveling": {
+    "status": 200,
+    "checkedAt": "2026-10-22T14:05:09.751Z"
+  },
+  "https://learn.microsoft.com/en-us/azure/architecture/patterns/rate-limiting-pattern": {
+    "status": 200,
+    "checkedAt": "2026-10-22T14:05:09.771Z"
+  },
+  "https://learn.microsoft.com/en-us/azure/architecture/patterns/saga": {
+    "status": 200,
+    "checkedAt": "2026-10-22T14:05:09.783Z"
+  },
+  "https://learn.microsoft.com/en-us/azure/architecture/patterns/static-content-hosting": {
+    "status": 200,
+    "checkedAt": "2026-10-22T14:05:09.799Z"
+  },
+  "https://learn.microsoft.com/en-us/azure/architecture/patterns/valet-key": {
+    "status": 200,
+    "checkedAt": "2026-10-22T14:05:09.819Z"
+  },
+  "https://martinfowler.com/articles/feature-toggles.html": {
+    "status": 200,
+    "checkedAt": "2026-10-22T14:05:10.623Z"
+  },
+  "https://martinfowler.com/articles/lmax.html": {
+    "status": 200,
+    "checkedAt": "2026-10-22T14:05:10.640Z"
+  },
+  "https://microservices.io/patterns/data/saga.html": {
+    "status": 200,
+    "checkedAt": "2026-10-22T14:05:09.861Z"
+  },
+  "https://microservices.io/patterns/data/transactional-outbox.html": {
+    "status": 200,
+    "checkedAt": "2026-10-22T14:05:09.864Z"
+  },
+  "https://openconnect.netflix.com/en/": {
+    "status": 200,
+    "checkedAt": "2026-10-22T14:05:09.952Z"
+  },
+  "https://openid.net/specs/openid-connect-core-1_0.html": {
+    "status": 200,
+    "checkedAt": "2026-10-22T14:05:09.901Z"
+  },
+  "https://opentelemetry.io/docs/concepts/signals/traces/": {
+    "status": 200,
+    "checkedAt": "2026-10-22T14:05:11.449Z"
+  },
+  "https://pages.nist.gov/800-63-3/sp800-63b.html": {
+    "status": 200,
+    "checkedAt": "2026-10-22T14:05:11.081Z"
+  },
+  "https://prometheus.io/docs/introduction/overview/": {
+    "status": 200,
+    "checkedAt": "2026-10-22T14:05:10.453Z"
+  },
+  "https://raft.github.io/": {
+    "status": 200,
+    "checkedAt": "2026-10-22T14:05:10.788Z"
+  },
+  "https://redis.io/docs/latest/develop/data-types/sorted-sets/": {
+    "status": 200,
+    "checkedAt": "2026-10-22T14:05:10.726Z"
+  },
+  "https://research.google/pubs/dapper-a-large-scale-distributed-systems-tracing-infrastructure/": {
+    "status": 200,
+    "checkedAt": "2026-10-22T14:05:11.000Z"
+  },
+  "https://research.google/pubs/deep-neural-networks-for-youtube-recommendations/": {
+    "status": 200,
+    "checkedAt": "2026-10-22T14:05:11.077Z"
+  },
+  "https://research.google/pubs/large-scale-cluster-management-at-google-with-borg/": {
+    "status": 200,
+    "checkedAt": "2026-10-22T14:05:11.142Z"
+  },
+  "https://research.google/pubs/monarch-googles-planet-scale-in-memory-time-series-database/": {
+    "status": 200,
+    "checkedAt": "2026-10-22T14:05:11.330Z"
+  },
+  "https://research.google/pubs/spanner-googles-globally-distributed-database-2/": {
+    "status": 200,
+    "checkedAt": "2026-10-22T14:05:11.415Z"
+  },
+  "https://research.google/pubs/web-search-for-a-planet-the-google-cluster-architecture/": {
+    "status": 200,
+    "checkedAt": "2026-10-22T14:05:11.418Z"
+  },
+  "https://s2geometry.io/": {
+    "status": 200,
+    "checkedAt": "2026-10-22T14:05:11.479Z"
+  },
+  "https://slack.engineering/real-time-messaging/": {
+    "status": 200,
+    "checkedAt": "2026-10-22T14:05:11.451Z"
+  },
+  "https://sre.google/sre-book/distributed-periodic-scheduling/": {
+    "status": 200,
+    "checkedAt": "2026-10-22T14:05:11.542Z"
+  },
+  "https://sre.google/sre-book/monitoring-distributed-systems/": {
+    "status": 200,
+    "checkedAt": "2026-10-22T14:05:11.537Z"
+  },
+  "https://stripe.com/blog/idempotency": {
+    "status": 200,
+    "checkedAt": "2026-10-22T14:05:12.029Z"
+  },
+  "https://stripe.com/blog/rate-limiters": {
+    "status": 200,
+    "checkedAt": "2026-10-22T14:05:11.996Z"
+  },
+  "https://stripe.com/radar": {
+    "status": 200,
+    "checkedAt": "2026-10-22T14:05:12.701Z"
+  },
+  "https://vitess.io/": {
+    "status": 200,
+    "checkedAt": "2026-10-22T14:05:12.160Z"
+  },
+  "https://webrtc.org/getting-started/overview": {
+    "status": 200,
+    "checkedAt": "2026-10-22T14:05:12.386Z"
+  },
+  "https://www.allthingsdistributed.com/files/amazon-dynamo-sosp2007.pdf": {
+    "status": 200,
+    "checkedAt": "2026-10-22T14:05:12.082Z"
+  },
+  "https://www.cloudflare.com/learning/cdn/what-is-a-cdn/": {
+    "status": 200,
+    "checkedAt": "2026-10-22T14:05:13.171Z"
+  },
+  "https://www.envoyproxy.io/docs/envoy/latest/intro/arch_overview/arch_overview": {
+    "status": 200,
+    "checkedAt": "2026-10-22T14:05:12.870Z"
+  },
+  "https://www.figma.com/blog/how-figmas-multiplayer-technology-works/": {
+    "status": 200,
+    "checkedAt": "2026-10-22T14:05:12.640Z"
+  },
+  "https://www.infoq.com/presentations/Twitter-Timeline-Scalability/": {
+    "status": 200,
+    "checkedAt": "2026-10-22T14:05:14.027Z"
+  },
+  "https://www.moderntreasury.com/journal/accounting-for-developers-part-i": {
+    "status": 200,
+    "checkedAt": "2026-10-22T14:05:12.786Z"
+  },
+  "https://www.rfc-editor.org/rfc/rfc7517": {
+    "status": 200,
+    "checkedAt": "2026-10-22T14:05:12.852Z"
+  },
+  "https://www.rfc-editor.org/rfc/rfc8216": {
+    "status": 200,
+    "checkedAt": "2026-10-22T14:05:12.902Z"
+  },
+  "https://www.rfc-editor.org/rfc/rfc8825": {
+    "status": 200,
+    "checkedAt": "2026-10-22T14:05:12.970Z"
+  },
+  "https://www.uber.com/blog/h3/": {
+    "status": 200,
+    "checkedAt": "2026-10-22T14:05:13.283Z"
+  },
+  "https://www.usenix.org/conference/nsdi13/technical-sessions/presentation/nishtala": {
+    "status": 200,
+    "checkedAt": "2026-10-22T14:05:13.882Z"
+  },
+  "https://www.usenix.org/conference/nsdi20/presentation/agache": {
+    "status": 200,
+    "checkedAt": "2026-10-22T14:05:13.581Z"
+  },
+  "https://www.vldb.org/pvldb/vol8/p1816-teller.pdf": {
+    "status": 200,
+    "checkedAt": "2026-10-22T14:05:13.958Z"
+  }
+}

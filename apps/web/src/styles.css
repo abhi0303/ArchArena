@@ -1,0 +1,106 @@
+@import 'tailwindcss';
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --font-sans: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  --animate-fade-in: fade-in 160ms ease-out;
+  --animate-slide-up: slide-up 180ms ease-out;
+
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+  @keyframes slide-up {
+    from {
+      opacity: 0;
+      transform: translateY(6px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+}
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+    color-scheme: light;
+    /* No rubber-band bounce or pull-to-refresh when dragging past the top/bottom:
+       the app should feel like a native app, and drags on the canvas must not move the page. */
+    overscroll-behavior: none;
+  }
+  html.dark {
+    color-scheme: dark;
+  }
+  body {
+    @apply bg-slate-50 text-slate-900 antialiased dark:bg-slate-950 dark:text-slate-100;
+    overflow-x: hidden;
+    overscroll-behavior: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+  :focus-visible {
+    @apply outline-2 outline-offset-2 outline-indigo-500;
+  }
+  button:not(:disabled),
+  [role='button']:not([aria-disabled='true']) {
+    cursor: pointer;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
+
+@layer components {
+  .card {
+    @apply rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900;
+  }
+  .input {
+    @apply w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100;
+  }
+  .label {
+    @apply mb-1 block text-xs font-medium text-slate-600 dark:text-slate-300;
+  }
+  .prose-lite p {
+    @apply leading-relaxed;
+  }
+  .scrollbar-thin {
+    scrollbar-width: thin;
+  }
+}
+
+/* React Flow tweaks — keep the canvas calm and readable. */
+.react-flow__attribution {
+  display: none;
+}
+.react-flow__handle {
+  width: 10px;
+  height: 10px;
+  border-width: 2px;
+  opacity: 0;
+  transition: opacity 120ms ease;
+}
+.react-flow__node:hover .react-flow__handle,
+.react-flow__node.selected .react-flow__handle,
+.react-flow.connecting .react-flow__handle,
+.touch-handles .react-flow__handle {
+  opacity: 1;
+}
+.react-flow__edge.selected .react-flow__edge-path,
+.react-flow__edge:focus .react-flow__edge-path {
+  stroke: #6366f1 !important;
+}
+.react-flow__node-group {
+  z-index: -1 !important;
+}

@@ -1,0 +1,620 @@
+import { C, R, S, T, anyOf, defineQuestion } from '../dsl';
+import type { QuestionDefinition } from '../types';
+
+const PRIMER = 'https://github.com/donnemartin/system-design-primer';
+const AZURE = 'https://learn.microsoft.com/en-us/azure/architecture/patterns';
+
+export const easyQuestions2: QuestionDefinition[] = [
+  // ───────────────────────────────────────────────────────────────────────────
+  defineQuestion({
+    id: 'e02',
+    slug: 'pastebin',
+    title: 'Pastebin',
+    difficulty: 'easy',
+    category: 'Web Services',
+    minutes: 25,
+    tags: ['object-storage', 'expiry', 'read-heavy'],
+    concepts: ['Blob vs metadata storage', 'Expiration / TTL', 'Caching popular content', 'Unique keys'],
+    statement: {
+      en: 'Design a service where users paste text (code snippets, logs) and get a shareable link. Anyone with the link can read the paste until it expires. Pastes can be up to 10 MB.',
+      hi: 'Ek aisi service design karo jahan users text paste karein (code snippets, logs) aur unhe ek shareable link mile. Jiske paas link hai woh paste padh sake, jab tak woh expire na ho jaye. Ek paste 10 MB tak ka ho sakta hai.',
+    },
+    functional: [
+      ['Users can create a paste and receive a unique link.', 'User paste create kare aur use ek unique link mile.', ['create-flow', 'metadata']],
+      ['Anyone with the link can view the paste.', 'Jiske paas link hai woh paste dekh sake.', ['create-flow', 'content-store']],
+      ['Pastes expire after a chosen time and are cleaned up.', 'Paste chosen time ke baad expire ho aur uski cleanup ho jaye.', ['expiry']],
+    ],
+    nonFunctional: [
+      ['Popular pastes load quickly.', 'Popular pastes jaldi load hone chahiye.', ['read-cache']],
+      ['Stored pastes are durable until they expire.', 'Pastes expire hone tak durable rehne chahiye.', ['content-store', 'db-replication']],
+      ['The service scales with read traffic.', 'Read traffic badhe toh service scale ho sake.', ['entry', 'scale-out']],
+    ],
+    constraints: {
+      en: ['Reads outnumber writes about 10 to 1.', 'Paste content is immutable once created.', 'No user accounts are required to read a paste.'],
+      hi: ['Reads, writes se lagbhag 10 guna zyada hain.', 'Paste ka content create hone ke baad badalta nahi hai.', 'Paste padhne ke liye account ki zaroorat nahi hai.'],
+    },
+    clarifications: [
+      [
+        'Should the paste text live in the database?',
+        'Kya paste ka text database mein rakhna chahiye?',
+        'Small metadata belongs in a database; large immutable content is cheaper and safer in object storage.',
+        'Chhota metadata database mein theek hai; bada immutable content object storage mein sasta aur safe rehta hai.',
+      ],
+    ],
+    scale: [
+      ['New pastes per day', '1 million'],
+      ['Reads per day', '10 million'],
+      ['Average paste size', '10 KB (max 10 MB)'],
+    ],
+    hints: [
+      ['Separate what a paste is (metadata) from what it contains (content). They have very different sizes.', 'Paste kya hai (metadata) aur usme kya hai (content), dono ko alag socho. Dono ke size bahut alag hain.'],
+      ['Object storage is built for large immutable blobs; a database is great for small searchable records.', 'Object storage bade immutable blobs ke liye bana hai; database chhote, searchable records ke liye best hai.'],
+      ['Expired pastes need to disappear: think lifecycle rules or a scheduled cleanup job.', 'Expired pastes hatane padenge: lifecycle rules ya scheduled cleanup job ke baare mein socho.'],
+      ['Caching popular pastes saves storage reads, but immutable content makes cache invalidation easy — why?', 'Popular pastes cache karne se storage reads bachte hain, aur immutable content ki wajah se invalidation easy hai — kyun?'],
+    ],
+    rubric: {
+      checks: [
+        C('create-flow', 'functional', 4, 'Pastes flow from clients through the service to storage', R.path(S.client, anyOf('a data store', S.db, S.blob), [S.service]), 'Create and read requests flow through the paste service to storage.', 'No complete flow from client through an application service to storage exists.', 'Connect Client → (Load Balancer) → Paste Service → storage so pastes can be saved and read.', { critical: true }),
+        C('content-store', 'data', 3, 'Paste content lives in object storage', R.edge(S.service, S.blob), 'Large, immutable paste content is kept in object storage.', 'Paste content is not stored in object storage, so large pastes bloat the database.', 'Store paste bodies in Object Storage and keep only metadata (key, size, expiry) in the database.'),
+        C('metadata', 'functional', 2, 'Paste metadata is stored in a database', R.edge(S.service, S.db), 'Metadata such as key, expiry and size is stored in a database.', 'There is no database for paste metadata, so you cannot look up keys or expiry times.', 'Connect the paste service to a database that stores key → object location, created time and expiry.'),
+        C('read-cache', 'data', 2, 'Popular pastes are cached', R.any(R.edge(S.service, S.cache), R.path(S.client, S.cdn, [], 2)), 'Hot pastes are served from a cache or CDN.', 'Every read goes to storage, even for very popular pastes.', 'Add a cache (or a CDN) for popular pastes. Pastes are immutable, so cached copies never go stale before expiry.'),
+        C('expiry', 'functional', 2, 'Expired pastes are cleaned up', R.any(R.prop(S.blob, 'lifecycle', ['expiry']), R.path(S.scheduler, anyOf('a data store', S.db, S.blob), [], 3)), 'Expired pastes are removed by a lifecycle rule or a scheduled cleanup job.', 'Nothing removes expired pastes, so storage grows forever and expired links keep working.', 'Set an expiry lifecycle rule on object storage, or add a Scheduler that triggers a cleanup worker.'),
+        C('has-blob', 'components', 2, 'Object storage is used', R.has(S.blob), 'Object storage holds paste content.', 'No object storage for paste content.', 'Add Object Storage for the paste bodies.'),
+        C('has-service', 'components', 2, 'A paste service owns the logic', R.has(S.service), 'A dedicated paste service handles creation and reads.', 'No application service handles pastes.', 'Add an Application Server for the paste API.'),
+        T.entry(),
+        T.scaleOut(),
+        T.dbReplication(S.db, { pts: 1 }),
+        T.observability(),
+      ],
+      discouraged: [{ types: ['event-stream', 'data-warehouse', 'ml-service', 'websocket-server'], reason: 'adds complexity a simple pastebin does not need.' }],
+    },
+    reference: {
+      nodes: [
+        ['web', 'web-client', 'People creating and reading pastes.'],
+        ['lb', 'load-balancer', 'Distributes requests over paste service instances.', { props: { lbAlgorithm: 'round-robin', healthChecks: true } }],
+        ['app', 'app-server', 'Generates keys, writes content and metadata, serves reads.', { label: 'Paste Service', props: { instances: 'autoscaled', stateless: true } }],
+        ['cache', 'distributed-cache', 'Keeps hot pastes in memory; immutable content means no invalidation headaches.', { label: 'Paste Cache', props: { evictionPolicy: 'lru', writePolicy: 'cache-aside' } }],
+        ['db', 'sql-db', 'Stores key, object location, size and expiry time.', { label: 'Paste Metadata', props: { replication: 'leader-follower-async', backups: 'daily' } }],
+        ['blob', 'object-storage', 'Durable, cheap storage for paste bodies with an expiry lifecycle rule.', { label: 'Paste Content', props: { lifecycle: 'expiry', durability: 'multi-az' } }],
+        ['cron', 'scheduler', 'Runs a periodic job that deletes expired metadata rows.', { props: { trigger: 'cron' } }],
+        ['cleaner', 'background-worker', 'Deletes expired pastes in batches.', { label: 'Cleanup Worker', props: { instances: 'single', retryStrategy: 'fixed' } }],
+      ],
+      edges: [
+        'web>lb',
+        ['lb>app', 'All requests enter through the load balancer so the stateless service can scale out.'],
+        ['app>cache', 'Read path checks the cache first for popular pastes.'],
+        ['app>db', 'Metadata lookups and inserts (key → content location, expiry).'],
+        ['app>blob', 'Paste bodies are written once and read many times from object storage.'],
+        'cron>cleaner',
+        'cleaner>db',
+      ],
+      summary:
+        'Metadata and content are separated: a small replicated database indexes pastes while object storage holds the immutable bodies. A cache serves popular pastes, and expiry is enforced by an object-storage lifecycle rule plus a scheduled cleanup job for metadata.',
+      tradeoffs: [
+        'Storing small pastes inline in the database is simpler but makes the database grow quickly; object storage scales cheaply.',
+        'Lazy expiry (check expiry on read) is simple; active cleanup reclaims storage — the reference does both.',
+      ],
+      alternatives: ['Serve pastes via a CDN with signed URLs instead of an application cache.', 'Use a NoSQL key-value store keyed by paste id for metadata.'],
+    },
+    sources: [['System Design Primer — Design Pastebin.com (or Bit.ly)', `${PRIMER}/blob/master/solutions/system_design/pastebin/README.md`, 'interview-prep']],
+  }),
+
+  // ───────────────────────────────────────────────────────────────────────────
+  defineQuestion({
+    id: 'e03',
+    slug: 'file-upload-download-service',
+    title: 'Simple File Upload and Download Service',
+    difficulty: 'easy',
+    category: 'Storage & Files',
+    minutes: 25,
+    tags: ['object-storage', 'pre-signed-urls', 'cdn'],
+    concepts: ['Object storage', 'Pre-signed URLs (valet key)', 'Metadata vs content', 'Authentication'],
+    statement: {
+      en: 'Design a service where signed-in users upload files (up to 1 GB), see a list of their files, and download them later. Uploads should not overload the application servers.',
+      hi: 'Ek aisi service design karo jahan signed-in users files upload karein (1 GB tak), apni files ki list dekhein, aur baad mein unhe download karein. Uploads ki wajah se application servers overload nahi hone chahiye.',
+    },
+    functional: [
+      ['Users can upload files up to 1 GB.', 'User 1 GB tak ki files upload kar sake.', ['upload-flow', 'presigned']],
+      ['Users can list their files with name, size and date.', 'User apni files ki list naam, size aur date ke saath dekh sake.', ['metadata']],
+      ['Users can download their own files.', 'User apni files download kar sake.', ['upload-flow', 'download-cdn']],
+    ],
+    nonFunctional: [
+      ['Only the owner can access a file.', 'Sirf owner hi apni file access kar sake.', ['auth']],
+      ['Uploaded files must not be lost.', 'Upload hui files kabhi lose nahi honi chahiye.', ['durability']],
+      ['Large uploads should not tie up app servers.', 'Badi uploads app servers ko block na karein.', ['presigned', 'scale-out']],
+    ],
+    constraints: {
+      en: ['Files are stored as-is; no editing or versioning.', 'Average file size is 5 MB; a few are close to 1 GB.'],
+      hi: ['Files jaise hain waise hi store hongi; editing ya versioning nahi hai.', 'Average file size 5 MB hai; kuch files 1 GB ke kareeb hain.'],
+    },
+    clarifications: [
+      [
+        'Do uploads have to go through our servers?',
+        'Kya uploads ko hamare servers se hokar jaana zaroori hai?',
+        'No. A common pattern lets the server hand out a short-lived pre-signed URL so the client uploads directly to storage.',
+        'Nahi. Common pattern yeh hai ki server ek short-lived pre-signed URL de aur client seedha storage mein upload kare.',
+      ],
+    ],
+    scale: [
+      ['Uploads per day', '500,000'],
+      ['Downloads per day', '2 million'],
+      ['Total storage', '~1 PB after 2 years'],
+    ],
+    hints: [
+      ['The heavy part is moving bytes, not running logic. Where should the bytes travel?', 'Asli bhaari kaam bytes move karna hai, logic chalana nahi. Bytes kahan se kahan jaane chahiye?'],
+      ['Look up the “valet key” / pre-signed URL pattern.', '“Valet key” ya pre-signed URL pattern ke baare mein padho.'],
+      ['You still need a database for file metadata and ownership checks.', 'File metadata aur ownership check ke liye database phir bhi chahiye.'],
+      ['Direct-to-storage uploads save server bandwidth but need careful URL expiry and permissions.', 'Direct storage uploads se server bandwidth bachti hai, par URL expiry aur permissions dhyan se set karni padti hain.'],
+    ],
+    rubric: {
+      checks: [
+        C('upload-flow', 'functional', 4, 'File bytes reach object storage', R.path(S.client, S.blob, [], 4), 'Files travel from the client to durable object storage.', 'There is no path for file bytes to reach object storage.', 'Connect the client to Object Storage (directly with a pre-signed URL, or via the file service).', { critical: true }),
+        C('metadata', 'functional', 3, 'File metadata is stored', R.path(S.client, S.db, [S.service]), 'File names, sizes and owners are stored in a database behind the file service.', 'No database stores file metadata, so users cannot list their files.', 'Connect the File Service to a database that stores file id, owner, name, size and object key.', { critical: true }),
+        C('presigned', 'scalability', 2, 'Uploads bypass the app servers', R.prop(S.blob, 'uploadMethod', ['presigned-url']), 'Clients upload straight to storage with pre-signed URLs.', 'Large uploads stream through app servers, tying them up.', 'Set Object Storage “Upload method” to pre-signed URL and connect the client to it directly.'),
+        T.cdn({ id: 'download-cdn', pts: 1, optional: true, title: 'Downloads served via a CDN' }),
+        T.auth(),
+        C('durability', 'reliability', 1, 'Files are stored durably', R.prop(S.blob, 'durability', ['multi-az', 'cross-region']), 'Objects are replicated across zones or regions.', 'Storage durability is not configured.', 'Set Object Storage durability to replicated across zones (or cross-region).'),
+        C('has-blob', 'components', 3, 'Object storage holds the files', R.has(S.blob), 'Object storage is used for file content.', 'No object storage for file content.', 'Add Object Storage — databases are the wrong place for gigabyte-sized files.', { critical: true }),
+        C('has-db', 'components', 1, 'A database holds metadata', R.has(S.db), 'A database stores file metadata.', 'No database for metadata.', 'Add a SQL or NoSQL database for metadata.'),
+        T.entry(),
+        T.scaleOut(),
+        T.dbReplication(S.db, { pts: 1 }),
+      ],
+      discouraged: [{ types: ['message-queue', 'event-stream', 'websocket-server', 'data-warehouse'], reason: 'is not needed for basic upload and download.' }],
+    },
+    reference: {
+      nodes: [
+        ['web', 'web-client', 'Users uploading and downloading files.'],
+        ['gw', 'api-gateway', 'Authenticates every API call before it reaches the file service.', { props: { authentication: 'jwt', rateLimiting: 'per-user' } }],
+        ['app', 'app-server', 'Checks ownership, issues pre-signed URLs and records metadata.', { label: 'File Service', props: { instances: 'autoscaled', stateless: true } }],
+        ['db', 'sql-db', 'Owner, file name, size, object key and timestamps.', { label: 'File Metadata', props: { replication: 'leader-follower-async', backups: 'point-in-time' } }],
+        ['blob', 'object-storage', 'Holds file bytes; clients upload and download directly using pre-signed URLs.', { label: 'File Store', props: { uploadMethod: 'presigned-url', durability: 'multi-az' } }],
+        ['cdn', 'cdn', 'Speeds up downloads for users far from the storage region.', { props: { cachedContent: 'media' } }],
+      ],
+      edges: [
+        ['web>gw', 'Metadata and URL requests are authenticated at the gateway.'],
+        'gw>app',
+        'app>db',
+        ['web>blob', 'Bytes go straight to storage with a short-lived pre-signed URL, keeping app servers free.'],
+        'web>cdn',
+        'cdn>blob',
+      ],
+      summary:
+        'The file service only handles small metadata requests and hands out pre-signed URLs; the heavy bytes move directly between clients and durable object storage (or the CDN for downloads). Authentication happens at the gateway and ownership is checked before any URL is issued.',
+      tradeoffs: [
+        'Pre-signed URLs remove upload load from servers but you must keep their lifetime short and scope them to one object.',
+        'Proxying uploads through the service allows inspection (e.g. virus scanning) at the cost of server bandwidth.',
+      ],
+      alternatives: ['Upload through the service and stream to storage when content must be validated inline.', 'Use multipart/resumable uploads for very large files.'],
+    },
+    sources: [['Azure Architecture Center — Valet Key pattern', `${AZURE}/valet-key`, 'documentation']],
+  }),
+
+  // ───────────────────────────────────────────────────────────────────────────
+  defineQuestion({
+    id: 'e04',
+    slug: 'basic-notification-service',
+    title: 'Basic Notification Service',
+    difficulty: 'easy',
+    category: 'Messaging & Real-time',
+    minutes: 25,
+    tags: ['queues', 'workers', 'retries', 'providers'],
+    concepts: ['Asynchronous processing', 'Retries with backoff', 'Dead-letter queues', 'User preferences'],
+    statement: {
+      en: 'Design a service that other backend services call to notify users by email, SMS or push. It should respect user preferences and keep trying when a provider is temporarily down.',
+      hi: 'Ek aisi service design karo jise doosri backend services call karein taaki users ko email, SMS ya push se notify kiya ja sake. Yeh user preferences ka dhyan rakhe aur agar provider thodi der ke liye down ho toh retry karti rahe.',
+    },
+    functional: [
+      ['Internal services can request a notification for a user.', 'Internal services kisi user ke liye notification request bhej sakein.', ['accept']],
+      ['Notifications are delivered via email, SMS or push providers.', 'Notifications email, SMS ya push providers se deliver hon.', ['async-send', 'deliver']],
+      ['User channel preferences are respected.', 'User ki channel preferences ka dhyan rakha jaye.', ['prefs']],
+    ],
+    nonFunctional: [
+      ['Callers are not slowed down by slow providers.', 'Slow providers ki wajah se calling services slow na hon.', ['async-send']],
+      ['Failed sends are retried and never silently lost.', 'Fail hue sends retry hon aur chupchaap lose na hon.', ['retries', 'dlq']],
+      ['Sending capacity scales with volume.', 'Volume badhe toh sending capacity bhi scale ho.', ['workers-scale']],
+    ],
+    constraints: {
+      en: ['Providers are third-party services with rate limits and occasional outages.', 'Delivery within a minute is fine; exact-once delivery is not required.'],
+      hi: ['Providers third-party services hain jinki rate limits hain aur kabhi-kabhi outage hota hai.', 'Ek minute ke andar delivery theek hai; exact-once delivery zaroori nahi hai.'],
+    },
+    clarifications: [
+      [
+        'Can a user receive the same notification twice?',
+        'Kya user ko same notification do baar mil sakti hai?',
+        'Occasionally is acceptable, but try to avoid duplicates on retries.',
+        'Kabhi-kabhi chalega, lekin retries ke time duplicates avoid karne ki koshish karo.',
+      ],
+    ],
+    scale: [
+      ['Notifications per day', '5 million'],
+      ['Peak rate', '500 per second'],
+    ],
+    starter: [{ type: 'microservice', label: 'Order Service' }, { type: 'mobile-client' }],
+    suggested: ['application', 'messaging', 'supporting', 'storage', 'specialized'],
+    hints: [
+      ['Calling an email provider inside the request is slow and fragile. How can callers hand off the work?', 'Request ke andar email provider call karna slow aur fragile hai. Callers kaam kaise hand off kar sakte hain?'],
+      ['A queue between the API and sender workers decouples them and absorbs spikes.', 'API aur sender workers ke beech queue unhe decouple karti hai aur spikes absorb karti hai.'],
+      ['Workers need retries with backoff and somewhere to park messages that keep failing.', 'Workers ko backoff ke saath retries chahiye aur baar-baar fail hone wale messages rakhne ki jagah bhi.'],
+      ['At-least-once delivery is simple but may duplicate; idempotency keys reduce that.', 'At-least-once delivery simple hai par duplicate ho sakta hai; idempotency keys se yeh kam hota hai.'],
+    ],
+    rubric: {
+      structural: { exposedServices: 'off' },
+      checks: [
+        C('accept', 'functional', 3, 'Producers can call the notification API', R.path(S.service, S.notification), 'Backend services submit notification requests to the notification service.', 'No producer service reaches the notification service.', 'Connect the calling service (e.g. Order Service) to a Notification Service API.', { critical: true }),
+        C('async-send', 'connections', 3, 'Sending is decoupled with a queue', R.async(S.notification, S.worker, S.queue), 'The API enqueues work and sender workers process it asynchronously.', 'Notifications are sent synchronously, so slow providers slow down callers.', 'Put a Message Queue between the Notification Service and sender workers.'),
+        C('deliver', 'functional', 3, 'Workers deliver through providers', R.path(S.worker, S.notifyProvider), 'Sender workers call email/SMS/push providers.', 'Nothing actually hands notifications to a delivery provider.', 'Connect sender workers to Email/SMS and Push providers.', { critical: true }),
+        C('prefs', 'data', 2, 'Preferences are stored', R.edge(S.notification, anyOf('a database', S.db, S.cache)), 'User channel preferences and templates are looked up from storage.', 'There is nowhere to store user preferences.', 'Connect the Notification Service to a database holding preferences and templates.'),
+        C('retries', 'reliability', 2, 'Failed sends are retried with backoff', R.prop(S.worker, 'retryStrategy', ['exponential-backoff']), 'Workers retry with exponential backoff, riding out provider hiccups.', 'Retry behaviour is undefined, so temporary provider outages drop messages.', 'Set the worker’s Retry strategy to exponential backoff with jitter.'),
+        T.dlq({ optional: false, pts: 1 }),
+        T.idempotent(S.worker, { optional: true, pts: 1 }),
+        C('workers-scale', 'scalability', 2, 'Sender workers scale out', R.redundant(S.worker), 'Multiple sender workers share the queue.', 'A single worker limits throughput and is a single point of failure.', 'Run sender workers with multiple or autoscaled instances.'),
+        C('has-queue', 'components', 2, 'A queue buffers notifications', R.has(S.queue), 'A queue buffers notification jobs.', 'No queue buffers notification jobs.', 'Add a Message Queue.'),
+        C('has-provider', 'components', 2, 'Delivery providers are used', R.has(S.notifyProvider), 'External providers handle the actual delivery.', 'No delivery provider is present.', 'Add Email/SMS and Push providers.'),
+      ],
+      discouraged: [{ types: ['data-warehouse', 'search-index', 'transcoder'], reason: 'does not help deliver notifications.' }],
+    },
+    reference: {
+      nodes: [
+        ['orders', 'microservice', 'Example producer that asks for “order shipped” notifications.', { label: 'Order Service' }],
+        ['notif', 'notification-service', 'Validates requests, applies preferences and templates, enqueues jobs.', { label: 'Notification API', props: { instances: 'multiple', channels: 'multi-channel' } }],
+        ['prefs', 'sql-db', 'User channel preferences and message templates.', { label: 'Preferences DB', props: { replication: 'leader-follower-async' } }],
+        ['queue', 'message-queue', 'Buffers jobs so spikes and provider outages do not affect callers.', { label: 'Send Queue', props: { delivery: 'at-least-once', deadLetter: true } }],
+        ['worker', 'background-worker', 'Sends via providers with retries and idempotency keys.', { label: 'Sender Workers', props: { instances: 'autoscaled', retryStrategy: 'exponential-backoff', idempotency: 'idempotency-keys' } }],
+        ['dlq', 'dead-letter-queue', 'Parks jobs that failed all retries for inspection and replay.'],
+        ['email', 'email-sms-provider', 'Delivers email and SMS.'],
+        ['push', 'push-provider', 'Delivers push notifications to devices.'],
+        ['mobile', 'mobile-client', 'Receives push notifications.'],
+      ],
+      edges: [
+        ['orders>notif', 'Producers make a quick API call and move on.'],
+        'notif>prefs',
+        ['notif>queue', 'Enqueueing decouples callers from slow or failing providers.'],
+        ['queue>worker', 'Workers pull jobs at their own pace and scale with backlog.'],
+        'worker>email',
+        'worker>push',
+        'worker>dlq',
+        'push>mobile',
+      ],
+      summary:
+        'Producers call a lightweight notification API that applies preferences and enqueues a job. Autoscaled workers drain the queue, call providers with exponential backoff and idempotency keys, and move poison messages to a dead-letter queue, so callers stay fast and no notification is silently lost.',
+      tradeoffs: ['At-least-once delivery may duplicate a message; idempotency keys at the provider reduce this.', 'One queue per channel isolates a slow channel (SMS) from fast ones (push) at the cost of more moving parts.'],
+      alternatives: ['Use an event stream and let a notification consumer subscribe to domain events instead of an explicit API.', 'Separate queues per channel and priority.'],
+    },
+    sources: [['Azure Architecture Center — Queue-Based Load Leveling pattern', `${AZURE}/queue-based-load-leveling`, 'documentation']],
+  }),
+
+  // ───────────────────────────────────────────────────────────────────────────
+  defineQuestion({
+    id: 'e05',
+    slug: 'rate-limiter',
+    title: 'Rate Limiter',
+    difficulty: 'easy',
+    category: 'Infrastructure & Platform',
+    minutes: 20,
+    tags: ['rate-limiting', 'token-bucket', 'redis'],
+    concepts: ['Rate limiting algorithms', 'Shared counters', 'Fail-open vs fail-closed', 'HTTP 429'],
+    statement: {
+      en: 'Design a rate limiter that protects a public API running on several servers. Each user may make at most 100 requests per minute; extra requests get HTTP 429.',
+      hi: 'Ek rate limiter design karo jo kai servers pe chal rahi public API ko protect kare. Har user ek minute mein zyada se zyada 100 requests kar sakta hai; extra requests ko HTTP 429 milna chahiye.',
+    },
+    functional: [
+      ['Every API request is checked against the caller’s limit.', 'Har API request ko caller ki limit ke against check kiya jaye.', ['guard', 'scope']],
+      ['Requests over the limit are rejected with HTTP 429.', 'Limit se zyada requests HTTP 429 ke saath reject hon.', ['guard', 'algorithm']],
+    ],
+    nonFunctional: [
+      ['Limits are consistent across all API servers.', 'Saare API servers pe limits consistent hon.', ['shared-counters']],
+      ['The limiter adds very little latency.', 'Limiter bahut kam latency add kare.', ['shared-counters']],
+      ['The API stays available if the limiter has problems.', 'Limiter mein problem ho toh bhi API available rahe.', ['fail-mode', 'cache-ha']],
+    ],
+    constraints: {
+      en: ['The API runs on many stateless instances.', 'Limits are per user (identified by API key).'],
+      hi: ['API kai stateless instances pe chalti hai.', 'Limits har user ke liye hain (API key se identify hota hai).'],
+    },
+    clarifications: [
+      [
+        'Is it OK if a user briefly gets slightly more than 100 requests?',
+        'Kya user ko thodi der ke liye 100 se thodi zyada requests mil jayein toh chalega?',
+        'Small inaccuracies are fine; large bypasses are not.',
+        'Chhoti inaccuracy chalegi; bada bypass nahi.',
+      ],
+    ],
+    scale: [
+      ['API requests per second', '20,000'],
+      ['Active API keys', '1 million'],
+    ],
+    suggested: ['clients', 'application', 'caching', 'supporting'],
+    hints: [
+      ['If each server counts requests on its own, what happens when a user’s requests are spread across 10 servers?', 'Agar har server apni counting alag kare, toh jab user ki requests 10 servers pe bant jayengi tab kya hoga?'],
+      ['Shared counters in a fast in-memory store keep limits consistent.', 'Fast in-memory store mein shared counters limits ko consistent rakhte hain.'],
+      ['Compare token bucket, fixed window and sliding window algorithms.', 'Token bucket, fixed window aur sliding window algorithms compare karo.'],
+      ['If the counter store is down, do you block everyone (fail closed) or allow traffic (fail open)?', 'Agar counter store down hai toh sabko block karoge (fail closed) ya traffic allow karoge (fail open)?'],
+    ],
+    rubric: {
+      checks: [
+        C('guard', 'functional', 4, 'Every request passes the limiter', R.any(R.guarded(S.client, S.service, S.rateLimiter), R.guarded(S.client, S.service, { types: ['api-gateway'], where: { key: 'rateLimiting', values: ['per-user', 'per-ip', 'per-api-key'] }, name: 'an API gateway with rate limiting' })), 'All client traffic is checked by the rate limiter before reaching the API.', 'Some or all requests reach the API without passing the rate limiter.', 'Place the Rate Limiter (or a gateway with rate limiting) on every path from clients to the API service.', { critical: true }),
+        C('shared-counters', 'data', 3, 'Counters are shared across servers', R.any(R.edge(S.rateLimiter, S.cache), R.prop(S.rateLimiter, 'rlStore', ['shared-cache'])), 'Counters live in a shared in-memory store, so every server enforces the same limit.', 'Counters are local to each server, so users can exceed limits by hitting different servers.', 'Connect the Rate Limiter to a Distributed Cache (or set “Counter store” to shared cache).'),
+        C('algorithm', 'data', 2, 'A limiting algorithm is chosen', R.prop(S.rateLimiter, 'rlAlgorithm'), 'A concrete limiting algorithm is configured.', 'No algorithm is chosen.', 'Choose an algorithm such as token bucket or sliding window counter on the Rate Limiter.'),
+        C('scope', 'functional', 2, 'Limits apply per user', R.prop(S.rateLimiter, 'rlScope', ['per-user', 'per-api-key']), 'Limits are keyed by user / API key as required.', 'The limiter is not configured to count per user.', 'Set “Limit by” to user or API key.'),
+        C('fail-mode', 'reliability', 1, 'Failure behaviour is defined', R.prop(S.rateLimiter, 'failMode'), 'The limiter has an explicit fail-open or fail-closed policy.', 'It is unclear what happens if the counter store fails.', 'Set the failure mode (fail-open keeps the API available; fail-closed protects it).'),
+        C('cache-ha', 'reliability', 1, 'Counter store is redundant', R.prop(S.distCache, 'cacheReplication', ['replicas', 'cluster']), 'The counter store has replicas or runs as a cluster.', 'A single cache node holds all counters.', 'Run the Distributed Cache with replicas or as a cluster.'),
+        C('has-limiter', 'components', 3, 'A rate limiting component exists', R.any(R.has(S.rateLimiter), R.has({ types: ['api-gateway'], where: { key: 'rateLimiting', values: ['per-user', 'per-ip', 'per-api-key'] }, name: 'a gateway with rate limiting' })), 'A rate limiter protects the API.', 'No rate limiting component exists.', 'Add a Rate Limiter in front of the API.', { critical: true }),
+        C('has-cache', 'components', 2, 'A fast counter store exists', R.has(S.cache), 'An in-memory store holds counters.', 'No in-memory store for counters.', 'Add a Distributed Cache such as Redis for counters.'),
+        T.entry(),
+        T.scaleOut(),
+      ],
+      discouraged: [{ types: ['message-queue', 'event-stream', 'data-warehouse', 'object-storage'], reason: 'adds latency or cost without helping to limit requests.' }],
+    },
+    reference: {
+      nodes: [
+        ['web', 'web-client', 'API consumers identified by API key.'],
+        ['lb', 'load-balancer', 'Spreads traffic across limiter and API instances.', { props: { healthChecks: true } }],
+        ['rl', 'rate-limiter', 'Checks and increments the caller’s counter; returns 429 when over the limit.', { props: { rlAlgorithm: 'sliding-window-counter', rlScope: 'per-api-key', rlStore: 'shared-cache', failMode: 'fail-open' } }],
+        ['cache', 'distributed-cache', 'Atomic counters with TTL per key and window.', { label: 'Counter Store', props: { cacheReplication: 'cluster', evictionPolicy: 'ttl' } }],
+        ['api', 'app-server', 'The protected public API.', { label: 'Public API', props: { instances: 'autoscaled', stateless: true } }],
+        ['db', 'sql-db', 'The API’s own data.', { label: 'API Data', props: { replication: 'leader-follower-async' } }],
+      ],
+      edges: [
+        'web>lb',
+        ['lb>rl', 'Every request passes the limiter first — no bypass path to the API.'],
+        ['rl>cache', 'Shared atomic counters keep the limit consistent across all instances.'],
+        'rl>api',
+        'api>db',
+      ],
+      summary:
+        'An inline rate limiter checks every request against shared counters in a clustered in-memory store using a sliding-window counter per API key. Excess requests get 429 before reaching the API, the limit is identical on every server, and the limiter fails open so a cache incident does not take the API down.',
+      tradeoffs: ['Fail-open favours availability but allows abuse during cache outages; fail-closed protects the backend but rejects legitimate users.', 'Sliding-window counters are accurate and cheap; sliding logs are exact but memory-hungry.'],
+      alternatives: ['Enable rate limiting in a managed API gateway.', 'Keep local token buckets with periodic synchronisation for lower latency and approximate limits.'],
+    },
+    sources: [
+      ['Stripe Engineering — Scaling your API with rate limiters', 'https://stripe.com/blog/rate-limiters', 'engineering-blog'],
+      ['Azure Architecture Center — Rate Limiting pattern', `${AZURE}/rate-limiting-pattern`, 'documentation'],
+    ],
+  }),
+
+  // ───────────────────────────────────────────────────────────────────────────
+  defineQuestion({
+    id: 'e06',
+    slug: 'api-gateway-basic',
+    title: 'API Gateway (Basic)',
+    difficulty: 'easy',
+    category: 'Infrastructure & Platform',
+    minutes: 25,
+    tags: ['gateway', 'routing', 'auth', 'microservices'],
+    concepts: ['Gateway routing', 'Edge authentication', 'Throttling', 'Request logging'],
+    statement: {
+      en: 'Design a single API entry point for an app with three backend services (users, orders, catalog). It must route requests, authenticate users, throttle abusive clients and log every request.',
+      hi: 'Ek app ke liye single API entry point design karo jiske peeche teen backend services hain (users, orders, catalog). Isse requests route karni hain, users authenticate karne hain, abusive clients ko throttle karna hai aur har request log karni hai.',
+    },
+    functional: [
+      ['Requests are routed to the right backend service by path.', 'Requests path ke hisaab se sahi backend service tak route hon.', ['routing', 'multi-service']],
+      ['Users are authenticated before reaching services.', 'Services tak pahunchne se pehle users authenticate hon.', ['auth']],
+      ['Abusive clients are throttled.', 'Abusive clients throttle kiye jayein.', ['rate']],
+      ['Every request is logged.', 'Har request log ho.', ['logging']],
+    ],
+    nonFunctional: [
+      ['Clients cannot bypass the gateway.', 'Clients gateway ko bypass na kar sakein.', ['single-entry']],
+      ['The gateway is not a single point of failure.', 'Gateway single point of failure na ho.', ['gateway-ha']],
+      ['Backend services scale independently.', 'Backend services alag-alag scale ho sakein.', ['scale-out']],
+    ],
+    constraints: {
+      en: ['Web and mobile clients use the same API.', 'Services communicate over HTTPS.'],
+      hi: ['Web aur mobile clients same API use karte hain.', 'Services HTTPS pe communicate karti hain.'],
+    },
+    scale: [
+      ['Requests per second', '5,000'],
+      ['Backend services', '3'],
+    ],
+    starter: ['web-client', 'mobile-client'],
+    suggested: ['clients', 'application', 'supporting', 'storage'],
+    hints: [
+      ['What should every request pass through, no matter which service it targets?', 'Har request ko kis cheez se guzarna chahiye, chahe woh kisi bhi service ke liye ho?'],
+      ['Cross-cutting concerns (auth, throttling, logging) belong at the edge, not copied into every service.', 'Cross-cutting concerns (auth, throttling, logging) edge pe hone chahiye, har service mein copy nahi.'],
+      ['Make sure there is no path from clients to services that skips the gateway.', 'Dhyan rakho ki clients se services tak koi aisa path na ho jo gateway skip kare.'],
+      ['A gateway becomes critical infrastructure — how do you keep it highly available?', 'Gateway critical infrastructure ban jata hai — use highly available kaise rakhoge?'],
+    ],
+    rubric: {
+      checks: [
+        C('routing', 'functional', 4, 'Requests are routed through the gateway', R.path(S.client, S.service, [S.gateway]), 'Client requests reach backend services through the API gateway.', 'Requests do not flow from clients through a gateway to services.', 'Connect clients → API Gateway → each backend service.', { critical: true }),
+        C('multi-service', 'components', 2, 'Multiple backend services exist', R.has(S.service, 3), 'Separate services handle users, orders and catalog.', 'Fewer than three backend services are modelled.', 'Add the users, orders and catalog services behind the gateway.'),
+        C('single-entry', 'connections', 3, 'No path bypasses the gateway', R.guarded(S.client, S.service, S.gateway), 'Every client path to a service goes through the gateway.', 'Some client requests reach services without the gateway, skipping auth and throttling.', 'Remove direct client → service connections so the gateway is the only entry point.', { concern: 'security' }),
+        C('auth', 'reliability', 2, 'Authentication at the edge', R.any(R.prop(S.gateway, 'authentication', ['jwt', 'oauth2', 'api-key']), R.edge(S.gateway, S.auth)), 'The gateway authenticates requests (or delegates to an auth service).', 'Requests reach services without authentication.', 'Enable JWT/OAuth authentication on the gateway or connect it to an Authentication Service.', { concern: 'security' }),
+        C('rate', 'reliability', 2, 'Throttling at the edge', R.any(R.prop(S.gateway, 'rateLimiting', ['per-user', 'per-ip', 'per-api-key']), R.edge(S.gateway, S.rateLimiter)), 'Abusive clients are throttled at the gateway.', 'Nothing throttles abusive clients.', 'Enable rate limiting on the gateway.', { concern: 'security' }),
+        C('logging', 'reliability', 1, 'Requests are logged centrally', R.path(S.gateway, S.observability, [], 2), 'The gateway ships request logs/metrics to observability tooling.', 'Requests are not logged centrally.', 'Connect the gateway to a Logging Service or Metrics & Monitoring.'),
+        C('gateway-ha', 'reliability', 2, 'The gateway is highly available', R.prop(S.gateway, 'availability', ['managed-ha', 'active-passive']), 'The gateway runs highly available.', 'Gateway availability is not configured — it may be a single point of failure.', 'Set the gateway’s Availability to managed/HA or an active-passive pair.', { concern: 'bottleneck' }),
+        C('has-gateway', 'components', 3, 'An API gateway is used', R.has(S.gateway), 'An API gateway is the single entry point.', 'No API gateway.', 'Add an API Gateway.', { critical: true }),
+        T.scaleOut(),
+        C('timeouts', 'reliability', 1, 'Gateway timeouts are set', R.prop(S.gateway, 'timeout'), 'The gateway has request timeouts, so slow services do not exhaust it.', 'No gateway timeout is configured.', 'Set a timeout on the gateway.', { optional: true }),
+      ],
+      discouraged: [{ types: ['message-queue', 'event-stream', 'data-warehouse'], reason: 'is not part of a basic synchronous gateway setup.' }],
+    },
+    reference: {
+      nodes: [
+        ['web', 'web-client', 'Browser users.'],
+        ['mobile', 'mobile-client', 'Mobile app users.'],
+        ['gw', 'api-gateway', 'Routes by path, validates JWTs, throttles per user and logs every request.', { props: { authentication: 'jwt', rateLimiting: 'per-user', availability: 'managed-ha', timeout: 'standard' } }],
+        ['users', 'microservice', 'Profiles and accounts.', { label: 'Users Service', props: { instances: 'autoscaled' } }],
+        ['orders', 'microservice', 'Order placement and history.', { label: 'Orders Service', props: { instances: 'autoscaled' } }],
+        ['catalog', 'microservice', 'Products and prices.', { label: 'Catalog Service', props: { instances: 'autoscaled' } }],
+        ['usersdb', 'sql-db', 'User data owned by the users service.', { label: 'Users DB', props: { replication: 'leader-follower-async' } }],
+        ['ordersdb', 'sql-db', 'Order data owned by the orders service.', { label: 'Orders DB', props: { replication: 'leader-follower-async' } }],
+        ['catalogdb', 'nosql-db', 'Product documents owned by the catalog service.', { label: 'Catalog DB', props: { dataModel: 'document', replicationFactor: '3' } }],
+        ['logs', 'logging-service', 'Central request logs.'],
+      ],
+      edges: [
+        ['web>gw', 'All client traffic enters through the gateway.'],
+        'mobile>gw',
+        'gw>users',
+        'gw>orders',
+        'gw>catalog',
+        'gw>logs',
+        'users>usersdb',
+        'orders>ordersdb',
+        'catalog>catalogdb',
+      ],
+      summary:
+        'A managed, highly available API gateway is the only entry point. It authenticates JWTs, throttles per user, applies timeouts and logs every request, then routes by path to independently scaled services that each own their data.',
+      tradeoffs: ['A gateway centralises policy but adds a hop and must itself be highly available.', 'Putting business logic in the gateway couples services to it — keep it thin.'],
+      alternatives: ['Use a Backend-for-Frontend per client type behind the gateway.', 'Use a service mesh for service-to-service policies in addition to the edge gateway.'],
+    },
+    sources: [['Azure Architecture Center — Gateway Routing pattern', `${AZURE}/gateway-routing`, 'documentation']],
+  }),
+
+  // ───────────────────────────────────────────────────────────────────────────
+  defineQuestion({
+    id: 'e07',
+    slug: 'image-hosting-basic',
+    title: 'Basic Image Hosting Service',
+    difficulty: 'easy',
+    category: 'Media & Streaming',
+    minutes: 25,
+    tags: ['images', 'thumbnails', 'cdn', 'workers'],
+    concepts: ['Object storage', 'Async processing', 'CDN delivery', 'Thumbnails'],
+    statement: {
+      en: 'Design a service where users upload images and share links to them. The service creates thumbnails and must serve images fast to viewers anywhere.',
+      hi: 'Ek aisi service design karo jahan users images upload karein aur unke links share karein. Service thumbnails banaye aur duniya mein kahin bhi viewers ko images fast serve kare.',
+    },
+    functional: [
+      ['Users can upload images.', 'Users images upload kar sakein.', ['upload']],
+      ['Thumbnails are generated for each image.', 'Har image ke thumbnails generate hon.', ['thumbnails', 'thumb-store']],
+      ['Anyone with the link can view the image.', 'Link wala koi bhi image dekh sake.', ['metadata', 'cdn']],
+    ],
+    nonFunctional: [
+      ['Images load fast worldwide.', 'Images duniya bhar mein fast load hon.', ['cdn']],
+      ['Uploads stay fast even while thumbnails are generated.', 'Thumbnails bante waqt bhi uploads fast rahein.', ['thumbnails']],
+      ['The system scales with traffic.', 'Traffic badhe toh system scale ho.', ['entry', 'scale-out']],
+    ],
+    constraints: {
+      en: ['Images are up to 20 MB.', 'Three thumbnail sizes are needed.', 'Images are never edited after upload.'],
+      hi: ['Images 20 MB tak ki hain.', 'Teen thumbnail sizes chahiye.', 'Upload ke baad images edit nahi hoti.'],
+    },
+    scale: [
+      ['Uploads per day', '2 million'],
+      ['Image views per day', '200 million'],
+    ],
+    hints: [
+      ['Generating thumbnails takes seconds — should the user wait for it?', 'Thumbnails banane mein seconds lagte hain — kya user ko iska wait karna chahiye?'],
+      ['Queues + workers let you do slow work after responding to the user.', 'Queues + workers se aap user ko response dene ke baad slow kaam kar sakte ho.'],
+      ['Images are read far more than written: put them on a CDN backed by object storage.', 'Images likhne se kahin zyada padhi jaati hain: unhe object storage-backed CDN pe rakho.'],
+      ['Immutable images can be cached forever with versioned URLs.', 'Immutable images ko versioned URLs ke saath hamesha ke liye cache kiya ja sakta hai.'],
+    ],
+    rubric: {
+      checks: [
+        C('upload', 'functional', 4, 'Images reach object storage', R.path(S.client, S.blob, [], 4), 'Uploaded images end up in object storage.', 'There is no way for images to reach object storage.', 'Connect the upload path from the client to Object Storage.', { critical: true }),
+        C('metadata', 'functional', 2, 'Image metadata is stored', R.path(S.client, S.db, [S.service]), 'Image records (owner, keys, sizes) are stored by the image service.', 'No database stores image metadata.', 'Connect the Image Service to a database for image records.'),
+        C('thumbnails', 'connections', 3, 'Thumbnails are generated asynchronously', R.async(S.service, anyOf('a worker', S.worker, S.transcoder)), 'Upload events go through a queue to thumbnail workers.', 'Thumbnails are not produced asynchronously, so uploads wait or thumbnails never appear.', 'Have the Image Service enqueue a job that a Thumbnail Worker consumes.'),
+        C('thumb-store', 'connections', 2, 'Workers store thumbnails', R.edge(anyOf('a worker', S.worker, S.transcoder), S.blob), 'Workers write generated thumbnails back to object storage.', 'Generated thumbnails have nowhere to go.', 'Connect the thumbnail worker to Object Storage.'),
+        T.cdn({ pts: 3 }),
+        C('presigned', 'scalability', 1, 'Direct uploads', R.prop(S.blob, 'uploadMethod', ['presigned-url']), 'Clients upload directly with pre-signed URLs.', 'Uploads go through app servers.', 'Use pre-signed URLs for uploads.', { optional: true }),
+        C('has-blob', 'components', 2, 'Object storage is used', R.has(S.blob), 'Object storage holds originals and thumbnails.', 'No object storage.', 'Add Object Storage.', { critical: true }),
+        C('has-cdn', 'components', 1, 'A CDN is used', R.has(S.cdn), 'A CDN delivers images.', 'No CDN.', 'Add a CDN.'),
+        T.entry(),
+        T.scaleOut(),
+        T.dbReplication(S.db, { pts: 1 }),
+      ],
+      discouraged: [{ types: ['websocket-server', 'data-warehouse', 'search-index'], reason: 'is not needed to host and serve images.' }],
+    },
+    reference: {
+      nodes: [
+        ['web', 'web-client', 'Uploaders and viewers.'],
+        ['lb', 'load-balancer', 'Front door for the image API.', { props: { healthChecks: true } }],
+        ['app', 'app-server', 'Issues upload URLs, records metadata and enqueues thumbnail jobs.', { label: 'Image Service', props: { instances: 'autoscaled', stateless: true } }],
+        ['db', 'sql-db', 'Image records: owner, object keys, dimensions.', { label: 'Image Metadata', props: { replication: 'leader-follower-async' } }],
+        ['blob', 'object-storage', 'Originals and thumbnails.', { label: 'Image Store', props: { uploadMethod: 'presigned-url', durability: 'multi-az' } }],
+        ['queue', 'message-queue', 'Thumbnail jobs.', { label: 'Thumbnail Jobs', props: { delivery: 'at-least-once', deadLetter: true } }],
+        ['worker', 'background-worker', 'Creates three thumbnail sizes per image.', { label: 'Thumbnail Worker', props: { instances: 'autoscaled', idempotency: 'dedupe-store', retryStrategy: 'exponential-backoff' } }],
+        ['cdn', 'cdn', 'Serves images from the edge with long cache lifetimes.', { props: { cachedContent: 'media', invalidation: 'versioned-urls' } }],
+      ],
+      edges: [
+        'web>lb',
+        'lb>app',
+        'app>db',
+        ['web>blob', 'Direct upload with a pre-signed URL keeps app servers light.'],
+        ['app>queue', 'Thumbnail work is handed off so uploads return immediately.'],
+        'queue>worker',
+        'worker>blob',
+        ['web>cdn', 'Viewers hit the CDN, not your servers.'],
+        'cdn>blob',
+      ],
+      summary:
+        'Uploads go straight to object storage, the image service records metadata and enqueues thumbnail jobs, and autoscaled workers write thumbnails back. Viewers are served by a CDN pulling from object storage, so reads scale independently of the API.',
+      tradeoffs: ['Generating thumbnails on demand saves storage but slows first views; pre-generating is predictable.', 'Long CDN TTLs need versioned URLs if an image ever changes.'],
+      alternatives: ['Trigger thumbnail jobs from object-storage upload events instead of the API.', 'Use an image CDN that resizes on the fly.'],
+    },
+    sources: [
+      ['Azure Architecture Center — Static Content Hosting pattern', `${AZURE}/static-content-hosting`, 'documentation'],
+      ['Azure Architecture Center — Competing Consumers pattern', `${AZURE}/competing-consumers`, 'documentation'],
+    ],
+  }),
+
+  // ───────────────────────────────────────────────────────────────────────────
+  defineQuestion({
+    id: 'e08',
+    slug: 'polling-voting-system',
+    title: 'Simple Polling and Voting System',
+    difficulty: 'easy',
+    category: 'Web Services',
+    minutes: 20,
+    tags: ['counters', 'uniqueness', 'caching'],
+    concepts: ['One-vote-per-user constraints', 'Counters', 'Caching results', 'Authentication'],
+    statement: {
+      en: 'Design a polling app: users create polls with options, signed-in users vote once per poll, and everyone sees up-to-date results.',
+      hi: 'Ek polling app design karo: users options ke saath polls banayein, signed-in users har poll mein sirf ek baar vote karein, aur sabko updated results dikhein.',
+    },
+    functional: [
+      ['Users can create a poll with options.', 'Users options ke saath poll bana sakein.', ['vote-flow']],
+      ['Signed-in users can vote once per poll.', 'Signed-in users har poll mein ek hi baar vote kar sakein.', ['vote-flow', 'one-vote', 'auth']],
+      ['Anyone can see current results.', 'Koi bhi current results dekh sake.', ['results-cache']],
+    ],
+    nonFunctional: [
+      ['Duplicate votes are impossible, even with retries.', 'Retries ke baad bhi duplicate votes possible nahi hone chahiye.', ['one-vote']],
+      ['Results load quickly for popular polls.', 'Popular polls ke results jaldi load hon.', ['results-cache']],
+      ['Votes are never lost.', 'Votes kabhi lose na hon.', ['db-replication']],
+    ],
+    constraints: {
+      en: ['Results may lag by a few seconds.', 'A poll has at most 10 options.'],
+      hi: ['Results kuch seconds late ho sakte hain.', 'Ek poll mein zyada se zyada 10 options hain.'],
+    },
+    scale: [
+      ['Votes per day', '5 million'],
+      ['Peak votes per second on a viral poll', '2,000'],
+    ],
+    hints: [
+      ['How do you guarantee one vote per user per poll — in code, or in the database?', 'Ek user ek poll mein ek hi vote de, yeh guarantee code se karoge ya database se?'],
+      ['A unique constraint on (poll_id, user_id) makes duplicates impossible.', '(poll_id, user_id) pe unique constraint duplicates ko impossible bana deta hai.'],
+      ['Counting votes on every page view is expensive — keep running totals somewhere fast.', 'Har page view pe votes count karna mehenga hai — running totals kisi fast jagah rakho.'],
+      ['Exact real-time totals vs slightly delayed cached totals: which does the product need?', 'Exact real-time totals ya thode delayed cached totals: product ko kya chahiye?'],
+    ],
+    rubric: {
+      checks: [
+        C('vote-flow', 'functional', 4, 'Votes are recorded durably', R.path(S.client, S.db, [S.service]), 'Votes flow through the poll service into the database.', 'There is no complete flow from client to service to database for votes.', 'Connect Client → Poll Service → Database.', { critical: true }),
+        C('one-vote', 'data', 3, 'Duplicate votes are rejected', R.prop(S.db, 'concurrencyControl', ['conditional-writes', 'serializable', 'pessimistic-locks', 'optimistic']), 'The database enforces one vote per user per poll (unique / conditional writes).', 'Nothing in the data layer prevents a user from voting twice.', 'Set the database’s Concurrency control to conditional/unique writes on (poll_id, user_id).'),
+        C('results-cache', 'data', 2, 'Results are served from a cache', R.edge(S.service, S.cache), 'Result totals are kept in a cache for fast reads.', 'Results are recounted from the database on every view.', 'Connect the Poll Service to a cache that holds running totals per option.'),
+        T.auth(),
+        C('has-db', 'components', 2, 'A database stores polls and votes', R.has(S.db), 'A database stores polls and votes.', 'No database.', 'Add a SQL database.'),
+        C('has-cache', 'components', 1, 'A cache exists', R.has(S.cache), 'A cache holds hot results.', 'No cache.', 'Add a Distributed Cache.'),
+        T.entry(),
+        T.scaleOut(),
+        T.dbReplication(S.db, { pts: 2 }),
+        T.rateLimit({ optional: true, pts: 1 }),
+      ],
+      discouraged: [{ types: ['event-stream', 'data-warehouse', 'object-storage', 'transcoder'], reason: 'is not needed for a simple polling app.' }],
+    },
+    reference: {
+      nodes: [
+        ['web', 'web-client', 'Poll creators and voters.'],
+        ['lb', 'load-balancer', 'Spreads traffic.', { props: { healthChecks: true } }],
+        ['app', 'app-server', 'Creates polls, records votes, returns results.', { label: 'Poll Service', props: { instances: 'autoscaled', stateless: true } }],
+        ['auth', 'auth-service', 'Signs users in so each vote is tied to one identity.', { props: { authMethod: 'sessions', instances: 'multiple' } }],
+        ['db', 'sql-db', 'Polls, options and votes with a unique (poll_id, user_id) constraint.', { label: 'Polls DB', props: { replication: 'leader-follower-async', concurrencyControl: 'conditional-writes' } }],
+        ['cache', 'distributed-cache', 'Running vote totals per option for fast result pages.', { label: 'Results Cache', props: { writePolicy: 'write-through', evictionPolicy: 'lru' } }],
+      ],
+      edges: ['web>lb', 'lb>app', 'app>auth', ['app>db', 'The unique constraint makes double voting impossible, even under retries.'], ['app>cache', 'Totals are incremented on each accepted vote and read on result views.']],
+      summary:
+        'Each vote is inserted under a unique (poll, user) constraint, so the database itself rejects duplicates. Accepted votes also increment cached totals, letting result pages load instantly, while authentication ties every vote to a real user.',
+      tradeoffs: ['Write-through counters keep results fresh but add a second write per vote.', 'Recounting from the database is always exact but too slow for viral polls.'],
+      alternatives: ['Push live result updates over WebSockets.', 'Shard votes by poll id for extremely popular polls.'],
+    },
+    sources: [['System Design Primer', PRIMER, 'interview-prep', 'General guidance on caching and databases used in this design.']],
+  }),
+];

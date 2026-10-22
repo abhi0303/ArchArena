@@ -1,0 +1,321 @@
+// HLD Arena database schema.
+// Queryable business data lives in relational columns; flexible structures
+// (diagrams, rubrics, evaluation reports) are stored as JSONB.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Difficulty {
+  easy
+  medium
+  hard
+}
+
+enum Language {
+  en
+  hinglish
+}
+
+enum ProgressStatus {
+  not_started
+  in_progress
+  evaluated
+  completed
+}
+
+enum RequirementKind {
+  functional
+  non_functional
+}
+
+enum XpReason {
+  challenge_completion
+  score_improvement
+  first_completion_bonus
+  hint_free_bonus
+  achievement
+}
+
+model User {
+  id                String    @id @default(uuid()) @db.Uuid
+  email             String    @unique
+  passwordHash      String?   @map("password_hash")
+  googleSub         String?   @unique @map("google_sub")
+  displayName       String    @map("display_name")
+  preferredLanguage Language  @default(en) @map("preferred_language")
+  xp                Int       @default(0)
+  level             Int       @default(1)
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
+  lastLoginAt       DateTime? @map("last_login_at")
+
+  sessions       Session[]
+  progress       UserQuestionProgress[]
+  drafts         DesignDraft[]
+  attempts       DesignAttempt[]
+  submissions    DesignSubmission[]
+  achievements   UserAchievement[]
+  xpTransactions UserXpTransaction[]
+  hintUsages     HintUsage[]
+
+  @@map("users")
+}
+
+model Session {
+  id         String   @id @default(uuid()) @db.Uuid
+  tokenHash  String   @unique @map("token_hash")
+  userId     String   @map("user_id") @db.Uuid
+  expiresAt  DateTime @map("expires_at")
+  createdAt  DateTime @default(now()) @map("created_at")
+  lastSeenAt DateTime @default(now()) @map("last_seen_at")
+  userAgent  String?  @map("user_agent")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@map("sessions")
+}
+
+model Question {
+  id                  String     @id
+  slug                String     @unique
+  title               String
+  difficulty          Difficulty
+  category            String
+  estimatedMinutes    Int        @map("estimated_minutes")
+  tags                String[]
+  concepts            String[]
+  status              String     @default("published")
+  sortOrder           Int        @map("sort_order")
+  /// statement, constraints, clarifications, scale, hints, suggestedCategories, starter, interviewClaim
+  content             Json
+  activeRubricVersion Int        @default(1) @map("active_rubric_version")
+  createdAt           DateTime   @default(now()) @map("created_at")
+  updatedAt           DateTime   @updatedAt @map("updated_at")
+
+  sources      QuestionSource[]
+  requirements QuestionRequirement[]
+  rubrics      QuestionRubric[]
+  reference    QuestionReferenceArchitecture?
+  progress     UserQuestionProgress[]
+  drafts       DesignDraft[]
+  attempts     DesignAttempt[]
+  submissions  DesignSubmission[]
+  hintUsages   HintUsage[]
+
+  @@index([difficulty, sortOrder])
+  @@index([category])
+  @@map("questions")
+}
+
+model QuestionSource {
+  id           String  @id @default(uuid()) @db.Uuid
+  questionId   String  @map("question_id")
+  position     Int
+  title        String
+  url          String
+  sourceType   String  @map("source_type")
+  verification String
+  note         String?
+
+  question Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@index([questionId])
+  @@map("question_sources")
+}
+
+model QuestionRequirement {
+  id         String          @id
+  questionId String          @map("question_id")
+  code       String
+  kind       RequirementKind
+  position   Int
+  textEn     String          @map("text_en")
+  textHi     String          @map("text_hi")
+  checkIds   String[]        @map("check_ids")
+
+  question Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@unique([questionId, code])
+  @@map("question_requirements")
+}
+
+model QuestionRubric {
+  id          String   @id @default(uuid()) @db.Uuid
+  questionId  String   @map("question_id")
+  version     Int
+  contentHash String   @map("content_hash")
+  rubric      Json
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  question Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@unique([questionId, version])
+  @@map("question_rubrics")
+}
+
+model QuestionReferenceArchitecture {
+  questionId String   @id @map("question_id")
+  reference  Json
+  diagram    Json
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  question Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@map("question_reference_architectures")
+}
+
+model UserQuestionProgress {
+  userId               String         @map("user_id") @db.Uuid
+  questionId           String         @map("question_id")
+  status               ProgressStatus @default(in_progress)
+  /// Best *final submission* score.
+  bestScore            Int?           @map("best_score")
+  bestStars            Int            @default(0) @map("best_stars")
+  bestSubmissionId     String?        @map("best_submission_id") @db.Uuid
+  /// Best score of any evaluation attempt (not rewarded).
+  bestAttemptScore     Int?           @map("best_attempt_score")
+  /// Challenge XP value already granted (rewards only pay the difference on improvement).
+  xpValueAwarded       Int            @default(0) @map("xp_value_awarded")
+  attemptsCount        Int            @default(0) @map("attempts_count")
+  hintsUsed            Int            @default(0) @map("hints_used")
+  hintFreeBonusAwarded Boolean        @default(false) @map("hint_free_bonus_awarded")
+  referenceRevealedAt  DateTime?      @map("reference_revealed_at")
+  firstCompletedAt     DateTime?      @map("first_completed_at")
+  lastActivityAt       DateTime       @default(now()) @map("last_activity_at")
+
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  question Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@id([userId, questionId])
+  @@index([userId, status])
+  @@map("user_question_progress")
+}
+
+model DesignDraft {
+  id              String    @id @default(uuid()) @db.Uuid
+  userId          String    @map("user_id") @db.Uuid
+  questionId      String    @map("question_id")
+  diagram         Json
+  diagramHash     String    @map("diagram_hash")
+  revision        Int       @default(1)
+  clientUpdatedAt DateTime? @map("client_updated_at")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  question Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, questionId])
+  @@index([userId, updatedAt])
+  @@map("design_drafts")
+}
+
+model DesignAttempt {
+  id            String   @id @default(uuid()) @db.Uuid
+  userId        String   @map("user_id") @db.Uuid
+  questionId    String   @map("question_id")
+  diagram       Json
+  diagramHash   String   @map("diagram_hash")
+  rubricVersion Int      @map("rubric_version")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  user       User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  question   Question          @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  evaluation EvaluationResult?
+  submission DesignSubmission?
+
+  @@index([userId, questionId, createdAt])
+  @@index([userId, createdAt])
+  @@map("design_attempts")
+}
+
+model EvaluationResult {
+  id            String   @id @default(uuid()) @db.Uuid
+  attemptId     String   @unique @map("attempt_id") @db.Uuid
+  score         Int
+  rating        Float
+  stars         Int
+  rubricVersion Int      @map("rubric_version")
+  engineVersion String   @map("engine_version")
+  report        Json
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  attempt DesignAttempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+
+  @@map("evaluation_results")
+}
+
+model DesignSubmission {
+  id             String   @id @default(uuid()) @db.Uuid
+  userId         String   @map("user_id") @db.Uuid
+  questionId     String   @map("question_id")
+  attemptId      String   @unique @map("attempt_id") @db.Uuid
+  idempotencyKey String   @map("idempotency_key")
+  score          Int
+  stars          Int
+  completed      Boolean
+  xpAwarded      Int      @map("xp_awarded")
+  rubricVersion  Int      @map("rubric_version")
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  user     User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  question Question      @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  attempt  DesignAttempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, idempotencyKey])
+  @@index([userId, questionId])
+  @@map("design_submissions")
+}
+
+model UserAchievement {
+  id             String   @id @default(uuid()) @db.Uuid
+  userId         String   @map("user_id") @db.Uuid
+  achievementKey String   @map("achievement_key")
+  submissionId   String?  @map("submission_id") @db.Uuid
+  awardedAt      DateTime @default(now()) @map("awarded_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, achievementKey])
+  @@map("user_achievements")
+}
+
+model UserXpTransaction {
+  id             String   @id @default(uuid()) @db.Uuid
+  userId         String   @map("user_id") @db.Uuid
+  amount         Int
+  reason         XpReason
+  questionId     String?  @map("question_id")
+  submissionId   String?  @map("submission_id") @db.Uuid
+  achievementKey String?  @map("achievement_key")
+  /// Guarantees a reward is never granted twice for the same cause.
+  dedupeKey      String   @unique @map("dedupe_key")
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@map("user_xp_transactions")
+}
+
+model HintUsage {
+  id         String   @id @default(uuid()) @db.Uuid
+  userId     String   @map("user_id") @db.Uuid
+  questionId String   @map("question_id")
+  level      Int
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  question Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, questionId, level])
+  @@map("hint_usages")
+}
