@@ -29,6 +29,7 @@ import { DifficultyBadge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { Tooltip } from '@/components/ui/Tooltip';
 import { cn, formatRelative } from '@/lib/cn';
+import { STATIC_MODE } from '@/lib/env';
 import { selectCanRedo, selectCanUndo, useEditor } from './store';
 import type { SaveStatus } from './useDraftPersistence';
 
@@ -41,7 +42,7 @@ function SaveIndicator({ status, lastSavedAt }: { status: SaveStatus; lastSavedA
       icon: <CircleCheck className="h-3.5 w-3.5" />,
       text: 'Saved',
       cls: 'text-emerald-600 dark:text-emerald-400',
-      hint: lastSavedAt ? `Saved to your account ${formatRelative(lastSavedAt)}` : 'Saved to your account',
+      hint: `${STATIC_MODE ? 'Saved in this browser' : 'Saved to your account'}${lastSavedAt ? ` ${formatRelative(lastSavedAt)}` : ''}`,
     },
     local: { icon: <HardDrive className="h-3.5 w-3.5" />, text: 'Saved on this device', cls: 'text-slate-600 dark:text-slate-300', hint: 'Sign in to sync drafts across devices' },
     offline: {

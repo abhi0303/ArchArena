@@ -1,5 +1,6 @@
-import { WifiOff } from 'lucide-react';
-import { Suspense } from 'react';
+import { HardDrive, WifiOff, X } from 'lucide-react';
+import { Suspense, useState } from 'react';
+import { STATIC_MODE } from '@/lib/env';
 import { Link, Outlet, ScrollRestoration } from 'react-router';
 import { PageSpinner } from '@/components/ui/Spinner';
 import { useOnlineStatus } from '@/lib/pwa';
@@ -11,7 +12,44 @@ export function OfflineBanner() {
   return (
     <div role="status" className="flex items-center justify-center gap-2 bg-amber-100 px-4 py-1.5 text-center text-xs font-medium text-amber-900 dark:bg-amber-950 dark:text-amber-200">
       <WifiOff className="h-3.5 w-3.5" aria-hidden />
-      You are offline. Previously opened challenges and your drafts still work; evaluation needs a connection.
+      {STATIC_MODE
+        ? 'You are offline. Everything keeps working — this version runs entirely in your browser.'
+        : 'You are offline. Previously opened challenges and your drafts still work; evaluation needs a connection.'}
+    </div>
+  );
+}
+
+const NOTICE_KEY = 'archarena-static-notice-dismissed';
+
+/** Explains, once, that the GitHub Pages build keeps everything in this browser. */
+function StaticModeNotice() {
+  const [hidden, setHidden] = useState(() => {
+    try {
+      return localStorage.getItem(NOTICE_KEY) === '1';
+    } catch {
+      return false;
+    }
+  });
+  if (hidden) return null;
+  const dismiss = () => {
+    setHidden(true);
+    try {
+      localStorage.setItem(NOTICE_KEY, '1');
+    } catch {
+      /* private mode: just hide for this visit */
+    }
+  };
+  return (
+    <div role="note" className="border-b border-indigo-100 bg-indigo-50 text-indigo-900 dark:border-indigo-900/60 dark:bg-indigo-950/50 dark:text-indigo-100" data-testid="static-notice">
+      <div className="mx-auto flex max-w-7xl items-start gap-2 px-4 py-2 text-xs sm:items-center sm:px-6 sm:text-sm">
+        <HardDrive className="mt-0.5 h-4 w-4 shrink-0 sm:mt-0" aria-hidden />
+        <p className="flex-1">
+          No account needed: this version runs entirely in your browser. Your drafts, scores, XP and achievements are saved on this device.
+        </p>
+        <button onClick={dismiss} className="rounded p-1 hover:bg-indigo-100 dark:hover:bg-indigo-900" aria-label="Dismiss notice">
+          <X className="h-4 w-4" />
+        </button>
+      </div>
     </div>
   );
 }
@@ -23,6 +61,7 @@ export function AppLayout() {
         Skip to content
       </a>
       <Header />
+      {STATIC_MODE && <StaticModeNotice />}
       <OfflineBanner />
       <main id="main" className="flex-1">
         <Suspense fallback={<PageSpinner />}>

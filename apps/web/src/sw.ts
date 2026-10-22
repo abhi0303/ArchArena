@@ -22,9 +22,13 @@ declare const self: ServiceWorkerGlobalScope & { __WB_MANIFEST: (string | { url:
 precacheAndRoute(self.__WB_MANIFEST);
 cleanupOutdatedCaches();
 
-registerRoute(new NavigationRoute(createHandlerBoundToURL('/index.html'), { denylist: [/^\/api\//] }));
+// The app may live under a sub-path (GitHub Pages: /<repo>/), so every path is relative to the SW scope.
+const BASE = new URL(self.registration.scope).pathname;
+const API = `${BASE}api/`;
 
-const PUBLIC_QUESTION = /^\/api\/questions(\/[^/]+)?\/?$/;
+registerRoute(new NavigationRoute(createHandlerBoundToURL(`${BASE}index.html`), { denylist: [new RegExp(`^${API}`)] }));
+
+const PUBLIC_QUESTION = new RegExp(`^${API}questions(/[^/]+)?/?$`);
 
 registerRoute(
   ({ url, request }) => request.method === 'GET' && url.origin === self.location.origin && PUBLIC_QUESTION.test(url.pathname),
@@ -34,16 +38,13 @@ registerRoute(
   }),
 );
 
-registerRoute(({ url }) => url.origin === self.location.origin && url.pathname.startsWith('/api/'), new NetworkOnly(), 'GET');
-registerRoute(({ url }) => url.origin === self.location.origin && url.pathname.startsWith('/api/'), new NetworkOnly(), 'POST');
-registerRoute(({ url }) => url.origin === self.location.origin && url.pathname.startsWith('/api/'), new NetworkOnly(), 'PUT');
-registerRoute(({ url }) => url.origin === self.location.origin && url.pathname.startsWith('/api/'), new NetworkOnly(), 'PATCH');
-registerRoute(({ url }) => url.origin === self.location.origin && url.pathname.startsWith('/api/'), new NetworkOnly(), 'DELETE');
+const isApi = ({ url }: { url: URL }) => url.origin === self.location.origin && url.pathname.startsWith(API);
+for (const method of ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'] as const) registerRoute(isApi, new NetworkOnly(), method);
 
 // Offline fallback for documents that cannot be served from the shell.
 setCatchHandler(async ({ request }) => {
   if (request.destination === 'document') {
-    const cached = await caches.match('/offline.html', { ignoreSearch: true });
+    const cached = await caches.match(`${BASE}offline.html`, { ignoreSearch: true });
     if (cached) return cached;
   }
   return Response.error();

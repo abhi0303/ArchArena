@@ -104,6 +104,10 @@ React 19 with React Router 7 (lazy-loaded pages), TanStack Query for server stat
 
 `useDraftPersistence` saves every change to IndexedDB right away, in a namespace per signed-in user or for guests. Signed-in users also get a debounced `PUT /api/drafts/:id` with `baseRevision`. On `409 DRAFT_CONFLICT` a dialog shows both versions and the user decides. A forced save is sent only after that choice. The save indicator shows *Saving…*, *Saved* (to your account), *Saved on this device* (guests), *Offline changes pending*, *Save failed* (work stays on the device and is retried) or *Needs your decision* (conflict). `DraftSyncManager` uploads pending drafts when the connection returns.
 
+### Browser-only mode (GitHub Pages)
+
+`lib/api.ts` is the single place the web app talks to the API. When the compile-time flag `__STATIC_MODE__` is true (`vite build --mode pages`), `api()` sends each request to `lib/local/server.ts` instead of the network. That module implements every route the web app uses: auth (one local profile), questions, drafts with the same revision/conflict rules, attempts (shared `evaluateDesign`), idempotent final submissions with XP dedupe keys and achievements, dashboard, progress, hints and the reference unlock. It mirrors the server’s logic and DTOs, stores data in IndexedDB, and serialises requests with the Web Locks API so tabs cannot interleave writes. `test/local-server.test.ts` checks it against the same behaviours as the server’s integration tests. See [DEPLOYMENT.md](DEPLOYMENT.md#github-pages-browser-only).
+
 ### Learn
 
 `features/learn/` holds the Learn tab (`/learn`, `/learn/:type`, `/learn/compare/:slug`):
