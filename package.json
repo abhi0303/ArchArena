@@ -1,0 +1,38 @@
+{
+  "name": "arch-arena",
+  "private": true,
+  "version": "0.1.0",
+  "description": "HLD Arena — interactive system design learning and challenge platform",
+  "type": "module",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "engines": {
+    "node": ">=20.19"
+  },
+  "scripts": {
+    "dev": "concurrently -k -n server,web -c blue,magenta \"npm run dev -w @arch-arena/server\" \"npm run dev -w @arch-arena/web\"",
+    "build": "npm run build -w @arch-arena/server && npm run build -w @arch-arena/web",
+    "start": "npm run start -w @arch-arena/server",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "lint": "eslint .",
+    "test": "npm run test -w @arch-arena/shared && npm run test -w @arch-arena/web && npm run test -w @arch-arena/server",
+    "test:e2e": "npm run test:e2e -w @arch-arena/web",
+    "db:migrate": "npm run db:migrate -w @arch-arena/server",
+    "db:deploy": "npm run db:deploy -w @arch-arena/server",
+    "db:seed": "npm run db:seed -w @arch-arena/server",
+    "db:setup": "npm run db:deploy && npm run db:seed",
+    "questions:check": "npm run questions:check -w @arch-arena/shared"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.0",
+    "concurrently": "^9.2.1",
+    "eslint": "^9.39.0",
+    "eslint-plugin-react-hooks": "^5.2.0",
+    "eslint-plugin-react-refresh": "^0.4.24",
+    "globals": "^16.5.0",
+    "typescript": "~5.9.3",
+    "typescript-eslint": "^8.46.0"
+  }
+}

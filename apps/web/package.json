@@ -1,0 +1,51 @@
+{
+  "name": "@arch-arena/web",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "npm run typecheck && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc -p tsconfig.json && tsc -p tsconfig.sw.json",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:e2e": "playwright test"
+  },
+  "dependencies": {
+    "@arch-arena/shared": "*",
+    "@tanstack/react-query": "^5.90.0",
+    "@xyflow/react": "^12.8.0",
+    "idb-keyval": "^6.2.2",
+    "lucide-react": "^0.577.0",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "react-router": "^7.9.0",
+    "tailwind-merge": "^3.7.0",
+    "workbox-window": "^7.3.0",
+    "zod": "^4.1.0",
+    "zustand": "^5.0.8"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.56.0",
+    "@tailwindcss/vite": "^4.1.13",
+    "@testing-library/jest-dom": "^6.9.0",
+    "@testing-library/react": "^16.3.0",
+    "@testing-library/user-event": "^14.6.1",
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0",
+    "@vitejs/plugin-react": "^5.1.0",
+    "fake-indexeddb": "^6.2.2",
+    "jsdom": "^26.1.0",
+    "tailwindcss": "^4.1.13",
+    "vite": "~7.3.0",
+    "vite-plugin-pwa": "^1.2.0",
+    "vitest": "^4.1.12",
+    "workbox-cacheable-response": "^7.4.1",
+    "workbox-core": "^7.3.0",
+    "workbox-expiration": "^7.3.0",
+    "workbox-precaching": "^7.3.0",
+    "workbox-routing": "^7.3.0",
+    "workbox-strategies": "^7.3.0"
+  }
+}

@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Offline · HLD Arena</title>
+    <style>
+      :root { color-scheme: light dark; }
+      body { margin: 0; min-height: 100vh; display: grid; place-items: center; font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; background: #f8fafc; color: #0f172a; }
+      @media (prefers-color-scheme: dark) { body { background: #020617; color: #e2e8f0; } .card { background: #0f172a !important; border-color: #1e293b !important; } p { color: #94a3b8 !important; } }
+      .card { max-width: 420px; margin: 24px; padding: 32px; border-radius: 16px; background: #fff; border: 1px solid #e2e8f0; text-align: center; }
+      h1 { font-size: 20px; margin: 16px 0 8px; }
+      p { color: #475569; line-height: 1.5; font-size: 14px; }
+      button { margin-top: 16px; padding: 10px 18px; border-radius: 10px; border: 0; background: #4f46e5; color: #fff; font-weight: 600; font-size: 14px; cursor: pointer; }
+    </style>
+  </head>
+  <body>
+    <main class="card">
+      <svg width="48" height="48" viewBox="0 0 64 64" aria-hidden="true"><rect width="64" height="64" rx="14" fill="#4f46e5" /><rect x="11" y="16" width="14" height="12" rx="3.5" fill="#fff" /><rect x="39" y="16" width="14" height="12" rx="3.5" fill="#a5b4fc" /><rect x="39" y="36" width="14" height="12" rx="3.5" fill="#fff" /></svg>
+      <h1>You are offline</h1>
+      <p>This page has not been saved for offline use yet. Challenges you opened before and your drafts are still available in the app — reconnect to load everything else.</p>
+      <button onclick="location.reload()">Try again</button>
+    </main>
+  </body>
+</html>
