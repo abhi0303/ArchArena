@@ -4,6 +4,7 @@ import { lazy, Suspense } from 'react';
 import { LanguageToggle } from '@/components/LanguageToggle';
 import { Dialog } from '@/components/ui/Dialog';
 import { PageSpinner } from '@/components/ui/Spinner';
+import { appPath } from '@/lib/env';
 
 const GuideDialogContent = lazy(() => import('./GuideDialogContent'));
 
@@ -15,7 +16,7 @@ export function LearnDialog({ type, open, onClose }: { type: string; open: boole
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <LanguageToggle size="xs" />
         <a
-          href={`/learn/${type}`}
+          href={appPath(`/learn/${type}`)}
           target="_blank"
           rel="noopener noreferrer"
           className="inline-flex items-center gap-1 text-sm font-medium text-indigo-600 hover:underline dark:text-indigo-400"

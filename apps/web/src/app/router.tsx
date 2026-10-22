@@ -1,8 +1,9 @@
 import { lazy, Suspense, useEffect, useRef } from 'react';
-import { createBrowserRouter, Outlet, useRouteError, isRouteErrorResponse, Link } from 'react-router';
+import { createBrowserRouter, Outlet, useRouteError, isRouteErrorResponse, Link, Navigate } from 'react-router';
 import { Toaster } from '@/components/ui/Toaster';
 import { PageSpinner } from '@/components/ui/Spinner';
 import { buttonClasses } from '@/components/ui/Button';
+import { BASE_URL, STATIC_MODE } from '@/lib/env';
 import { useMe } from '@/lib/queries';
 import { applyTheme, usePreferences } from '@/stores/preferences';
 import { AppLayout } from './AppLayout';
@@ -87,7 +88,8 @@ function RouteError() {
 
 const page = (el: React.ReactNode) => <Suspense fallback={<PageSpinner />}>{el}</Suspense>;
 
-export const router = createBrowserRouter([
+export const router = createBrowserRouter(
+  [
   {
     element: <Root />,
     errorElement: <RouteError />,
@@ -105,8 +107,9 @@ export const router = createBrowserRouter([
           { path: 'learn/compare/:slug', element: <ComparisonPage /> },
           { path: 'learn/:type', element: <ComponentGuidePage /> },
           { path: 'dashboard', element: <DashboardPage /> },
-          { path: 'login', element: <LoginPage /> },
-          { path: 'register', element: <RegisterPage /> },
+          // No accounts in the browser-only build: progress is saved on this device automatically.
+          { path: 'login', element: STATIC_MODE ? <Navigate to="/dashboard" replace /> : <LoginPage /> },
+          { path: 'register', element: STATIC_MODE ? <Navigate to="/dashboard" replace /> : <RegisterPage /> },
           { path: 'settings', element: <SettingsPage /> },
           { path: 'about', element: <AboutPage /> },
           { path: '*', element: <NotFoundPage /> },
@@ -115,4 +118,7 @@ export const router = createBrowserRouter([
       { path: 'challenges/:slug/play', element: page(<PlaygroundPage />) },
     ],
   },
-]);
+  ],
+  // Served from a sub-path on GitHub Pages (e.g. /ArchArena/).
+  { basename: BASE_URL === '/' ? '/' : BASE_URL.replace(/\/$/, '') },
+);

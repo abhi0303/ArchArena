@@ -4,6 +4,7 @@ import { Link, NavLink, useLocation, useNavigate } from 'react-router';
 import { Button, ButtonLink } from '@/components/ui/Button';
 import { Dialog } from '@/components/ui/Dialog';
 import { cn } from '@/lib/cn';
+import { STATIC_MODE } from '@/lib/env';
 import { countPendingDrafts } from '@/lib/drafts/sync';
 import { clearOwner } from '@/lib/drafts/localDrafts';
 import { useInstallPrompt } from '@/lib/pwa';
@@ -141,9 +142,12 @@ export function Header() {
               <ButtonLink to="/settings" variant="ghost" size="icon" aria-label="Settings">
                 <Settings className="h-4 w-4" />
               </ButtonLink>
-              <Button variant="ghost" size="icon" aria-label="Sign out" title="Sign out" onClick={() => void signOut.start()}>
-                <LogOut className="h-4 w-4" />
-              </Button>
+              {/* The browser-only build has one local profile and no accounts to sign out of. */}
+              {!STATIC_MODE && (
+                <Button variant="ghost" size="icon" aria-label="Sign out" title="Sign out" onClick={() => void signOut.start()}>
+                  <LogOut className="h-4 w-4" />
+                </Button>
+              )}
             </>
           ) : (
             <>
@@ -192,9 +196,11 @@ export function Header() {
           <div className="mt-3 flex flex-wrap gap-2 border-t border-slate-200 pt-3 dark:border-slate-800">
             {installButton}
             {user ? (
-              <Button variant="outline" size="sm" icon={<LogOut className="h-4 w-4" />} onClick={() => void signOut.start()}>
-                Sign out ({user.displayName})
-              </Button>
+              !STATIC_MODE && (
+                <Button variant="outline" size="sm" icon={<LogOut className="h-4 w-4" />} onClick={() => void signOut.start()}>
+                  Sign out ({user.displayName})
+                </Button>
+              )
             ) : (
               <>
                 <ButtonLink to="/login" variant="outline" size="sm">

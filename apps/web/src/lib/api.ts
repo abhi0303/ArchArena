@@ -1,4 +1,5 @@
 import type { ApiErrorBody } from '@arch-arena/shared';
+import { STATIC_MODE } from './env';
 
 export class ApiError extends Error {
   constructor(
@@ -30,6 +31,11 @@ interface RequestOptions {
 }
 
 export async function api<T>(path: string, { method = 'GET', body, signal }: RequestOptions = {}): Promise<T> {
+  // Browser-only build (GitHub Pages): answer from the in-browser implementation of the API.
+  if (STATIC_MODE) {
+    const { localApi } = await import('./local/server');
+    return localApi<T>(method, path, body);
+  }
   let res: Response;
   try {
     res = await fetch(`/api${path}`, {

@@ -5,6 +5,8 @@ import { Button, ButtonLink } from '@/components/ui/Button';
 import { Dialog } from '@/components/ui/Dialog';
 import { EmptyState, Segmented } from '@/components/ui/misc';
 import { errorMessage } from '@/lib/api';
+import { STATIC_MODE } from '@/lib/env';
+import { queryClient } from '@/lib/queries';
 import { GUEST, clearOwner, listLocalDrafts } from '@/lib/drafts/localDrafts';
 import { useInstallPrompt } from '@/lib/pwa';
 import { useMe, useUpdatePreferences } from '@/lib/queries';
@@ -20,6 +22,7 @@ export default function SettingsPage() {
   const install = useInstallPrompt();
   const [localCount, setLocalCount] = useState(0);
   const [confirmClear, setConfirmClear] = useState(false);
+  const [confirmErase, setConfirmErase] = useState(false);
   const owner = user?.id ?? GUEST;
 
   useEffect(() => {
@@ -125,17 +128,31 @@ export default function SettingsPage() {
           )}
           {!install.canPrompt && install.showIosInstructions && <p className="text-xs text-slate-500">In Safari: Share → Add to Home Screen.</p>}
         </div>
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <p className="flex items-center gap-1.5 text-sm font-medium">
-              <HardDrive className="h-4 w-4" aria-hidden /> Drafts stored on this device
-            </p>
-            <p className="text-xs text-slate-500">{localCount} draft copies. Synced drafts stay in your account if you clear them here.</p>
+        {STATIC_MODE ? (
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="flex items-center gap-1.5 text-sm font-medium">
+                <HardDrive className="h-4 w-4" aria-hidden /> Your progress lives in this browser
+              </p>
+              <p className="text-xs text-slate-500">Drafts, attempts, scores, XP and achievements are stored on this device only.</p>
+            </div>
+            <Button variant="outline" size="sm" className="text-rose-600" onClick={() => setConfirmErase(true)} data-testid="erase-progress">
+              Erase all progress
+            </Button>
           </div>
-          <Button variant="outline" size="sm" disabled={!localCount} onClick={() => setConfirmClear(true)}>
-            Clear device copies
-          </Button>
-        </div>
+        ) : (
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="flex items-center gap-1.5 text-sm font-medium">
+                <HardDrive className="h-4 w-4" aria-hidden /> Drafts stored on this device
+              </p>
+              <p className="text-xs text-slate-500">{localCount} draft copies. Synced drafts stay in your account if you clear them here.</p>
+            </div>
+            <Button variant="outline" size="sm" disabled={!localCount} onClick={() => setConfirmClear(true)}>
+              Clear device copies
+            </Button>
+          </div>
+        )}
       </section>
 
       <Dialog
@@ -165,6 +182,37 @@ export default function SettingsPage() {
       >
         <p className="text-sm text-slate-600 dark:text-slate-300">Your account’s saved drafts, attempts and submissions are not affected.</p>
       </Dialog>
+
+      {STATIC_MODE && (
+        <Dialog
+          open={confirmErase}
+          onClose={() => setConfirmErase(false)}
+          size="sm"
+          title="Erase all progress on this device?"
+          description="This deletes every draft, attempt, score, XP point and achievement saved in this browser. It cannot be undone."
+          footer={
+            <>
+              <Button variant="outline" onClick={() => setConfirmErase(false)}>
+                Cancel
+              </Button>
+              <Button
+                variant="danger"
+                onClick={async () => {
+                  const { resetLocalData } = await import('@/lib/local/server');
+                  await resetLocalData();
+                  await clearOwner(owner);
+                  queryClient.clear();
+                  window.location.reload();
+                }}
+              >
+                Erase everything
+              </Button>
+            </>
+          }
+        >
+          <p className="text-sm text-slate-600 dark:text-slate-300">The challenges and Learn guides stay available.</p>
+        </Dialog>
+      )}
     </div>
   );
 }

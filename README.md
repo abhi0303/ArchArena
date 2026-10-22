@@ -4,6 +4,8 @@ An interactive platform for learning high-level system design (HLD). You read a 
 
 The original product specification lives in [docs/SPEC.md](docs/SPEC.md).
 
+**Two ways to run it:** the full version (API + PostgreSQL, accounts, server-side scoring) or a **browser-only version for GitHub Pages** that needs no server: challenges, scoring, XP and drafts run in the browser and are saved on the visitor’s device. See [Deploying to GitHub Pages](docs/DEPLOYMENT.md#github-pages-browser-only).
+
 ## Features
 
 - **100 challenges** — 15 Easy, 35 Medium, 50 Hard. Each has a problem statement, functional and non-functional requirements, constraints, expected scale, four progressive hints, a question-specific rubric, a reference architecture (with trade-offs and alternatives) and sources. Explanations can be read in **English or Hinglish**; the rest of the UI stays in English.
@@ -72,11 +74,13 @@ Run from the repository root.
 | --- | --- |
 | `npm run dev` | API (watch mode) and web dev server together |
 | `npm run build` | Production build of the API (`apps/server/dist`) and the web app (`apps/web/dist`) |
+| `npm run build:pages` | Browser-only build for GitHub Pages (`apps/web/dist`, served from `/ArchArena/`; override with `BASE_PATH`) |
 | `npm start` | Runs the built API; serves the web app too when `WEB_DIST_DIR` is set |
 | `npm run typecheck` | Type-checks every workspace |
 | `npm run lint` | ESLint for the whole repo |
 | `npm test` | Unit tests (shared, web) and API integration tests (needs PostgreSQL) |
 | `npm run test:e2e` | Playwright journey and mobile tests (starts its own API on :4099 and web on :5199) |
+| `npm run test:e2e:pages -w @arch-arena/web` | Playwright tests of the GitHub Pages build, served by a Pages emulator on :4175 (no database needed) |
 | `npm run db:migrate` | Create/apply a migration during development (`prisma migrate dev`) |
 | `npm run db:deploy` | Apply migrations (production) |
 | `npm run db:seed` | Upsert the question bank; bumps a rubric's version when it changes |
