@@ -3,6 +3,7 @@ import { ArrowRight, Ban, BookOpenCheck, CircleCheck, Lightbulb, ListOrdered, Pu
 import { Link } from 'react-router';
 import { useExplanation } from '@/components/LanguageToggle';
 import { ActorIcon, ComponentTile, LearnSection, Paragraphs, componentLabel } from './parts';
+import { settingsGuidePath } from './settingsCatalog';
 import { SceneView } from './SceneView';
 import type { ComponentGuide } from './types';
 
@@ -97,6 +98,17 @@ export function GuideView({ guide, compact = false }: { guide: ComponentGuide; c
             ))}
           </ul>
           <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">You set these in the playground’s Properties panel after selecting the component.</p>
+          {(getComponent(guide.type)?.properties.length ?? 0) > 0 && (
+            <Link
+              to={settingsGuidePath({ component: guide.type })}
+              target={compact ? '_blank' : undefined}
+              rel={compact ? 'noopener noreferrer' : undefined}
+              className="mt-3 inline-flex items-center gap-1 text-sm font-medium text-indigo-600 hover:underline dark:text-indigo-400"
+              data-testid="guide-settings-link"
+            >
+              Every {label} setting explained <ArrowRight className="h-3.5 w-3.5" aria-hidden />
+            </Link>
+          )}
         </LearnSection>
       </div>
 

@@ -110,14 +110,16 @@ React 19 with React Router 7 (lazy-loaded pages), TanStack Query for server stat
 
 ### Learn
 
-`features/learn/` holds the Learn tab (`/learn`, `/learn/:type`, `/learn/compare/:slug`):
+`features/learn/` holds the Learn tab (`/learn`, `/learn/settings`, `/learn/:type`, `/learn/compare/:slug`):
 
 - `content/*.ts` — one guide per catalog component and 26 comparisons, all bilingual. Explanations follow the global explanation-language toggle; headings stay English. Plain strings are shown unchanged in both languages (for example technical terms in tables).
 - `dsl.ts` and `SceneView.tsx` — illustrations are declared as columns of nodes plus arrows (`a>b` request, `a~>b` async, `a!>b` broken, `a.>b` optional, `a<>b` two-way). They render as responsive SVG with animated “packets”, which are skipped for users who prefer reduced motion.
 - `LearnDialog.tsx` — opens a guide from the playground’s Properties panel without leaving the canvas.
-- `related.ts` — maps a failed rubric check to the component guides it is about (from the rule’s selectors; vague selectors such as “any service” are skipped), so result pages can show “Learn: …” links next to each finding.
-- The content is code-split: only Learn pages and the Learn dialog load it, and the service worker precaches it, so Learn works offline.
-- `test/learn.test.ts` checks that every component has a complete guide, that every illustration references real nodes and icons, that every “compare” link includes both components, and that every Hinglish text exists and differs from the English.
+- Configuration guide — `settingsCatalog.ts` lists every setting (the shared `PROPERTY_FIELDS` plus the connection fields), sorts them into themed groups and records which components use each one. `content/settings/*.ts` holds the bilingual explanations (what, why, real-life example, every option, good values for free text, tips for challenges). `SettingsGuidePage.tsx` renders them with search and a component filter (`?component=load-balancer`, in Properties-panel order) and per-setting anchors (`#setting-replication`, `#connection-mode`); `SettingsDialog.tsx` shows the selected component’s or connection’s settings inside the playground and highlights the current values.
+- `lib/useUrlFilters.ts` — keeps page filters (Learn, Configuration guide, Challenges) in local state and mirrors them into the URL, so quick consecutive changes cannot overwrite each other.
+- `related.ts` — maps a failed rubric check to the component guides it is about (from the rule’s selectors; vague selectors such as “any service” are skipped) and to the settings its `prop` rules check, so result pages can show “Learn: …” and “Setting: …” links next to each finding.
+- The content is code-split: only Learn pages and the Learn and settings dialogs load it, and the service worker precaches it, so Learn works offline.
+- `test/learn.test.ts` checks that every component has a complete guide, that every illustration references real nodes and icons, that every “compare” link includes both components, and that every Hinglish text exists and differs from the English. `test/settings-guide.test.ts` checks that every component and connection setting is explained, sits in exactly one group, has every option (or both on/off states) explained, and that every setting a challenge checks has an explanation.
 
 ### PWA and offline
 
@@ -145,4 +147,4 @@ React 19 with React Router 7 (lazy-loaded pages), TanStack Query for server stat
 | Engine and question bank | `packages/shared/test` | Rule semantics, scoring, and all 100 questions: validation, Hinglish present and different from English, each reference design scores ≥ 90, without edges < 45, starter < 30 |
 | Web unit | `apps/web/test` | Editor store (undo/redo, grouping, conversion), draft persistence/conflicts, and Learn content validation |
 | API integration | `apps/server/test` | Auth, sessions, origin check, authorization between users, evaluation, reference gating, draft conflicts, idempotent and concurrent final submissions, anti-farming, hint bonus, dashboard |
-| End to end | `apps/web/e2e` | Full journey on desktop (register → read → build → validate → evaluate → improve → final submit → dashboard → reference → draft restore) the Learn tab (guides, language toggle, comparisons, quiz, in-playground guide), and phone layouts (navigation, drawers, toolbar, Learn pages, no rubber-band scrolling) |
+| End to end | `apps/web/e2e` | Full journey on desktop (register → read → build → validate → evaluate → improve → final submit → dashboard → reference → draft restore) the Learn tab (guides, language toggle, comparisons, quiz, in-playground guide), the configuration guide (search, component filter, deep links, in-playground “Explain settings” with current values), and phone layouts (navigation, drawers, toolbar, Learn pages, no rubber-band scrolling) |

@@ -89,3 +89,21 @@ export interface Comparison {
   /** "Which one would you pick?" scenarios. The options are the compared types. */
   quiz: { scenario: Bi; answer: string; why: Bi }[];
 }
+
+/** Plain-language explanation of one property field shown in the playground's Properties panel. */
+export interface SettingGuide {
+  /** Property key, e.g. "replication". */
+  key: string;
+  /** What the setting means. */
+  what: Bi;
+  /** Why it matters — what goes wrong if it is set badly. */
+  why: Bi;
+  /** A real-life example. */
+  example: Bi;
+  /** Meaning of every option; on/off settings use the keys "true" and "false". */
+  options?: Record<string, Bi>;
+  /** Good example values for free-text settings. */
+  goodValues?: Bi;
+  /** Practical advice for challenges (what the evaluator rewards). */
+  inChallenges: Bi;
+}

@@ -26,6 +26,7 @@ const NotFoundPage = lazy(() => import('@/features/misc/NotFoundPage'));
 const LearnPage = lazy(() => import('@/features/learn/LearnPage'));
 const ComponentGuidePage = lazy(() => import('@/features/learn/ComponentGuidePage'));
 const ComparisonPage = lazy(() => import('@/features/learn/ComparisonPage'));
+const SettingsGuidePage = lazy(() => import('@/features/learn/SettingsGuidePage'));
 
 function PreferenceSync() {
   const theme = usePreferences((s) => s.theme);
@@ -104,6 +105,7 @@ export const router = createBrowserRouter(
           { path: 'challenges/:slug/submissions/:submissionId', element: <SubmissionResultPage /> },
           { path: 'challenges/:slug/reference', element: <ReferencePage /> },
           { path: 'learn', element: <LearnPage /> },
+          { path: 'learn/settings', element: <SettingsGuidePage /> },
           { path: 'learn/compare/:slug', element: <ComparisonPage /> },
           { path: 'learn/:type', element: <ComponentGuidePage /> },
           { path: 'dashboard', element: <DashboardPage /> },

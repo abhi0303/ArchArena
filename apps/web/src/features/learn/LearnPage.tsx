@@ -1,29 +1,25 @@
 import { COMPONENT_CATEGORIES, getComponent, type ComponentCategoryId } from '@arch-arena/shared';
-import { ArrowRight, ChevronRight, GraduationCap, Route, Search, SearchX, Split } from 'lucide-react';
+import { ArrowRight, ChevronRight, GraduationCap, Route, Search, SearchX, SlidersHorizontal, Split } from 'lucide-react';
 import { useEffect, useMemo } from 'react';
-import { Link, useSearchParams } from 'react-router';
+import { Link } from 'react-router';
 import { LanguageToggle, useExplanation } from '@/components/LanguageToggle';
 import { EmptyState } from '@/components/ui/misc';
 import { cn } from '@/lib/cn';
+import { useUrlFilters } from '@/lib/useUrlFilters';
 import { COMPARISONS, GUIDES, LEARNING_PATH } from './content';
 import { ComponentTile, componentLabel } from './parts';
 
+const FILTERS = { q: '', category: 'all' };
+
 export default function LearnPage() {
   const t = useExplanation();
-  const [params, setParams] = useSearchParams();
-  const q = params.get('q') ?? '';
-  const category = (params.get('category') ?? 'all') as 'all' | ComponentCategoryId;
+  const [filters, setFilters] = useUrlFilters(FILTERS);
+  const q = filters.q;
+  const category = filters.category as 'all' | ComponentCategoryId;
 
   useEffect(() => {
     document.title = 'Learn the building blocks · HLD Arena';
   }, []);
-
-  const update = (key: string, value: string) => {
-    const next = new URLSearchParams(params);
-    if (!value || value === 'all') next.delete(key);
-    else next.set(key, value);
-    setParams(next, { replace: true });
-  };
 
   const filtered = useMemo(() => {
     const needle = q.trim().toLowerCase();
@@ -55,6 +51,28 @@ export default function LearnPage() {
         </div>
         <LanguageToggle size="xs" />
       </header>
+
+      <Link
+        to="/learn/settings"
+        className="group mb-10 flex flex-col gap-4 rounded-2xl border border-emerald-200 bg-gradient-to-br from-emerald-50 to-white p-5 hover:shadow-md sm:flex-row sm:items-center dark:border-emerald-900/60 dark:from-emerald-950/40 dark:to-slate-900"
+        data-testid="configuration-guide-link"
+      >
+        <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-emerald-600 text-white shadow-sm" aria-hidden>
+          <SlidersHorizontal className="h-6 w-6" />
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block text-lg font-semibold">Configuration guide</span>
+          <span className="mt-0.5 block text-sm leading-relaxed text-slate-600 dark:text-slate-300">
+            {t({
+              en: 'Confused by settings like “Availability”, “Consistency” or “Retry strategy” in the Properties panel? Every setting of every component — and every option — explained simply, with real-life examples and tips for challenges.',
+              hi: 'Properties panel mein “Availability”, “Consistency” ya “Retry strategy” jaisi settings samajh nahi aa rahi? Har component ki har setting — aur har option — simple tareeke se, real-life examples aur challenges ke tips ke saath.',
+            })}
+          </span>
+        </span>
+        <span className="inline-flex shrink-0 items-center gap-1.5 self-start rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white group-hover:bg-emerald-700 sm:self-center">
+          Open guide <ArrowRight className="h-4 w-4" aria-hidden />
+        </span>
+      </Link>
 
       {!filtering && (
         <>
@@ -130,14 +148,14 @@ export default function LearnPage() {
               className="input pl-9"
               placeholder="Search: cache, queue, login…"
               value={q}
-              onChange={(e) => update('q', e.target.value)}
+              onChange={(e) => setFilters({ q: e.target.value })}
             />
           </label>
           <div className="scrollbar-thin -mx-4 flex gap-2 overflow-x-auto overscroll-x-contain px-4 pb-1 sm:mx-0 sm:flex-wrap sm:px-0" role="group" aria-label="Filter by category">
             {[{ id: 'all', label: 'All' }, ...COMPONENT_CATEGORIES].map((c) => (
               <button
                 key={c.id}
-                onClick={() => update('category', c.id)}
+                onClick={() => setFilters({ category: c.id })}
                 aria-pressed={category === c.id}
                 className={cn(
                   'shrink-0 rounded-full border px-3 py-1 text-sm font-medium',
