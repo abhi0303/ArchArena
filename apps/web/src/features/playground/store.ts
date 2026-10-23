@@ -14,6 +14,24 @@ const COALESCE_MS = 800;
 
 export type Highlight = 'error' | 'warning';
 
+/** What a component replacement kept and dropped, for user feedback. */
+export interface ReplaceResult {
+  label: string;
+  connections: number;
+  keptSettings: string[];
+  droppedSettings: string[];
+}
+
+const INFERRED_FIELDS = ['connectionType', 'protocol', 'mode', 'operation', 'direction', 'critical'] as const;
+
+/** True when a connection still has exactly the defaults inferred for its endpoint types (the user never changed them). */
+function hasInferredDefaults(props: ConnectionProps, sourceType: string, targetType: string): boolean {
+  const inferred = inferConnectionProps(sourceType, targetType);
+  return INFERRED_FIELDS.every((k) => props[k] === inferred[k]);
+}
+
+const escapeRegExp = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
 export interface EditorState {
   nodes: AppNode[];
   edges: AppEdge[];
@@ -39,6 +57,12 @@ export interface EditorState {
   deleteElements: (nodeIds: string[], edgeIds: string[]) => void;
   deleteSelected: () => void;
   duplicateSelected: () => void;
+  /**
+   * Swaps a component for another type in place: same id, position and group, so every connection
+   * stays attached. Settings the new type supports are kept; default names and untouched connection
+   * defaults follow the new type. One undo step. Returns null if nothing changed.
+   */
+  replaceComponent: (id: string, componentType: string) => ReplaceResult | null;
   groupSelected: () => void;
   ungroup: (groupId: string) => void;
   autoLayout: () => void;
@@ -232,6 +256,52 @@ export const useEditor = create<EditorState>((set, get) => {
         edges: s.edges.filter((e) => !eids.has(e.id) && !ids.has(e.source) && !ids.has(e.target)),
       }));
       bump();
+    },
+
+    replaceComponent: (id, componentType) => {
+      const { nodes, edges } = get();
+      const node = nodes.find((n) => n.id === id);
+      const next = getComponent(componentType);
+      if (!node || node.type !== 'component' || !next || node.data.componentType === componentType) return null;
+      const oldType = node.data.componentType;
+      const prev = getComponent(oldType);
+      commit();
+
+      // Default names (“Load Balancer”, “Load Balancer 2”) follow the new type; custom names are kept.
+      const isDefaultName = !prev || node.data.label === prev.label || new RegExp(`^${escapeRegExp(prev.label)} \\d+$`).test(node.data.label);
+      const others = nodes.filter((n) => n.id !== id && n.type === 'component' && n.data.componentType === componentType).length;
+      const label = isDefaultName ? (others ? `${next.label} ${others + 1}` : next.label) : node.data.label;
+
+      // Keep only the settings the new component understands.
+      const allowed = new Set<string>(next.properties);
+      const keptSettings = Object.keys(node.data.props).filter((k) => allowed.has(k));
+      const droppedSettings = Object.keys(node.data.props).filter((k) => !allowed.has(k));
+      const props = Object.fromEntries(keptSettings.map((k) => [k, node.data.props[k]!]));
+
+      // Connections stay attached. Ones still on their automatic defaults are re-inferred for the new pair
+      // (e.g. queue → database); customised connections, labels and descriptions are left alone.
+      const typeOf = (nodeId: string, replaced: boolean) => {
+        if (nodeId === id) return replaced ? componentType : oldType;
+        const n = nodes.find((x) => x.id === nodeId);
+        return n?.type === 'component' ? n.data.componentType : '';
+      };
+      let connections = 0;
+      const nextEdges = edges.map((e) => {
+        if (e.source !== id && e.target !== id) return e;
+        connections++;
+        const current = e.data!.props;
+        if (!hasInferredDefaults(current, typeOf(e.source, false), typeOf(e.target, false))) return e;
+        const inferred = inferConnectionProps(typeOf(e.source, true), typeOf(e.target, true));
+        return decorateEdge({ ...e, data: { props: { ...current, ...inferred } } });
+      });
+
+      set({
+        nodes: nodes.map((n) => (n.id === id ? ({ ...n, data: { ...n.data, componentType, label, props } } as ComponentNodeT) : n)),
+        edges: nextEdges,
+        lastAction: 'other',
+      });
+      bump();
+      return { label, connections, keptSettings, droppedSettings };
     },
 
     deleteSelected: () => {

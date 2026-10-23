@@ -10,7 +10,7 @@ import {
   type QuestionDetailDTO,
   type ValidationResult,
 } from '@arch-arena/shared';
-import { ArrowLeftRight, ChevronDown, CircleCheck, CircleDashed, Copy, GraduationCap, Info, SquareStack, Trash2, Ungroup } from 'lucide-react';
+import { ArrowLeftRight, ChevronDown, CircleCheck, CircleDashed, Copy, GraduationCap, Info, Replace, SquareStack, Trash2, Ungroup } from 'lucide-react';
 import { useState } from 'react';
 import { ACCENTS, DynamicIcon } from '@/components/icons';
 import { useExplanation } from '@/components/LanguageToggle';
@@ -20,6 +20,7 @@ import { Tooltip } from '@/components/ui/Tooltip';
 import { cn } from '@/lib/cn';
 import { LearnDialog } from '@/features/learn/LearnDialog';
 import type { AppEdge, AppNode, ComponentNodeT } from './model';
+import { ReplaceDialog } from './ReplaceDialog';
 import { useEditor } from './store';
 
 function Help({ text }: { text: string }) {
@@ -101,6 +102,7 @@ function ComponentProperties({ node }: { node: ComponentNodeT }) {
   const remove = useEditor((s) => s.deleteSelected);
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [learnOpen, setLearnOpen] = useState(false);
+  const [replaceOpen, setReplaceOpen] = useState(false);
   const fields = (def?.properties ?? []).map((k) => getPropertyField(k)).filter((f): f is PropertyField => !!f);
   const basic = fields.filter((f) => !f.advanced);
   const advanced = fields.filter((f) => f.advanced);
@@ -114,17 +116,29 @@ function ComponentProperties({ node }: { node: ComponentNodeT }) {
         <div className="min-w-0">
           <p className="text-sm font-semibold">{def?.label}</p>
           <p className="text-xs text-slate-500 dark:text-slate-400">{def?.details}</p>
-          <button
-            type="button"
-            onClick={() => setLearnOpen(true)}
-            className="mt-2 inline-flex items-center gap-1.5 rounded-md bg-indigo-50 px-2 py-1 text-xs font-medium text-indigo-700 hover:bg-indigo-100 dark:bg-indigo-950 dark:text-indigo-300 dark:hover:bg-indigo-900"
-            data-testid="learn-component"
-          >
-            <GraduationCap className="h-3.5 w-3.5" aria-hidden /> Learn about {def?.label}
-          </button>
+          <div className="mt-2 flex flex-wrap gap-1.5">
+            <button
+              type="button"
+              onClick={() => setReplaceOpen(true)}
+              title="Swap for another component and keep every connection"
+              className="inline-flex items-center gap-1.5 rounded-md bg-slate-100 px-2 py-1 text-xs font-medium text-slate-700 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
+              data-testid="replace-component"
+            >
+              <Replace className="h-3.5 w-3.5" aria-hidden /> Replace with…
+            </button>
+            <button
+              type="button"
+              onClick={() => setLearnOpen(true)}
+              className="inline-flex items-center gap-1.5 rounded-md bg-indigo-50 px-2 py-1 text-xs font-medium text-indigo-700 hover:bg-indigo-100 dark:bg-indigo-950 dark:text-indigo-300 dark:hover:bg-indigo-900"
+              data-testid="learn-component"
+            >
+              <GraduationCap className="h-3.5 w-3.5" aria-hidden /> Learn about {def?.label}
+            </button>
+          </div>
         </div>
       </div>
       <LearnDialog type={node.data.componentType} open={learnOpen} onClose={() => setLearnOpen(false)} />
+      <ReplaceDialog node={node} open={replaceOpen} onClose={() => setReplaceOpen(false)} />
       <div>
         <FieldLabel htmlFor={`name-${node.id}`} label="Name" help="Rename this instance, e.g. “Order Service” or “Read Replica (EU)”." />
         <input

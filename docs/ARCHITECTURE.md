@@ -94,7 +94,7 @@ React 19 with React Router 7 (lazy-loaded pages), TanStack Query for server stat
 
 ### Playground
 
-- `features/playground/store.ts` — the canvas model (nodes, edges, groups, notes) with undo/redo history, selection, duplicate, group/ungroup, auto-layout, and conversion to and from `DiagramSnapshot`.
+- `features/playground/store.ts` — the canvas model (nodes, edges, groups, notes) with undo/redo history, selection, duplicate, group/ungroup, auto-layout, and conversion to and from `DiagramSnapshot`. `replaceComponent` swaps a component’s type in place (same id, so edges stay attached), keeps the settings the new type supports, renames default names, and re-infers only connection properties the user never changed — as one undo step. `ReplaceDialog.tsx` offers same-category components first.
 - `Canvas.tsx` — React Flow in controlled mode with loose connection mode. Each node has four handles, and edges show protocol and sync/async styling.
 - `ComponentLibrary.tsx` (search, categories, suggested categories first, click or drag to add), `PropertiesPanel.tsx` (component properties and connection properties, with help text), `ValidationPanel.tsx`, `Walkthrough.tsx`.
 - Shortcuts: undo/redo (⌘/Ctrl+Z, ⇧⌘Z or Ctrl+Y), duplicate (⌘/Ctrl+D), group (⌘/Ctrl+G), save now (⌘/Ctrl+S), Delete/Backspace, Esc, `?` for help.

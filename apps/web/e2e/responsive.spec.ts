@@ -74,3 +74,17 @@ test('the playground works on a phone', async ({ page }) => {
   await expect(page.getByTestId('validation-panel')).toBeVisible();
   await expectNoHorizontalScroll(page);
 });
+
+test('replace works from the properties drawer on a phone', async ({ page }) => {
+  await page.goto('/challenges/url-shortener-basic/play');
+  const tour = page.getByRole('dialog', { name: 'Getting started tour' });
+  if (await tour.isVisible().catch(() => false)) await tour.getByRole('button', { name: 'Skip tour' }).first().click();
+  await page.locator('.react-flow__node').first().click();
+  await page.getByRole('button', { name: 'Toggle properties panel' }).click();
+  await page.getByRole('dialog', { name: 'Properties' }).getByTestId('replace-component').click();
+  const dialog = page.getByRole('dialog', { name: /^Replace / });
+  await expect(dialog).toBeVisible();
+  await dialog.getByTestId('replace-with-mobile-client').click();
+  await expect(dialog).toBeHidden();
+  await expect(page.locator('.react-flow__node').first().getByTestId('node-mobile-client')).toBeVisible();
+});
