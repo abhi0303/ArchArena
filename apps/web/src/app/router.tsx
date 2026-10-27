@@ -27,6 +27,9 @@ const LearnPage = lazy(() => import('@/features/learn/LearnPage'));
 const ComponentGuidePage = lazy(() => import('@/features/learn/ComponentGuidePage'));
 const ComparisonPage = lazy(() => import('@/features/learn/ComparisonPage'));
 const SettingsGuidePage = lazy(() => import('@/features/learn/SettingsGuidePage'));
+const PrepHomePage = lazy(() => import('@/features/prep/PrepHomePage'));
+const PrepCategoryPage = lazy(() => import('@/features/prep/PrepCategoryPage'));
+const PrepQuestionPage = lazy(() => import('@/features/prep/PrepQuestionPage'));
 
 function PreferenceSync() {
   const theme = usePreferences((s) => s.theme);
@@ -108,6 +111,9 @@ export const router = createBrowserRouter(
           { path: 'learn/settings', element: <SettingsGuidePage /> },
           { path: 'learn/compare/:slug', element: <ComparisonPage /> },
           { path: 'learn/:type', element: <ComponentGuidePage /> },
+          { path: 'prep', element: <PrepHomePage /> },
+          { path: 'prep/:category', element: <PrepCategoryPage /> },
+          { path: 'prep/:category/:questionId', element: <PrepQuestionPage /> },
           { path: 'dashboard', element: <DashboardPage /> },
           // No accounts in the browser-only build: progress is saved on this device automatically.
           { path: 'login', element: STATIC_MODE ? <Navigate to="/dashboard" replace /> : <LoginPage /> },

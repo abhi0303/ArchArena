@@ -16,6 +16,10 @@ test('deep links load through the 404 fallback and no account is needed', async 
   await expect(page.getByTestId('settings-component-banner')).toContainText('Settings of Load Balancer');
   await expect(page.getByTestId('setting-card-setting-availability')).toBeInViewport();
 
+  // Interview Prep works in the browser-only build too.
+  await page.goto(`${B}/prep/devops/kubernetes-pod-keeps-restarting`);
+  await expect(page.getByTestId('prep-question-title')).toHaveText('A pod keeps restarting. What would you check first?');
+
   await page.goto(`${B}/login`);
   await expect(page).toHaveURL(new RegExp(`${B}/dashboard$`));
   await expect(page.getByTestId('stat-completed')).toHaveText('0');

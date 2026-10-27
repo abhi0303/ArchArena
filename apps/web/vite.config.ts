@@ -75,6 +75,12 @@ export default defineConfig(({ mode }) => {
               icons: [{ src: 'pwa-192x192.png', sizes: '192x192', type: 'image/png' }],
             },
             {
+              name: 'Interview Prep',
+              short_name: 'Prep',
+              url: `${base}prep`,
+              icons: [{ src: 'pwa-192x192.png', sizes: '192x192', type: 'image/png' }],
+            },
+            {
               name: 'Dashboard',
               short_name: 'Dashboard',
               url: `${base}dashboard`,

@@ -121,6 +121,16 @@ React 19 with React Router 7 (lazy-loaded pages), TanStack Query for server stat
 - The content is code-split: only Learn pages and the Learn and settings dialogs load it, and the service worker precaches it, so Learn works offline.
 - `test/learn.test.ts` checks that every component has a complete guide, that every illustration references real nodes and icons, that every “compare” link includes both components, and that every Hinglish text exists and differs from the English. `test/settings-guide.test.ts` checks that every component and connection setting is explained, sits in exactly one group, has every option (or both on/off states) explained, and that every setting a challenge checks has an explanation.
 
+### Interview Prep
+
+`features/prep/` holds the Interview Prep tab (`/prep`, `/prep/:category`, `/prep/:category/:questionId`):
+
+- `catalog.ts` — categories and their sections; `content/*.ts` — the questions (`PrepQuestion` in `types.ts`), bilingual and split into parts; `content/index.ts` sorts them by category and section.
+- `PrepHomePage.tsx` (search, progress, categories, “revise later” list), `PrepCategoryPage.tsx` (section tabs and a progress filter, kept in the URL with `useUrlFilters`) and `PrepQuestionPage.tsx` (every part of the answer, a jump-to bar, practice mode, a copyable English interview answer with a Hinglish version, follow-ups, links to Learn guides and challenges, and prev/next).
+- `progress.ts` — “I knew this / Revise later” and practice mode, stored in `localStorage` (a personal study aid, not graded progress).
+- Diagrams reuse the Learn `SceneView`. The content is code-split and precached, so the tab works offline and in the browser-only build.
+- `test/prep.test.ts` checks the requested categories and sections, that every original question is present in the right place, that every answer has all its parts (scenarios explain the situation, comparisons have a table, at least four interview points and six keywords), that every Hinglish text differs from the English, and that links and diagrams point to real components, challenges and icons. See [INTERVIEW_PREP.md](INTERVIEW_PREP.md).
+
 ### PWA and offline
 
 `src/sw.ts` (Workbox, `injectManifest`):
@@ -147,4 +157,4 @@ React 19 with React Router 7 (lazy-loaded pages), TanStack Query for server stat
 | Engine and question bank | `packages/shared/test` | Rule semantics, scoring, and all 100 questions: validation, Hinglish present and different from English, each reference design scores ≥ 90, without edges < 45, starter < 30 |
 | Web unit | `apps/web/test` | Editor store (undo/redo, grouping, conversion), draft persistence/conflicts, and Learn content validation |
 | API integration | `apps/server/test` | Auth, sessions, origin check, authorization between users, evaluation, reference gating, draft conflicts, idempotent and concurrent final submissions, anti-farming, hint bonus, dashboard |
-| End to end | `apps/web/e2e` | Full journey on desktop (register → read → build → validate → evaluate → improve → final submit → dashboard → reference → draft restore) the Learn tab (guides, language toggle, comparisons, quiz, in-playground guide), the configuration guide (search, component filter, deep links, in-playground “Explain settings” with current values), and phone layouts (navigation, drawers, toolbar, Learn pages, no rubber-band scrolling) |
+| End to end | `apps/web/e2e` | Full journey on desktop (register → read → build → validate → evaluate → improve → final submit → dashboard → reference → draft restore) the Learn tab (guides, language toggle, comparisons, quiz, in-playground guide), the configuration guide (search, component filter, deep links, in-playground “Explain settings” with current values), Interview Prep (categories, search, sections, a full answer, language toggle, practice mode, progress), and phone layouts (navigation, drawers, toolbar, Learn pages, no rubber-band scrolling) |

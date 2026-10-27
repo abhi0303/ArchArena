@@ -39,6 +39,20 @@ test('learn pages fit a phone screen', async ({ page }) => {
   }
 });
 
+test('interview prep pages fit a phone screen', async ({ page }) => {
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Open menu' }).click();
+  await page.getByRole('navigation', { name: 'Mobile' }).getByRole('link', { name: 'Interview Prep' }).click();
+  await expect(page).toHaveURL(/\/prep$/);
+  await expectNoHorizontalScroll(page);
+  // Every question page, including the wide comparison tables, fits without sideways scrolling.
+  for (const path of ['/prep/devops', '/prep/devops/logs-vs-metrics-vs-traces', '/prep/system-design/monolith-vs-microservices', '/prep/database/database-connection-pool-exhausted']) {
+    await page.goto(path);
+    await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
+    await expectNoHorizontalScroll(page);
+  }
+});
+
 test('the page does not rubber-band when dragged past its edges', async ({ page }) => {
   await page.goto('/learn');
   const overscroll = await page.evaluate(() => [getComputedStyle(document.documentElement).overscrollBehaviorY, getComputedStyle(document.body).overscrollBehaviorY]);
