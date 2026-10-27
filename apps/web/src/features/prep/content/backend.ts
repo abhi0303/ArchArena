@@ -1,4 +1,4 @@
-import { bi } from '@/features/learn/dsl';
+import { bi, code, h, note, options, p, section, steps, table, ul } from '../dsl';
 import type { PrepQuestion } from '../types';
 
 export const backendQuestions: PrepQuestion[] = [
@@ -12,162 +12,356 @@ export const backendQuestions: PrepQuestion[] = [
     ),
     kind: 'concept',
     level: 'intermediate',
-    tags: ['rest', 'api', 'http', 'versioning', 'status codes', 'pagination', 'idempotency', 'openapi'],
-    simple: bi(
-      'A REST API is the menu your server offers to other programs. Every “thing” (a user, an order) gets its own address (URL), and standard HTTP verbs say what to do with it: GET to read, POST to create, PUT/PATCH to update, DELETE to remove. Good design makes that menu predictable — anyone who has used one well-designed API can guess how yours works. Versioning is how you change the menu later without breaking the apps that already use it.',
-      'REST API woh menu hai jo aapka server doosre programs ko deta hai. Har “cheez” (user, order) ka apna address (URL) hota hai, aur standard HTTP verbs batate hain ki uske saath kya karna hai: GET padhne ke liye, POST banane ke liye, PUT/PATCH update ke liye, DELETE hatane ke liye. Accha design menu ko predictable banata hai — jisne ek accha API use kiya hai woh aapka API bhi andaaze se samajh le. Versioning ka matlab hai baad mein menu badalna bina un apps ko tode jo use pehle se use kar rahe hain.',
+    tags: ['rest', 'api', 'http', 'versioning', 'status codes', 'pagination', 'idempotency', 'openapi', 'nestjs'],
+    answer: bi(
+      'When designing a REST API, I focus on consistency, simplicity, scalability, security and backward compatibility. The goal is an API that is easy for frontend developers to consume, easy for backend developers to maintain, and safe to evolve as requirements change.',
+      'REST API design karte waqt main consistency, simplicity, scalability, security aur backward compatibility pe focus karta hoon. Goal hai aisa API jo frontend developers ke liye use karna aasaan ho, backend developers ke liye maintain karna aasaan ho, aur requirements badalne pe safely evolve ho sake.',
     ),
-    example: bi(
-      'A restaurant menu: every dish has a fixed number (a resource with a URL), everyone orders the same way (HTTP verbs), and the waiter answers in standard phrases — “here you go” (200), “we don’t have that” (404), “you ordered something that isn’t possible” (400). When the chef changes recipes, the restaurant prints “Menu v2” but keeps serving the old dishes to regulars for a few months.',
-      'Restaurant ka menu: har dish ka fixed number hai (URL wala resource), sab ek hi tareeke se order karte hain (HTTP verbs), aur waiter standard jawab deta hai — “yeh lijiye” (200), “yeh hamare paas nahi hai” (404), “aisa order ho hi nahi sakta” (400). Jab chef recipes badalta hai, restaurant “Menu v2” chhaapta hai par purane customers ke liye kuch mahine purani dishes bhi banata rehta hai.',
-    ),
-    why: bi(
-      'Many clients — web, mobile, partners — depend on your API. Consistency means fewer bugs and faster integrations, and mobile apps cannot be force-updated, so old versions keep calling your API for months.',
-      'Bahut saare clients — web, mobile, partners — aapke API pe depend karte hain. Consistency ka matlab kam bugs aur jaldi integration, aur mobile apps zabardasti update nahi karwa sakte, isliye purane versions mahinon tak aapka API call karte rehte hain.',
-    ),
-    without: bi(
-      'Every endpoint behaves differently (/getUser, /user/delete?id=, “200 OK” with an error inside), so clients write special cases everywhere — and renaming one field silently breaks old mobile apps in production.',
-      'Har endpoint alag behave karta hai (/getUser, /user/delete?id=, andar error ke saath “200 OK”), to clients ko har jagah special case likhna padta hai — aur ek field ka naam badalte hi purane mobile apps production mein chupchaap toot jaate hain.',
-    ),
-    partsTitle: bi('The key principles, one by one', 'Key principles, ek-ek karke'),
-    parts: [
-      {
-        title: bi('1. Resources are nouns, HTTP methods are verbs', '1. Resources noun hain, HTTP methods verb'),
-        text: bi(
-          'Use plural nouns and nesting for relationships: /orders, /orders/42, /users/7/orders. The method carries the action, so avoid /getOrders or /createOrder. Use query parameters for filtering and sorting: /orders?status=paid&sort=-createdAt.',
-          'Plural nouns aur relationships ke liye nesting use karo: /orders, /orders/42, /users/7/orders. Action method batata hai, isliye /getOrders ya /createOrder se bacho. Filtering aur sorting ke liye query parameters: /orders?status=paid&sort=-createdAt.',
+    sections: [
+      section(
+        'Key principles I follow',
+        'Key principles jo main follow karta hoon',
+        h('Resource-based URL design', 'Resource-based URL design'),
+        p(
+          'I model APIs around resources (nouns) rather than actions (verbs). For example, for an expense management application:',
+          'Main APIs ko actions (verbs) ki jagah resources (nouns) ke around design karta hoon. Jaise, ek expense management application ke liye:',
         ),
-      },
-      {
-        title: bi('2. Use methods correctly — safety and idempotency', '2. Methods sahi use karo — safety aur idempotency'),
-        text: bi(
-          'GET is safe (changes nothing) and idempotent. PUT and DELETE are idempotent: doing them twice has the same effect as once. POST is not idempotent, so for critical actions such as payments accept an Idempotency-Key header and return the saved result when the same key arrives again. PUT replaces a whole resource; PATCH changes part of it.',
-          'GET safe hai (kuch nahi badalta) aur idempotent hai. PUT aur DELETE idempotent hain: do baar karo ya ek baar, asar same. POST idempotent nahi hai, isliye payments jaise critical actions ke liye Idempotency-Key header lo aur same key dobara aaye to saved result lauta do. PUT poora resource replace karta hai; PATCH sirf hissa badalta hai.',
+        table(
+          ['Method', 'Endpoint', bi('Purpose', 'Kaam')],
+          [
+            ['GET', '/api/v1/expenses', bi('Fetch all expenses', 'Saare expenses laao')],
+            ['GET', '/api/v1/expenses/123', bi('Fetch one expense', 'Ek expense laao')],
+            ['POST', '/api/v1/expenses', bi('Create an expense', 'Expense banao')],
+            ['PATCH', '/api/v1/expenses/123', bi('Partially update an expense', 'Expense ka kuch hissa update karo')],
+            ['PUT', '/api/v1/expenses/123', bi('Replace an expense', 'Poora expense replace karo')],
+            ['DELETE', '/api/v1/expenses/123', bi('Delete an expense', 'Expense delete karo')],
+          ],
         ),
-      },
-      {
-        title: bi('3. Meaningful status codes and one error format', '3. Sahi status codes aur ek hi error format'),
-        text: bi(
-          '200 OK, 201 Created (with a Location header), 204 No Content; 400 Bad Request, 401 Unauthorized (not logged in), 403 Forbidden (logged in but not allowed), 404 Not Found, 409 Conflict, 422 Unprocessable, 429 Too Many Requests; 500 and 503 for server problems. Every error returns the same shape, e.g. { code, message, details, requestId }, and never leaks stack traces.',
-          '200 OK, 201 Created (Location header ke saath), 204 No Content; 400 Bad Request, 401 Unauthorized (login nahi hai), 403 Forbidden (login hai par permission nahi), 404 Not Found, 409 Conflict, 422 Unprocessable, 429 Too Many Requests; server ki problem ke liye 500 aur 503. Har error ek hi shape mein, jaise { code, message, details, requestId }, aur stack trace kabhi bahar nahi.',
+        p(
+          'I prefer plural nouns, consistent naming, and nested resources only when the relationship is meaningful, such as `/users/123/expenses`.',
+          'Main plural nouns, consistent naming, aur nested resources sirf tab use karta hoon jab relationship meaningful ho, jaise `/users/123/expenses`.',
         ),
-      },
-      {
-        title: '4. Stateless requests',
-        text: bi(
-          'Each request carries everything needed to handle it (for example an auth token). The server keeps no per-user session in memory between requests, so any instance can serve any request and you can scale horizontally behind a load balancer.',
-          'Har request apne saath sab kuch laati hai jo use handle karne ke liye chahiye (jaise auth token). Server requests ke beech user ka session memory mein nahi rakhta, isliye koi bhi instance koi bhi request serve kar sakta hai aur load balancer ke peeche horizontally scale kar sakte ho.',
+        h('Use HTTP methods and status codes correctly', 'HTTP methods aur status codes sahi use karo'),
+        ul(
+          ['**GET** — read data; must not change server state.', '**GET** — data padho; server state nahi badalni chahiye.'],
+          ['**POST** — create a resource, or trigger an operation that fits no other method.', '**POST** — resource banao, ya aisa operation jo kisi aur method mein fit na ho.'],
+          ['**PUT** — replace a whole resource; idempotent.', '**PUT** — poora resource replace karo; idempotent.'],
+          ['**PATCH** — update part of a resource.', '**PATCH** — resource ka sirf hissa update karo.'],
+          ['**DELETE** — delete a resource; idempotent.', '**DELETE** — resource delete karo; idempotent.'],
         ),
-      },
-      {
-        title: bi('5. Pagination, filtering and sorting for collections', '5. Collections ke liye pagination, filtering aur sorting'),
-        text: bi(
-          'Never return an unbounded list. Use limit plus a cursor (?limit=20&cursor=abc) for large or fast-changing data: offset pagination (?page=500) gets slow on deep pages and skips or repeats items when rows are inserted. Return the next cursor in the response.',
-          'Kabhi bhi bina limit ki list mat lautao. Bade ya tezi se badalte data ke liye limit plus cursor (?limit=20&cursor=abc) use karo: offset pagination (?page=500) gehre pages pe slow ho jaata hai aur nayi rows aane pe items skip ya repeat karta hai. Response mein agla cursor lautao.',
+        table(
+          ['Status', bi('When I use it', 'Kab use karta hoon')],
+          [
+            ['200 OK', bi('Successful request', 'Request successful')],
+            ['201 Created', bi('Resource created (with a Location header)', 'Resource bana (Location header ke saath)')],
+            ['204 No Content', bi('Success with no response body', 'Success, par response body nahi')],
+            ['400 Bad Request', bi('Invalid syntax or input', 'Galat syntax ya input')],
+            ['401 Unauthorized', bi('Missing or invalid authentication', 'Authentication missing ya galat')],
+            ['403 Forbidden', bi('Logged in, but not allowed', 'Login hai, par permission nahi')],
+            ['404 Not Found', bi('Resource does not exist or is not accessible', 'Resource nahi hai ya access nahi')],
+            ['409 Conflict', bi('State conflict or duplicate operation', 'State conflict ya duplicate operation')],
+            ['422 Unprocessable Content', bi('Well-formed, but fails business validation', 'Format sahi, par business validation fail')],
+            ['429 Too Many Requests', bi('Rate limit exceeded', 'Rate limit paar')],
+            ['500 Internal Server Error', bi('Unexpected server failure', 'Server ki anjaani failure')],
+          ],
         ),
-      },
-      {
-        title: bi('6. Security by default', '6. Default se security'),
-        text: bi(
-          'HTTPS only; authentication with OAuth 2.0 / JWT; authorization checked for every resource (can this user see order 42?); validate all input; rate limiting per client; no sensitive data in URLs, because URLs end up in logs.',
-          'Sirf HTTPS; OAuth 2.0 / JWT se authentication; har resource pe authorization check (kya yeh user order 42 dekh sakta hai?); har input validate karo; har client pe rate limiting; URL mein sensitive data nahi, kyunki URLs logs mein chale jaate hain.',
+        note('tip', 'The exact choice between 400 and 422 matters less than using it consistently across the whole API.', '400 aur 422 mein se kaunsa chuno, isse zyaada zaroori hai ki poore API mein ek jaisa use karo.'),
+        h('Consistent request and response structures', 'Ek jaisa request aur response structure'),
+        p(
+          'I keep a predictable response format so clients do not need endpoint-specific parsing logic:',
+          'Main response format predictable rakhta hoon taaki clients ko har endpoint ke liye alag parsing logic na likhna pade:',
         ),
-      },
-      {
-        title: bi('7. Caching, performance and documentation', '7. Caching, performance aur documentation'),
-        text: bi(
-          'Use Cache-Control and ETags so clients can get a cheap 304 Not Modified; compress responses; let clients ask for related data or fewer fields to avoid many round trips. Publish an OpenAPI (Swagger) specification with examples — it is the contract, and it lets you generate clients and run contract tests.',
-          'Cache-Control aur ETags use karo taaki client ko sasta 304 Not Modified mil sake; responses compress karo; clients ko related data ya kam fields maangne do taaki baar-baar round trip na ho. Examples ke saath OpenAPI (Swagger) specification publish karo — yahi contract hai, isse clients generate kar sakte ho aur contract tests chala sakte ho.',
+        code(
+          'json',
+          `
+{
+  "data": {
+    "id": "123",
+    "amount": 500,
+    "category": "Food"
+  }
+}`,
         ),
-      },
-      {
-        title: bi('8. Versioning strategies', '8. Versioning ke tareeke'),
-        text: bi(
-          'URL path (/v1/orders) is the most common: explicit, easy to route, cache and test in a browser. A header (Accept: application/vnd.shop.v2+json or API-Version: 2) keeps URLs clean but is harder to test and see. A query parameter (?version=2) is simple but easy to forget. Some companies use date-based versions (Stripe-Version: 2024-06-20) pinned per client.',
-          'URL path (/v1/orders) sabse common hai: saaf dikhta hai, route, cache aur browser mein test karna aasaan. Header (Accept: application/vnd.shop.v2+json ya API-Version: 2) URLs saaf rakhta hai par test karna aur dekhna mushkil. Query parameter (?version=2) simple hai par bhoolna aasaan. Kuch companies date-based versions use karti hain (Stripe-Version: 2024-06-20) jo har client ke liye fixed hota hai.',
-        ),
-      },
-      {
-        title: bi('9. Evolve without breaking — and deprecate politely', '9. Bina tode badlo — aur tameez se deprecate karo'),
-        text: bi(
-          'Additive changes (a new optional field, a new endpoint) are not breaking, so they do not need a new version; clients should ignore fields they do not know (“tolerant reader”). Breaking changes — removing or renaming a field, changing a type or meaning, making an optional field required, changing status codes — need a new major version. Deprecate the old one: announce it, send Deprecation and Sunset headers, track who still calls it, help them migrate, then remove it.',
-          'Additive changes (naya optional field, naya endpoint) breaking nahi hote, isliye naye version ki zaroorat nahi; clients ko anjaan fields ignore karne chahiye (“tolerant reader”). Breaking changes — field hatana ya rename karna, type ya matlab badalna, optional field ko required banana, status codes badalna — ke liye naya major version chahiye. Purane ko deprecate karo: announce karo, Deprecation aur Sunset headers bhejo, track karo kaun abhi bhi call kar raha hai, unhe migrate karne mein madad karo, phir hatao.',
-        ),
-      },
+        p('For errors, a standard structure with a machine-readable code and a useful message:', 'Errors ke liye ek standard structure, machine-readable code aur kaam ke message ke saath:'),
+        code(
+          'json',
+          `
+{
+  "error": {
+    "code": "VALIDATION_ERROR",
+    "message": "Invalid expense amount",
+    "details": [
+      { "field": "amount", "message": "Amount must be greater than zero" }
     ],
-    table: {
-      columns: ['Versioning style', 'Example', 'Good', 'Watch out'],
-      rows: [
-        ['URL path', '/v1/orders', bi('Explicit, easy routing and caching', 'Saaf, routing aur caching aasaan'), bi('URLs change between versions', 'Versions ke beech URLs badalte hain')],
-        ['Header', 'API-Version: 2', bi('Clean URLs', 'Saaf URLs'), bi('Hidden, harder to test in a browser', 'Chhupa hua, browser mein test karna mushkil')],
-        ['Query parameter', '?version=2', bi('Very simple', 'Bahut simple'), bi('Easy to forget; awkward for caching', 'Bhoolna aasaan; caching mein gadbad')],
-        ['Date-based', 'Stripe-Version: 2024-06-20', bi('Each client stays on what it tested', 'Har client usi pe rehta hai jo usne test kiya'), bi('More work to maintain many versions', 'Kai versions sambhalne mein zyaada mehnat')],
-      ],
-    },
-    interview: {
-      opening: bi(
-        'I design REST APIs around resources with predictable URLs, correct HTTP semantics and consistent errors, and I version with a major version in the URL while keeping most changes backward-compatible, so a new version is rarely needed.',
-        'Main REST APIs ko resources ke around design karta hoon — predictable URLs, sahi HTTP semantics aur consistent errors ke saath — aur versioning URL mein major version se karta hoon, saath hi zyaadatar changes backward-compatible rakhta hoon taaki naya version kam hi banana pade.',
+    "requestId": "req_8f2c1a"
+  }
+}`,
+        ),
+        p('I never expose stack traces, database errors or internal implementation details.', 'Main stack traces, database errors ya andar ki implementation details kabhi bahar nahi dikhata.'),
+        h('Input validation and security', 'Input validation aur security'),
+        p('I validate input on the backend even if the frontend already validates it. My checklist:', 'Frontend validate kar chuka ho tab bhi main backend pe input validate karta hoon. Meri checklist:'),
+        ul(
+          ['Schema validation and correct data types.', 'Schema validation aur sahi data types.'],
+          ['Authentication, plus authorization on every resource.', 'Authentication, aur har resource pe authorization.'],
+          ['Parameterized queries to prevent SQL injection.', 'SQL injection se bachne ke liye parameterized queries.'],
+          ['Rate limiting and request-size limits.', 'Rate limiting aur request-size limits.'],
+          ['A CORS policy that fits the application.', 'Application ke hisaab se CORS policy.'],
+          ['HTTPS and secure handling of credentials and tokens.', 'HTTPS aur credentials aur tokens ki safe handling.'],
+          ['Protection against mass assignment — users updating fields they should not control (such as `role` or `isAdmin`).', 'Mass assignment se bachaav — users aise fields update na kar sakein jo unke control mein nahi hone chahiye (jaise `role` ya `isAdmin`).'],
+        ),
+        note(
+          'important',
+          'Authentication answers **who are you?** Authorization answers **what are you allowed to access?** Both are necessary.',
+          'Authentication jawab deta hai **aap kaun ho?** Authorization jawab deta hai **aap kya access kar sakte ho?** Dono zaroori hain.',
+        ),
+        h('Pagination, filtering and sorting', 'Pagination, filtering aur sorting'),
+        p('For list endpoints I never return the entire dataset:', 'List endpoints pe main kabhi poora dataset nahi lautata:'),
+        code('http', 'GET /api/v1/expenses?page=2&limit=20&sortBy=createdAt&order=desc&category=Food'),
+        code(
+          'json',
+          `
+{
+  "data": [],
+  "pagination": { "page": 2, "limit": 20, "totalItems": 145, "totalPages": 8 }
+}`,
+        ),
+        p(
+          'For large or frequently changing data I use cursor-based pagination (`?limit=20&cursor=eyJpZCI6MTIzfQ`), which stays fast on deep pages and does not skip or repeat items when new rows arrive.',
+          'Bade ya tezi se badalte data ke liye main cursor-based pagination (`?limit=20&cursor=eyJpZCI6MTIzfQ`) use karta hoon, jo gehre pages pe bhi fast rehta hai aur nayi rows aane pe items skip ya repeat nahi karta.',
+        ),
+        h('Idempotency and reliability', 'Idempotency aur reliability'),
+        p(
+          'I think about what happens when a client retries after a timeout. If a payment API creates a transaction and the client retries the POST, I must not create two transactions. So I accept an idempotency key:',
+          'Main sochta hoon ki timeout ke baad client retry kare to kya hoga. Agar payment API transaction banata hai aur client POST retry kare, to do transactions nahi banne chahiye. Isliye main idempotency key leta hoon:',
+        ),
+        code(
+          'http',
+          `
+POST /api/v1/transactions
+Idempotency-Key: 7f8c2a1b
+Content-Type: application/json`,
+        ),
+        p(
+          'The backend stores the result for that key and returns the same result for a retry instead of running the operation twice. I also add timeouts, logging, monitoring and correlation IDs for troubleshooting.',
+          'Backend us key ke saath result store karta hai aur retry pe operation dobara chalane ki jagah wahi result lautata hai. Troubleshooting ke liye main timeouts, logging, monitoring aur correlation IDs bhi jodta hoon.',
+        ),
+        h('Documentation and testing', 'Documentation aur testing'),
+        p('I document the API with OpenAPI/Swagger:', 'Main API ko OpenAPI/Swagger se document karta hoon:'),
+        ul(
+          ['Endpoints and methods; request and response schemas.', 'Endpoints aur methods; request aur response schemas.'],
+          ['Authentication requirements, status codes and error formats.', 'Authentication ki zarooratein, status codes aur error formats.'],
+          ['Pagination and filter parameters; deprecated endpoints and version changes.', 'Pagination aur filter parameters; deprecated endpoints aur version changes.'],
+        ),
+        p(
+          'I test validation, authorization, error handling and database integration — not just the happy path.',
+          'Main validation, authorization, error handling aur database integration test karta hoon — sirf happy path nahi.',
+        ),
       ),
-      points: [
-        bi('Resource-oriented URLs with plural nouns; the HTTP verb expresses the action.', 'Plural nouns wale resource-oriented URLs; action HTTP verb batata hai.'),
-        bi('Correct status codes and one consistent error format with a request ID.', 'Sahi status codes aur request ID ke saath ek consistent error format.'),
-        bi('Stateless, token-based requests so any instance can serve them and the API scales horizontally.', 'Stateless, token-based requests taaki koi bhi instance serve kar sake aur API horizontally scale ho.'),
-        bi('Idempotency: GET, PUT and DELETE are idempotent; POST on critical actions takes an Idempotency-Key.', 'Idempotency: GET, PUT aur DELETE idempotent hain; critical POST actions Idempotency-Key lete hain.'),
-        bi('Cursor-based pagination, filtering and sorting — never unbounded responses.', 'Cursor-based pagination, filtering aur sorting — kabhi bina limit ke response nahi.'),
-        bi('Security: HTTPS, OAuth 2.0/JWT, per-resource authorization, input validation, rate limiting.', 'Security: HTTPS, OAuth 2.0/JWT, har resource pe authorization, input validation, rate limiting.'),
-        bi('Caching with Cache-Control and ETags; an OpenAPI spec as the contract.', 'Cache-Control aur ETags se caching; contract ke roop mein OpenAPI spec.'),
-        bi('Versioning: /v1 in the path for major versions; additive changes need no new version, breaking changes do.', 'Versioning: major versions ke liye path mein /v1; additive changes ko naya version nahi chahiye, breaking changes ko chahiye.'),
-        bi('Deprecation: announce, Deprecation/Sunset headers, monitor old-version traffic, migrate clients, then remove.', 'Deprecation: announce karo, Deprecation/Sunset headers, purane version ka traffic monitor karo, clients migrate karo, phir hatao.'),
+      section(
+        'How I handle versioning',
+        'Versioning kaise handle karta hoon',
+        p(
+          'My main rule: introduce a new version only when a change breaks existing clients, and keep backward compatibility whenever practical. There are three common approaches:',
+          'Mera main rule: naya version sirf tab jab change existing clients ko tode, aur jahan ho sake backward compatibility rakho. Teen common tareeke hain:',
+        ),
+        options(
+          {
+            title: 'URI versioning',
+            badge: bi('My default', 'Mera default'),
+            code: '/api/v1/users\n/api/v2/users',
+            lang: 'http',
+            text: bi(
+              'The version is explicit and easy to understand. Routing, documentation, monitoring and gradual migration are straightforward.',
+              'Version saaf dikhta hai aur samajhna aasaan hai. Routing, documentation, monitoring aur dheere-dheere migration seedha hai.',
+            ),
+          },
+          {
+            title: 'Header versioning',
+            code: 'GET /api/users\nAccept: application/vnd.company.v2+json',
+            lang: 'http',
+            text: bi(
+              'Keeps URLs clean, but requests are less transparent and debugging, caching and testing get harder.',
+              'URLs saaf rehte hain, par requests kam transparent hoti hain aur debugging, caching aur testing mushkil ho jaati hai.',
+            ),
+          },
+          {
+            title: 'Query parameter versioning',
+            code: 'GET /api/users?version=2',
+            lang: 'http',
+            text: bi(
+              'Simple to implement, but easy to forget and awkward for caching rules.',
+              'Implement karna simple hai, par bhoolna aasaan aur caching rules ke liye ajeeb.',
+            ),
+          },
+        ),
+        p(
+          'For most React/Angular + Node.js applications I start with URI versioning (`/api/v1`) unless the organisation already has a different standard.',
+          'Zyaadatar React/Angular + Node.js applications ke liye main URI versioning (`/api/v1`) se shuru karta hoon, jab tak organisation ka koi aur standard na ho.',
+        ),
+      ),
+      section(
+        'What changes need a new version?',
+        'Kaunse changes ko naya version chahiye?',
+        p('Imagine the existing API returns:', 'Maan lo abhi ka API yeh lautata hai:'),
+        code('json', '{ "id": 123, "name": "Abhi" }'),
+        table(
+          ['Change', 'Breaking?', bi('New major version?', 'Naya major version?')],
+          [
+            [bi('Add an optional response field', 'Optional response field jodna'), bi('No', 'Nahi'), bi('Usually no', 'Aam taur pe nahi')],
+            [bi('Add a new endpoint', 'Naya endpoint jodna'), bi('No', 'Nahi'), bi('No', 'Nahi')],
+            [bi('Add an optional request field', 'Optional request field jodna'), bi('No', 'Nahi'), bi('Usually no', 'Aam taur pe nahi')],
+            [bi('Rename `name` to `fullName`', '`name` ko `fullName` karna'), bi('Yes', 'Haan'), bi('Usually yes', 'Aam taur pe haan')],
+            [bi('Remove a response field', 'Response field hatana'), bi('Yes', 'Haan'), bi('Usually yes', 'Aam taur pe haan')],
+            [bi('Change a field from number to string', 'Field ko number se string karna'), bi('Yes', 'Haan'), bi('Usually yes', 'Aam taur pe haan')],
+            [bi('Make an optional request field mandatory', 'Optional request field ko mandatory karna'), bi('Yes', 'Haan'), bi('Usually yes', 'Aam taur pe haan')],
+            [bi('Change what an endpoint means or does', 'Endpoint ka matlab ya kaam badalna'), bi('Potentially', 'Ho sakta hai'), bi('Depends on impact', 'Asar pe depend')],
+          ],
+        ),
+        note(
+          'warning',
+          'Even adding a response field can break clients that strictly validate schemas or deserialize into rigid models. I verify client compatibility instead of assuming every additive change is safe.',
+          'Response field jodna bhi un clients ko tod sakta hai jo schema strictly validate karte hain ya rigid models mein deserialize karte hain. Main har additive change ko safe maanne ki jagah client compatibility check karta hoon.',
+        ),
+      ),
+      section(
+        'Migrating from v1 to v2',
+        'v1 se v2 pe migrate karna',
+        p(
+          'Suppose `GET /api/v1/users/123` returns `name`, but v2 needs `firstName` and `lastName`. I migrate in stages:',
+          'Maan lo `GET /api/v1/users/123` `name` lautata hai, par v2 ko `firstName` aur `lastName` chahiye. Main stages mein migrate karta hoon:',
+        ),
+        steps(
+          ['Introduce v2', 'v2 laao', 'Add `/api/v2/users/123` with the new contract. Keep v1 working.', 'Naye contract ke saath `/api/v2/users/123` jodo. v1 chalta rahe.'],
+          [
+            'Reuse business logic',
+            'Business logic dobara use karo',
+            'Share services, validation and data access; use version-specific controllers or response mappers only where the contracts differ.',
+            'Services, validation aur data access share karo; version-specific controllers ya response mappers sirf wahan jahan contracts alag hain.',
+          ],
+          [
+            'Migrate clients gradually',
+            'Clients ko dheere-dheere migrate karo',
+            'Move frontends and external consumers to v2, and monitor which clients still call v1.',
+            'Frontends aur external consumers ko v2 pe le jao, aur monitor karo kaun abhi bhi v1 call kar raha hai.',
+          ],
+          [
+            'Deprecate and retire v1',
+            'v1 deprecate aur band karo',
+            'Announce a sunset date (with `Deprecation` and `Sunset` headers), share migration steps, watch remaining usage, and retire v1 only when it is safe.',
+            'Sunset date announce karo (`Deprecation` aur `Sunset` headers ke saath), migration steps batao, bacha hua usage dekho, aur v1 tabhi band karo jab safe ho.',
+          ],
+        ),
+        p('I keep contract tests for both versions and use API usage metrics so I never break an active consumer.', 'Main dono versions ke contract tests rakhta hoon aur API usage metrics use karta hoon taaki koi active consumer na toote.'),
+      ),
+      section(
+        'Does every change need a new version?',
+        'Kya har change ko naya version chahiye?',
+        p('No. I do not create v2 for every small change.', 'Nahi. Main har chhote change pe v2 nahi banata.'),
+        ul(
+          ['**Non-breaking changes** — keep the current version.', '**Non-breaking changes** — wahi version rakho.'],
+          ['**Breaking contract changes** — introduce a new version.', '**Breaking contract changes** — naya version laao.'],
+          ['**Internal implementation changes** — same version, as long as the contract and behaviour stay compatible.', '**Andar ki implementation changes** — wahi version, jab tak contract aur behaviour compatible rahe.'],
+        ),
+        note(
+          'tip',
+          'API versioning is not application versioning: the backend can deploy ten times without changing `/api/v1`, as long as its public contract stays compatible.',
+          'API versioning application versioning nahi hai: backend das baar deploy ho sakta hai bina `/api/v1` badle, jab tak uska public contract compatible rahe.',
+        ),
+      ),
+      section(
+        'Example in a Node.js / NestJS application',
+        'Node.js / NestJS application mein example',
+        code(
+          'text',
+          `
+src/
+├── users/
+│   ├── v1/
+│   │   ├── users.controller.ts
+│   │   └── users.dto.ts
+│   ├── v2/
+│   │   ├── users.controller.ts
+│   │   └── users.dto.ts
+│   ├── users.service.ts      ← shared business logic
+│   └── users.module.ts`,
+        ),
+        p(
+          'Both controllers share `users.service.ts` but return different response DTOs, so business logic is not duplicated. URI versioning is enabled once:',
+          'Dono controllers `users.service.ts` share karte hain par alag response DTOs lautate hain, to business logic duplicate nahi hota. URI versioning ek baar enable hoti hai:',
+        ),
+        code(
+          'ts',
+          `
+// main.ts
+app.enableVersioning({ type: VersioningType.URI });
+
+// users/v2/users.controller.ts
+@Controller({ path: 'users', version: '2' })
+export class UsersV2Controller {
+  constructor(private readonly users: UsersService) {}
+
+  @Get(':id')
+  async findOne(@Param('id') id: string): Promise<UserV2Dto> {
+    const user = await this.users.findById(id);
+    return { id: user.id, firstName: user.firstName, lastName: user.lastName };
+  }
+}`,
+        ),
+      ),
+    ],
+    interview: {
+      text: [
+        bi(
+          'When designing REST APIs, I focus on resource-oriented endpoints, correct HTTP methods and status codes, consistent request and response formats, input validation, authentication and authorization, pagination, and clear error handling. I also consider idempotency, rate limiting, logging, monitoring and API documentation.',
+          'REST APIs design karte waqt main resource-oriented endpoints, sahi HTTP methods aur status codes, consistent request aur response formats, input validation, authentication aur authorization, pagination aur saaf error handling pe focus karta hoon. Saath mein idempotency, rate limiting, logging, monitoring aur API documentation ka bhi dhyaan rakhta hoon.',
+        ),
+        bi(
+          'For versioning, I generally prefer URI-based versioning such as /api/v1 and /api/v2, because it is explicit and easy to manage. I keep backward compatibility for non-breaking changes and introduce a new version only for breaking changes, like removing fields or changing the response structure. During a migration I run both versions, share business logic, monitor usage, move consumers gradually, and deprecate the old version only when it is safe.',
+          'Versioning ke liye main aam taur pe /api/v1 aur /api/v2 jaisi URI-based versioning chunta hoon, kyunki yeh saaf hai aur manage karna aasaan. Non-breaking changes mein backward compatibility rakhta hoon aur naya version sirf breaking changes ke liye laata hoon, jaise fields hatana ya response structure badalna. Migration ke dauraan dono versions chalaata hoon, business logic share karta hoon, usage monitor karta hoon, consumers ko dheere-dheere le jaata hoon, aur purana version tabhi deprecate karta hoon jab safe ho.',
+        ),
       ],
       keywords: [
         'Resource-oriented design',
         'HTTP semantics',
-        'Idempotency',
-        'Statelessness',
         'Status codes',
+        'Idempotency key',
+        'Statelessness',
         'Cursor pagination',
+        'Input validation',
+        'Authentication vs authorization',
         'OpenAPI',
+        'URI versioning',
         'Backward compatibility',
-        'Breaking vs non-breaking change',
-        'Tolerant reader',
+        'Breaking change',
         'Deprecation / Sunset header',
-        'ETag',
       ],
     },
     listenFor: [
       bi('Consistency and predictability, not just a list of HTTP verbs.', 'Consistency aur predictability, sirf HTTP verbs ki list nahi.'),
-      bi('Knowing which changes are breaking and which are not.', 'Yeh pata hona ki kaunse changes breaking hain aur kaunse nahi.'),
-      bi('A real plan for old clients, such as mobile apps that cannot be force-updated.', 'Purane clients ke liye asli plan, jaise mobile apps jinhe zabardasti update nahi kar sakte.'),
-      bi('Bringing up idempotency, pagination and security without being prompted.', 'Bina pooche idempotency, pagination aur security ki baat karna.'),
+      bi('Knowing which changes are breaking — and a real migration plan for existing clients.', 'Kaunse changes breaking hain yeh jaanna — aur existing clients ke liye asli migration plan.'),
+      bi('Bringing up validation, security, idempotency and pagination without being prompted.', 'Bina pooche validation, security, idempotency aur pagination ki baat karna.'),
     ],
     mistakes: [
-      bi('Verbs in URLs: /getUser, /createOrder.', 'URLs mein verbs: /getUser, /createOrder.'),
-      bi('Returning 200 OK with an error message inside the body.', 'Body ke andar error message ke saath 200 OK lautana.'),
-      bi('Mixing up 401 (who are you?) and 403 (I know you, but no).', '401 (aap kaun ho?) aur 403 (pehchaanta hoon, par permission nahi) ko mila dena.'),
-      bi('A new version for every small change — or never versioning and breaking clients.', 'Har chhote change pe naya version — ya kabhi versioning na karna aur clients tod dena.'),
-      bi('Returning whole tables without pagination.', 'Bina pagination ke poori table lauta dena.'),
+      bi('Verbs in URLs such as `/getUser` or `/createOrder`.', 'URLs mein verbs, jaise `/getUser` ya `/createOrder`.'),
+      bi('Returning `200 OK` with an error message inside the body.', 'Body mein error message ke saath `200 OK` lautana.'),
+      bi('Creating a new version for every small change — or never versioning and breaking clients.', 'Har chhote change pe naya version — ya kabhi versioning na karke clients tod dena.'),
     ],
     followUps: [
       {
+        q: bi(
+          'How would you design versioning if five frontend applications and several external clients depend on the same backend?',
+          'Agar paanch frontend applications aur kai external clients ek hi backend pe depend karein to versioning kaise design karoge?',
+        ),
+        a: bi(
+          'Think beyond the URL: contract compatibility, ownership, monitoring who calls which version, and the cost of supporting several versions. Prefer additive changes, publish an OpenAPI contract with contract tests per consumer, track usage per client, give long deprecation windows to external clients, and keep the number of live versions small.',
+          'URL se aage socho: contract compatibility, ownership, kaun kaunsa version call kar raha hai iski monitoring, aur kai versions sambhaalne ka kharcha. Additive changes ko tarjeeh do, har consumer ke contract tests ke saath OpenAPI contract publish karo, har client ka usage track karo, external clients ko lamba deprecation time do, aur live versions ki ginti kam rakho.',
+        ),
+      },
+      {
         q: bi('What is the difference between PUT and PATCH?', 'PUT aur PATCH mein kya fark hai?'),
         a: bi(
-          'PUT sends the complete new version of the resource and is idempotent. PATCH sends only the changes; whether it is idempotent depends on the patch (“set name to X” is, “add 1 to count” is not).',
-          'PUT resource ka poora naya version bhejta hai aur idempotent hai. PATCH sirf changes bhejta hai; idempotent hai ya nahi yeh patch pe depend karta hai (“name ko X karo” idempotent hai, “count mein 1 jodo” nahi).',
-        ),
-      },
-      {
-        q: bi('How do you make a POST safe to retry?', 'POST ko retry ke liye safe kaise banate ho?'),
-        a: bi(
-          'The client sends a unique Idempotency-Key per logical operation. The server stores the key with the result (for example for 24 hours); a repeat with the same key returns the stored result instead of running again.',
-          'Client har logical operation ke liye ek unique Idempotency-Key bhejta hai. Server key ko result ke saath store karta hai (jaise 24 ghante ke liye); same key se repeat aaye to dobara chalane ki jagah stored result lautata hai.',
-        ),
-      },
-      {
-        q: bi('REST vs GraphQL vs gRPC — when would you pick each?', 'REST vs GraphQL vs gRPC — kab kaunsa chunoge?'),
-        a: bi(
-          'REST: simple, cacheable, ideal for public APIs. GraphQL: clients choose exactly the fields they need — great when many different frontends use the same data, but caching and rate limiting are harder. gRPC: fast binary protocol with typed contracts — great for service-to-service calls.',
-          'REST: simple, cacheable, public APIs ke liye best. GraphQL: client bilkul wahi fields maangta hai jo chahiye — jab kai alag frontends same data use karein tab badhiya, par caching aur rate limiting mushkil. gRPC: typed contracts wala fast binary protocol — service-to-service calls ke liye badhiya.',
+          'PUT sends the complete new version of the resource and is idempotent. PATCH sends only the changes; it is idempotent for “set name to X” but not for “add 1 to count”.',
+          'PUT resource ka poora naya version bhejta hai aur idempotent hai. PATCH sirf changes bhejta hai; “name ko X karo” ke liye idempotent hai par “count mein 1 jodo” ke liye nahi.',
         ),
       },
     ],
@@ -181,144 +375,170 @@ export const backendQuestions: PrepQuestion[] = [
     question: bi('What is a race condition?', 'Race condition kya hoti hai?'),
     kind: 'concept',
     level: 'beginner',
-    tags: ['concurrency', 'race condition', 'locking', 'transactions', 'atomic', 'optimistic locking'],
-    simple: bi(
-      'A race condition happens when two things run at the same time, touch the same data, and the final result depends on which one happens to finish first. Each one is correct on its own, but together they step on each other — usually because both read the old value before either of them writes the new one.',
-      'Race condition tab hoti hai jab do kaam ek saath chalte hain, same data ko chhoote hain, aur final result is pe depend karta hai ki kaun pehle khatam hua. Akele dono sahi hain, par saath mein ek doosre ka kaam bigaad dete hain — aam taur pe isliye kyunki dono ne nayi value likhne se pehle purani value padh li.',
+    tags: ['concurrency', 'race condition', 'locking', 'transactions', 'atomic', 'optimistic locking', 'node.js'],
+    answer: bi(
+      'A race condition happens when two or more operations run at the same time on shared data, and the final result depends on which one finishes first. Each operation is correct on its own, but together they overwrite each other — usually because both read the old value before either writes the new one.',
+      'Race condition tab hoti hai jab do ya zyaada operations ek saath shared data pe chalte hain, aur final result is pe depend karta hai ki kaun pehle khatam hua. Har operation akele sahi hai, par saath mein ek doosre ko overwrite kar dete hain — aam taur pe isliye kyunki dono ne nayi value likhne se pehle purani value padh li.',
     ),
-    example: bi(
-      'A joint bank account has ₹1,000. Two people withdraw ₹800 at two different ATMs at the same second. Both ATMs read “balance 1,000”, both approve, both write “200”. ₹1,600 left the bank but the balance only dropped by ₹800. The same thing happens when two people book the last seat in a cinema at the same moment.',
-      'Ek joint bank account mein ₹1,000 hain. Do log ek hi second mein do alag ATMs se ₹800 nikalte hain. Dono ATMs padhte hain “balance 1,000”, dono approve karte hain, dono likhte hain “200”. Bank se ₹1,600 nikal gaye par balance sirf ₹800 kam hua. Yahi tab hota hai jab do log cinema ki aakhri seat ek hi pal mein book karte hain.',
-    ),
-    why: bi(
-      'Race conditions cause wrong balances, double bookings, overselling and lost updates — and they are hard to find because they only appear under real concurrent load, never in a quiet local test.',
-      'Race conditions se galat balance, double booking, overselling aur lost updates hote hain — aur inhe dhoondhna mushkil hai kyunki yeh sirf asli concurrent load mein dikhti hain, shaant local test mein kabhi nahi.',
-    ),
-    without: bi(
-      'If you ignore them you get bugs that “cannot be reproduced”, corrupt data discovered weeks later, and customers charged twice or seats sold twice.',
-      'Inhe ignore karoge to aise bugs milenge jo “reproduce hi nahi hote”, hafton baad pata chalne wala kharab data, aur customers se do baar paise ya ek seat do baar bikna.',
-    ),
-    partsTitle: bi('How it happens and how to prevent it', 'Yeh kaise hota hai aur kaise roken'),
-    parts: [
-      {
-        title: bi('The classic shape: read → modify → write', 'Classic shape: padho → badlo → likho'),
-        text: bi(
-          'x = read(); x = x + 1; write(x). Two workers interleave: both read 5, both write 6 — one increment is lost. This is called a “lost update”.',
-          'x = read(); x = x + 1; write(x). Do workers beech-beech mein chalte hain: dono 5 padhte hain, dono 6 likhte hain — ek increment gayab. Ise “lost update” kehte hain.',
+    sections: [
+      section(
+        'A simple example',
+        'Ek simple example',
+        p(
+          'A joint account has ₹1,000. Two people withdraw ₹800 at two ATMs at the same moment:',
+          'Joint account mein ₹1,000 hain. Do log ek hi pal mein do ATMs se ₹800 nikalte hain:',
         ),
-      },
-      {
-        title: bi('The other shape: check → then act', 'Doosra shape: check karo → phir karo'),
-        text: bi(
-          'if (seatIsFree) bookSeat(). Between the check and the action someone else books the seat. This gap is called time-of-check to time-of-use (TOCTOU).',
-          'if (seatIsFree) bookSeat(). Check aur action ke beech koi aur seat book kar leta hai. Is gap ko time-of-check to time-of-use (TOCTOU) kehte hain.',
+        table(
+          ['Time', 'ATM A', 'ATM B', bi('Balance in DB', 'DB mein balance')],
+          [
+            ['t1', bi('reads 1,000', '1,000 padhta hai'), '—', '1,000'],
+            ['t2', '—', bi('reads 1,000', '1,000 padhta hai'), '1,000'],
+            ['t3', bi('1,000 ≥ 800 → writes 200', '1,000 ≥ 800 → 200 likhta hai'), '—', '200'],
+            ['t4', '—', bi('1,000 ≥ 800 → writes 200', '1,000 ≥ 800 → 200 likhta hai'), '200'],
+          ],
         ),
-      },
-      {
-        title: bi('Where they appear', 'Yeh kahan dikhti hain'),
-        text: bi(
-          'Threads in one process; several requests on different servers hitting the same database row; two browser tabs; async code in Node.js (other requests run between your awaits); and distributed workers processing a duplicated message.',
-          'Ek process ke threads; alag servers pe kai requests jo same database row chhooti hain; do browser tabs; Node.js ka async code (aapke awaits ke beech doosri requests chal jaati hain); aur duplicate message process karte distributed workers.',
+        p(
+          '₹1,600 left the account, but the balance dropped by only ₹800. Each request was correct; the interleaving was not. In code it looks innocent:',
+          'Account se ₹1,600 nikle, par balance sirf ₹800 kam hua. Har request sahi thi; unka beech-beech mein chalna galat tha. Code mein yeh maasoom dikhta hai:',
         ),
-      },
-      {
-        title: bi('Fix 1 — make it atomic', 'Fix 1 — ise atomic banao'),
-        text: bi(
-          'Do the check and the change in one indivisible step: UPDATE accounts SET balance = balance - 800 WHERE id = 1 AND balance >= 800, then check how many rows changed. Or use atomic operations such as Redis INCR or compare-and-swap.',
-          'Check aur change ek hi na-tootne wale step mein karo: UPDATE accounts SET balance = balance - 800 WHERE id = 1 AND balance >= 800, phir dekho kitni rows badli. Ya Redis INCR ya compare-and-swap jaise atomic operations use karo.',
+        code(
+          'ts',
+          `
+const account = await db.accounts.findById(id);   // both requests read 1,000
+if (account.balance >= amount) {
+  account.balance -= amount;                      // both compute 200
+  await account.save();                           // last write wins
+}`,
         ),
-      },
-      {
-        title: 'Fix 2 — locks (pessimistic)',
-        text: bi(
-          'Take a lock before touching the data: a mutex inside one process, a row lock in the database (SELECT … FOR UPDATE), or a distributed lock (Redis, ZooKeeper) with an expiry when several services are involved. Safe when conflicts are frequent, but others must wait, and careless locking can deadlock.',
-          'Data chhoone se pehle lock lo: ek process ke andar mutex, database mein row lock (SELECT … FOR UPDATE), ya kai services hon to expiry ke saath distributed lock (Redis, ZooKeeper). Jab conflicts zyaada hon tab safe, par baakiyon ko wait karna padta hai, aur laparwah locking se deadlock ho sakta hai.',
-        ),
-      },
-      {
-        title: 'Fix 3 — optimistic concurrency',
-        text: bi(
-          'Give each row a version number: UPDATE … SET …, version = 8 WHERE id = 1 AND version = 7. If zero rows changed, someone else got there first — re-read and retry. Great when conflicts are rare.',
-          'Har row ka version number rakho: UPDATE … SET …, version = 8 WHERE id = 1 AND version = 7. Agar zero rows badli, to koi aur pehle pahunch gaya — dobara padho aur retry karo. Jab conflicts kam hon tab badhiya.',
-        ),
-      },
-      {
-        title: bi('Fix 4 — constraints, idempotency and ordering', 'Fix 4 — constraints, idempotency aur ordering'),
-        text: bi(
-          'Let the database refuse impossible states (a unique constraint on show + seat), use a suitable transaction isolation level, make retried requests idempotent, or route all changes for one key through a single queue partition so they happen one at a time.',
-          'Database ko namumkin states mana karne do (show + seat pe unique constraint), sahi transaction isolation level use karo, retry hone wali requests ko idempotent banao, ya ek key ke saare changes ek hi queue partition se bhejo taaki woh ek-ek karke hon.',
-        ),
-      },
-      {
-        title: bi('How to find them', 'Inhe kaise dhoondhein'),
-        text: bi(
-          'They rarely show up in normal tests. Look for read-modify-write and check-then-act patterns in code review, run concurrent load tests, use race detectors where available (Go’s -race), and keep database constraints as a safety net that turns silent corruption into a visible error.',
-          'Normal tests mein yeh kam hi dikhti hain. Code review mein read-modify-write aur check-then-act patterns dhoondho, concurrent load tests chalao, jahan mile race detectors use karo (Go ka -race), aur database constraints ko safety net rakho jo chupe hue kharab data ko dikhne wali error bana dete hain.',
-        ),
-      },
-    ],
-    table: {
-      columns: ['Technique', 'How', 'Best when'],
-      rows: [
-        ['Atomic update', 'UPDATE … WHERE balance >= 800', bi('A single row or counter changes', 'Ek row ya counter badalta ho')],
-        ['Pessimistic lock', 'SELECT … FOR UPDATE', bi('Conflicts are frequent (hot items)', 'Conflicts zyaada hon (hot items)')],
-        ['Optimistic lock', 'WHERE version = 7', bi('Conflicts are rare', 'Conflicts kam hon')],
-        ['Unique constraint', 'UNIQUE (show_id, seat_id)', bi('Duplicates must be impossible', 'Duplicate namumkin hona chahiye')],
-      ],
-    },
-    interview: {
-      opening: bi(
-        'A race condition is a bug where the outcome depends on the timing of concurrent operations on shared state — typically two operations read the same value and both write, so one update is lost.',
-        'Race condition ek bug hai jisme result shared state pe chal rahe concurrent operations ki timing pe depend karta hai — aam taur pe do operations same value padhte hain aur dono likhte hain, to ek update kho jaata hai.',
       ),
-      points: [
-        bi('Common shapes: read-modify-write (lost update) and check-then-act (TOCTOU).', 'Common shapes: read-modify-write (lost update) aur check-then-act (TOCTOU).'),
-        bi('It happens across threads, async tasks, multiple app instances and distributed workers — not only in multi-threaded code.', 'Yeh threads, async tasks, kai app instances aur distributed workers mein hoti hai — sirf multi-threaded code mein nahi.'),
-        bi('Prevent with atomic operations: a single conditional UPDATE, INCR, compare-and-swap.', 'Atomic operations se roko: ek conditional UPDATE, INCR, compare-and-swap.'),
-        bi('Or pessimistic locking (SELECT … FOR UPDATE, mutex, distributed lock with a TTL) when contention is high.', 'Ya contention zyaada ho to pessimistic locking (SELECT … FOR UPDATE, mutex, TTL wala distributed lock).'),
-        bi('Or optimistic concurrency with a version column and retry when conflicts are rare.', 'Ya conflicts kam hon to version column aur retry ke saath optimistic concurrency.'),
-        bi('Back it with database constraints and idempotency for retried requests.', 'Saath mein database constraints aur retry hone wali requests ke liye idempotency.'),
-        bi('Detect with concurrent load tests and code review; they rarely reproduce locally.', 'Concurrent load tests aur code review se pakdo; yeh local mein kam hi reproduce hoti hain.'),
+      section(
+        'The two common shapes',
+        'Do common shapes',
+        ul(
+          [
+            '**Read → modify → write (lost update):** two workers read 5, both write 6 — one increment disappears.',
+            '**Read → modify → write (lost update):** do workers 5 padhte hain, dono 6 likhte hain — ek increment gayab.',
+          ],
+          [
+            '**Check → then act (TOCTOU):** `if (seatIsFree) bookSeat()` — someone books the seat between the check and the action.',
+            '**Check → then act (TOCTOU):** `if (seatIsFree) bookSeat()` — check aur action ke beech koi aur seat book kar leta hai.',
+          ],
+        ),
+      ),
+      section(
+        'Where it happens — not only with threads',
+        'Yeh kahan hoti hai — sirf threads mein nahi',
+        ul(
+          ['Several requests on different servers updating the same database row.', 'Alag servers pe kai requests jo same database row update karti hain.'],
+          ['Async code in Node.js — other requests run between your `await`s.', 'Node.js ka async code — aapke `await`s ke beech doosri requests chal jaati hain.'],
+          ['Queue consumers processing a duplicated message twice.', 'Queue consumers jo duplicate message do baar process karte hain.'],
+          ['Threads in one process, or the same user in two browser tabs.', 'Ek process ke threads, ya do browser tabs mein same user.'],
+        ),
+        note(
+          'warning',
+          'Node.js being single-threaded does not protect you: other requests interleave at every `await`, and production runs several instances against the same database.',
+          'Node.js ka single-threaded hona aapko nahi bachata: har `await` pe doosri requests beech mein aa jaati hain, aur production mein same database pe kai instances chalte hain.',
+        ),
+      ),
+      section(
+        'How I prevent it',
+        'Main ise kaise rokta hoon',
+        h('1. Make the check and the change one atomic step', '1. Check aur change ko ek atomic step banao'),
+        code(
+          'sql',
+          `
+UPDATE accounts
+SET    balance = balance - 800
+WHERE  id = 1 AND balance >= 800;
+-- 1 row updated → success, 0 rows → insufficient balance`,
+        ),
+        h('2. Lock the row (pessimistic locking)', '2. Row ko lock karo (pessimistic locking)'),
+        code(
+          'sql',
+          `
+BEGIN;
+SELECT balance FROM accounts WHERE id = 1 FOR UPDATE;  -- others wait here
+UPDATE accounts SET balance = balance - 800 WHERE id = 1;
+COMMIT;`,
+        ),
+        h('3. Version check (optimistic locking)', '3. Version check (optimistic locking)'),
+        code(
+          'sql',
+          `
+UPDATE accounts
+SET    balance = 200, version = 8
+WHERE  id = 1 AND version = 7;
+-- 0 rows updated → someone changed it first: re-read and retry`,
+        ),
+        h('4. Let the database refuse impossible states', '4. Database ko namumkin states mana karne do'),
+        code('sql', 'ALTER TABLE bookings ADD CONSTRAINT one_booking_per_seat UNIQUE (show_id, seat_id);'),
+        table(
+          ['Technique', bi('Best when', 'Kab best'), 'Trade-off'],
+          [
+            ['Atomic update', bi('One row or counter changes', 'Ek row ya counter badalta ho'), bi('Logic must fit in one statement', 'Logic ek statement mein aana chahiye')],
+            ['Pessimistic lock', bi('Conflicts are frequent (hot items)', 'Conflicts zyaada hon (hot items)'), bi('Others wait; risk of deadlocks', 'Baaki wait karte hain; deadlock ka risk')],
+            ['Optimistic lock', bi('Conflicts are rare', 'Conflicts kam hon'), bi('Losers must retry', 'Haarne wale ko retry karna padta hai')],
+            ['Unique constraint', bi('Duplicates must be impossible', 'Duplicate namumkin hone chahiye'), bi('Handle the constraint error', 'Constraint error handle karna padta hai')],
+            [bi('Distributed lock / one queue partition per key', 'Distributed lock / har key ka ek queue partition'), bi('Several services touch the same thing', 'Kai services same cheez chhooti hain'), bi('More infrastructure; locks need expiry', 'Zyaada infrastructure; locks ko expiry chahiye')],
+          ],
+        ),
+      ),
+      section(
+        'How I find them',
+        'Inhe kaise dhoondhta hoon',
+        ul(
+          ['Look for read-modify-write and check-then-act patterns in code review.', 'Code review mein read-modify-write aur check-then-act patterns dhoondho.'],
+          ['Run concurrent load tests — they rarely show up in normal tests.', 'Concurrent load tests chalao — normal tests mein yeh kam hi dikhti hain.'],
+          ['Use database constraints as a safety net: silent corruption becomes a visible error.', 'Database constraints ko safety net rakho: chupa hua kharab data dikhne wali error ban jaata hai.'],
+        ),
+      ),
+    ],
+    interview: {
+      text: [
+        bi(
+          'A race condition is a bug where the result depends on the timing of concurrent operations on shared state. The classic case is read-modify-write: two requests read the same balance, both subtract, and one update is lost. Another is check-then-act, like two users booking the last seat.',
+          'Race condition ek bug hai jisme result shared state pe chal rahe concurrent operations ki timing pe depend karta hai. Classic case read-modify-write hai: do requests same balance padhti hain, dono ghataati hain, aur ek update kho jaata hai. Doosra check-then-act hai, jaise do users aakhri seat book karein.',
+        ),
+        bi(
+          'It is not limited to threads — it happens across multiple instances, async code between awaits, and duplicate queue messages. I prevent it with atomic conditional updates, row locks when contention is high, optimistic locking with a version column when conflicts are rare, and unique constraints as a safety net. I test for it with concurrent load tests, because it rarely shows up locally.',
+          'Yeh sirf threads tak seemit nahi — kai instances, awaits ke beech async code, aur duplicate queue messages mein bhi hoti hai. Main ise atomic conditional updates, contention zyaada ho to row locks, conflicts kam hon to version column ke saath optimistic locking, aur safety net ke roop mein unique constraints se rokta hoon. Ise concurrent load tests se test karta hoon, kyunki local mein yeh kam hi dikhti hai.',
+        ),
       ],
       keywords: [
         'Shared mutable state',
         'Critical section',
         'Lost update',
         'Check-then-act / TOCTOU',
-        'Atomicity',
-        'Mutex',
+        'Atomic operation',
         'Pessimistic locking',
+        'SELECT … FOR UPDATE',
         'Optimistic concurrency control',
-        'Compare-and-swap',
-        'Isolation level',
+        'Unique constraint',
         'Distributed lock',
-        'Idempotency',
       ],
     },
     listenFor: [
       bi('A concrete example, such as money or a booking.', 'Ek thos example, jaise paise ya booking.'),
       bi('More than one fix, with the trade-offs between them.', 'Ek se zyaada fix, unke trade-offs ke saath.'),
-      bi('Understanding that it also happens across servers (at the database), not just between threads.', 'Yeh samajh ki yeh servers ke beech (database pe) bhi hoti hai, sirf threads mein nahi.'),
-      bi('How they would test for it or detect it.', 'Ise test ya detect kaise karenge.'),
+      bi('Knowing it happens across servers and in async code, not only between threads.', 'Yeh jaanna ki yeh servers ke beech aur async code mein bhi hoti hai, sirf threads mein nahi.'),
     ],
     mistakes: [
-      bi('“Node.js is single-threaded, so it cannot have race conditions” — it can, between awaits and across instances.', '“Node.js single-threaded hai, isliye race condition nahi ho sakti” — ho sakti hai, awaits ke beech aur instances ke beech.'),
-      bi('Using an in-memory lock when the app runs on several servers.', 'App kai servers pe chal raha ho tab bhi in-memory lock use karna.'),
-      bi('Locks without timeouts, which can freeze the system (deadlocks).', 'Bina timeout ke locks, jo system ko jam kar sakte hain (deadlocks).'),
+      bi('“Node.js is single-threaded, so there are no race conditions.”', '“Node.js single-threaded hai, isliye race conditions nahi hoti.”'),
+      bi('Using an in-memory lock when the app runs on several servers.', 'App kai servers pe ho tab bhi in-memory lock use karna.'),
     ],
     followUps: [
       {
         q: bi('What is the difference between a race condition and a deadlock?', 'Race condition aur deadlock mein kya fark hai?'),
         a: bi(
-          'A race condition gives a wrong result because of timing. A deadlock is when two operations each wait for a lock the other one holds, so both stop forever.',
-          'Race condition timing ki wajah se galat result deti hai. Deadlock tab hota hai jab do operations ek doosre ke paas wale lock ka wait karte hain, aur dono hamesha ke liye ruk jaate hain.',
+          'A race condition gives a wrong result because of timing. A deadlock is when two operations each wait for a lock the other holds, so both stop forever. Locking in a consistent order and using lock timeouts prevents deadlocks.',
+          'Race condition timing ki wajah se galat result deti hai. Deadlock tab hota hai jab do operations ek doosre ke paas wale lock ka wait karte hain aur dono hamesha ke liye ruk jaate hain. Ek tay order mein lock lena aur lock timeouts deadlock rokte hain.',
         ),
       },
       {
         q: bi('How would you stop the same seat from being booked twice?', 'Ek seat do baar book hone se kaise rokoge?'),
         a: bi(
-          'A unique constraint on (show_id, seat_id) or a conditional update “WHERE status = free”, combined with a short reservation hold that expires if payment does not complete.',
-          '(show_id, seat_id) pe unique constraint ya “WHERE status = free” wala conditional update, saath mein chhota reservation hold jo payment poora na ho to expire ho jaaye.',
+          'A unique constraint on (show_id, seat_id), or a conditional update `WHERE status = ‘free’`, plus a short reservation hold that expires if payment does not complete.',
+          '(show_id, seat_id) pe unique constraint, ya conditional update `WHERE status = ‘free’`, saath mein chhota reservation hold jo payment poora na ho to expire ho jaaye.',
         ),
       },
     ],
@@ -336,131 +556,153 @@ export const backendQuestions: PrepQuestion[] = [
     kind: 'concept',
     level: 'intermediate',
     tags: ['retry', 'backoff', 'jitter', 'idempotency', 'circuit breaker', 'resilience', 'timeouts'],
-    simple: bi(
-      'No. Retry only when the failure is probably temporary AND repeating the request is safe. A timeout or “503 busy” may work the second time; a “400 bad request” or “card declined” will fail the same way every time. And if the first attempt might already have worked (like a payment), retrying blindly can do it twice.',
-      'Nahi. Retry sirf tab karo jab failure shayad temporary ho AUR request dobara karna safe ho. Timeout ya “503 busy” doosri baar chal sakta hai; “400 bad request” ya “card declined” har baar waise hi fail hoga. Aur agar pehli koshish shayad ho chuki ho (jaise payment), to aankh band karke retry use do baar kar sakta hai.',
+    answer: bi(
+      'No. I retry only when the failure is likely temporary and the operation is safe to repeat. Retrying a permanent error just wastes resources, and retrying a non-idempotent request — like a payment — can execute it twice.',
+      'Nahi. Main sirf tab retry karta hoon jab failure shayad temporary ho aur operation dobara karna safe ho. Permanent error ko retry karna bas resources barbaad karta hai, aur non-idempotent request — jaise payment — ko retry karna use do baar chala sakta hai.',
     ),
-    example: bi(
-      'Calling a friend: if the line is busy, you call again in a few minutes (temporary — retry). If the number does not exist, calling ten more times will not help (permanent — do not retry). If a UPI payment shows “pending”, you do not just press Pay again — you check first, or you might pay twice (not safe to repeat).',
-      'Dost ko call karna: line busy hai to kuch minute baad dobara call karte ho (temporary — retry). Number exist hi nahi karta to das baar aur call karne se kuch nahi hoga (permanent — retry mat karo). UPI payment “pending” dikhaye to aap bas dobara Pay nahi dabaate — pehle check karte ho, warna do baar pay ho sakta hai (dobara karna safe nahi).',
-    ),
-    why: bi(
-      'Good retries quietly hide short network blips and restarts, so users never notice them.',
-      'Acche retries chhote network blips aur restarts ko chupchaap chhupa dete hain, users ko pata bhi nahi chalta.',
-    ),
-    without: bi(
-      'Bad retries cause retry storms — thousands of clients retrying instantly multiply the load on a struggling service and turn a small slowdown into an outage — and duplicate payments, emails and orders.',
-      'Kharab retries retry storm laate hain — hazaaron clients turant retry karke pehle se pareshaan service pe load kai guna kar dete hain aur chhoti slowness ko outage bana dete hain — aur duplicate payments, emails aur orders bhi.',
-    ),
-    partsTitle: bi('How to decide, step by step', 'Kaise decide karein, step by step'),
-    parts: [
-      {
-        title: bi('1. Is the failure temporary?', '1. Kya failure temporary hai?'),
-        text: bi(
-          'Retry: timeouts, connection resets, 502/503/504, 429 (after the Retry-After time), database deadlocks or serialization failures. Do not retry: 400, 401, 403, 404, 409, 422 and business errors such as “insufficient balance”.',
-          'Retry karo: timeouts, connection resets, 502/503/504, 429 (Retry-After time ke baad), database deadlocks ya serialization failures. Retry mat karo: 400, 401, 403, 404, 409, 422 aur business errors jaise “balance kam hai”.',
+    sections: [
+      section(
+        'My decision rule',
+        'Mera decision rule',
+        steps(
+          [
+            'Is the failure temporary?',
+            'Kya failure temporary hai?',
+            'Timeouts, connection resets, 502/503/504 and 429 usually are. Validation, auth and business errors are not.',
+            'Timeouts, connection resets, 502/503/504 aur 429 aam taur pe hote hain. Validation, auth aur business errors nahi.',
+          ],
+          [
+            'Is the operation safe to repeat?',
+            'Kya operation dobara karna safe hai?',
+            'GET, PUT and DELETE are idempotent. POST is not — unless it carries an idempotency key.',
+            'GET, PUT aur DELETE idempotent hain. POST nahi — jab tak usme idempotency key na ho.',
+          ],
+          [
+            'Is there time left?',
+            'Kya time bacha hai?',
+            'Respect the overall deadline. If the user has already waited too long, fail fast with a clear error.',
+            'Overall deadline ka dhyaan rakho. User pehle hi bahut wait kar chuka ho to saaf error ke saath jaldi fail karo.',
+          ],
         ),
-      },
-      {
-        title: bi('2. Is the operation safe to repeat?', '2. Kya operation dobara karna safe hai?'),
-        text: bi(
-          'GET, PUT and DELETE are idempotent. POST is not — unless the client sends an Idempotency-Key that the server uses to de-duplicate. A timeout does not mean the action failed; it means you do not know.',
-          'GET, PUT aur DELETE idempotent hain. POST nahi — jab tak client Idempotency-Key na bheje jisse server duplicate pehchaan sake. Timeout ka matlab yeh nahi ki action fail hua; matlab yeh hai ki aapko pata nahi.',
+        table(
+          ['Failure', 'Retry?', bi('Why', 'Kyun')],
+          [
+            ['Timeout / connection reset', bi('Yes, if safe to repeat', 'Haan, agar dobara karna safe ho'), bi('Probably temporary', 'Shayad temporary')],
+            ['502 / 503 / 504', bi('Yes, with backoff', 'Haan, backoff ke saath'), bi('Server busy or restarting', 'Server busy ya restart ho raha')],
+            ['429', bi('Yes, after `Retry-After`', 'Haan, `Retry-After` ke baad'), bi('You are being rate limited', 'Aap pe rate limit lagi hai')],
+            ['400 / 422', bi('No', 'Nahi'), bi('The request itself is wrong', 'Request khud galat hai')],
+            ['401 / 403', bi('No (refresh the token once on 401)', 'Nahi (401 pe ek baar token refresh)'), bi('Auth or permission problem', 'Auth ya permission ki problem')],
+            ['404 / 409', bi('No — re-read and decide', 'Nahi — dobara padho aur decide karo'), bi('Needs a decision, not a repeat', 'Decision chahiye, repeat nahi')],
+            ['500', bi('Maybe once', 'Shayad ek baar'), bi('Could be a bug (permanent) or a blip', 'Bug (permanent) ya blip, kuch bhi')],
+          ],
         ),
-      },
-      {
-        title: bi('3. Retry gently', '3. Aaram se retry karo'),
-        text: bi(
-          'Exponential backoff (100 ms, 200 ms, 400 ms…) plus random jitter, a small maximum (2–3 attempts) and an overall deadline, so the user is not kept waiting forever.',
-          'Exponential backoff (100 ms, 200 ms, 400 ms…) plus random jitter, chhota maximum (2–3 attempts) aur ek overall deadline, taaki user hamesha wait na karta rahe.',
-        ),
-      },
-      {
-        title: bi('4. Retry at one layer only', '4. Sirf ek layer pe retry karo'),
-        text: bi(
-          'If the app, the gateway and the service each retry three times, one failure turns into 27 calls (retry amplification). Pick one layer — usually the one closest to the failing call.',
-          'Agar app, gateway aur service teeno teen-teen baar retry karein, to ek failure 27 calls ban jaata hai (retry amplification). Ek layer chuno — aam taur pe jo fail hoti call ke sabse paas ho.',
-        ),
-      },
-      {
-        title: bi('5. Protect the dependency', '5. Dependency ko bachao'),
-        text: bi(
-          'A circuit breaker stops retrying when the dependency is clearly down; honour Retry-After; use timeouts so retries do not pile up waiting threads.',
-          'Jab dependency saaf down ho to circuit breaker retry rok deta hai; Retry-After maano; timeouts use karo taaki retries wait karte threads jama na karein.',
-        ),
-      },
-      {
-        title: bi('6. Make failures visible', '6. Failures dikhne chahiye'),
-        text: bi(
-          'Count retries in metrics and alert when they rise. For background work, retry from the queue and move the message to a dead-letter queue after the last attempt.',
-          'Retries ko metrics mein gino aur badhne pe alert karo. Background kaam ke liye queue se retry karo aur aakhri attempt ke baad message ko dead-letter queue mein bhej do.',
-        ),
-      },
-    ],
-    table: {
-      columns: ['Failure', 'Retry?', 'Why'],
-      rows: [
-        ['Timeout / connection reset', bi('Yes, with backoff — if safe to repeat', 'Haan, backoff ke saath — agar dobara karna safe ho'), bi('Probably temporary', 'Shayad temporary')],
-        ['502 / 503 / 504', bi('Yes', 'Haan'), bi('Server overloaded or restarting', 'Server overloaded ya restart ho raha')],
-        ['429', bi('Yes, after Retry-After', 'Haan, Retry-After ke baad'), bi('You are being rate limited', 'Aap pe rate limit lagi hai')],
-        ['400 / 422', bi('No', 'Nahi'), bi('The request itself is wrong', 'Request khud galat hai')],
-        ['401 / 403', bi('No (refresh the token once on 401)', 'Nahi (401 pe ek baar token refresh)'), bi('Authentication or permission problem', 'Authentication ya permission ki problem')],
-        ['404 / 409', bi('No — re-read and decide', 'Nahi — dobara padho aur decide karo'), bi('Missing or conflicting data needs a decision', 'Missing ya conflicting data pe decision chahiye')],
-        ['500', bi('Maybe once or twice', 'Shayad ek-do baar'), bi('Could be a bug (permanent) or a blip', 'Bug (permanent) ya blip, kuch bhi ho sakta hai')],
-      ],
-    },
-    interview: {
-      opening: bi(
-        'No — I retry only transient failures on idempotent operations, with exponential backoff and jitter, a small attempt limit and a circuit breaker, because blind retries cause duplicate side effects and retry storms.',
-        'Nahi — main sirf idempotent operations ke transient failures retry karta hoon, exponential backoff aur jitter, chhoti attempt limit aur circuit breaker ke saath, kyunki aankh band karke retry duplicate side effects aur retry storms laate hain.',
       ),
-      points: [
-        bi('Classify errors: retry timeouts, connection errors, 502/503/504 and 429 (honour Retry-After); never 4xx validation or auth errors.', 'Errors classify karo: timeouts, connection errors, 502/503/504 aur 429 (Retry-After maano) retry karo; 4xx validation ya auth errors kabhi nahi.'),
-        bi('Retry only idempotent operations; make the others safe with idempotency keys.', 'Sirf idempotent operations retry karo; baaki ko idempotency keys se safe banao.'),
-        bi('Exponential backoff with jitter, 2–3 attempts at most, and an overall deadline.', 'Jitter ke saath exponential backoff, zyaada se zyaada 2–3 attempts, aur ek overall deadline.'),
-        bi('Retry at a single layer to avoid retry amplification.', 'Retry amplification se bachne ke liye ek hi layer pe retry.'),
-        bi('Circuit breaker and timeouts so we fail fast when a dependency is down.', 'Circuit breaker aur timeouts taaki dependency down ho to jaldi fail karein.'),
-        bi('Asynchronous work: retry from the queue, then a dead-letter queue after N attempts.', 'Asynchronous kaam: queue se retry, N attempts ke baad dead-letter queue.'),
-        bi('Monitor the retry rate — rising retries are an early warning.', 'Retry rate monitor karo — badhte retries ek early warning hain.'),
+      section(
+        'Making retries safe: idempotency',
+        'Retries ko safe banana: idempotency',
+        p(
+          'A timeout does not mean the request failed — it means **you do not know**. The payment might already have gone through. So for operations with side effects, the client sends a unique key and the server de-duplicates:',
+          'Timeout ka matlab yeh nahi ki request fail hui — matlab hai **aapko pata nahi**. Payment shayad ho bhi chuki ho. Isliye side effects wale operations ke liye client ek unique key bhejta hai aur server duplicate pehchaanta hai:',
+        ),
+        code(
+          'http',
+          `
+POST /api/v1/payments
+Idempotency-Key: pay_order_481_attempt
+Content-Type: application/json
+
+{ "orderId": 481, "amount": 1499 }`,
+        ),
+        p(
+          'The server saves the result per key (for example for 24 hours). A retry with the same key gets the saved result instead of a second charge.',
+          'Server har key ka result save karta hai (jaise 24 ghante ke liye). Same key se retry aane pe doosri baar charge karne ki jagah saved result milta hai.',
+        ),
+      ),
+      section(
+        'How I retry: exponential backoff with jitter',
+        'Main kaise retry karta hoon: jitter ke saath exponential backoff',
+        code(
+          'ts',
+          `
+async function withRetry<T>(fn: () => Promise<T>, attempts = 3): Promise<T> {
+  for (let i = 0; ; i++) {
+    try {
+      return await fn();
+    } catch (err) {
+      if (i === attempts - 1 || !isTransient(err)) throw err;
+      const base = 100 * 2 ** i;                       // 100 ms, 200 ms, 400 ms…
+      await sleep(base + Math.random() * base);        // + random jitter
+    }
+  }
+}`,
+        ),
+        ul(
+          ['**2–3 attempts at most**, inside an overall deadline.', '**Zyaada se zyaada 2–3 attempts**, ek overall deadline ke andar.'],
+          ['**Jitter** spreads retries out so thousands of clients do not hit the server at the same instant.', '**Jitter** retries ko faila deta hai taaki hazaaron clients ek hi pal mein server pe na girein.'],
+          ['**Honour `Retry-After`** when the server sends it.', 'Server bheje to **`Retry-After` maano**.'],
+        ),
+      ),
+      section(
+        'Avoiding retry storms',
+        'Retry storms se bachna',
+        p(
+          'If the client, the API gateway and the service each retry 3 times, one failing call becomes 3 × 3 × 3 = **27 calls** on a dependency that is already struggling. That turns a small slowdown into an outage.',
+          'Agar client, API gateway aur service teeno 3-3 baar retry karein, to ek fail call pehle se pareshaan dependency pe 3 × 3 × 3 = **27 calls** ban jaati hai. Isse chhoti slowness outage ban jaati hai.',
+        ),
+        ul(
+          ['Retry at **one layer** only — usually the one closest to the failing call.', 'Sirf **ek layer** pe retry karo — aam taur pe jo fail hoti call ke sabse paas ho.'],
+          ['Add a **circuit breaker**: after repeated failures, fail fast for a while instead of retrying.', '**Circuit breaker** lagao: baar-baar failure ke baad retry ki jagah kuch der jaldi fail karo.'],
+          ['Use **timeouts** so retries do not pile up waiting threads.', '**Timeouts** use karo taaki retries wait karte threads jama na karein.'],
+        ),
+      ),
+      section(
+        'Background jobs',
+        'Background jobs',
+        p(
+          'For queue-based work I retry from the queue with backoff, and after the last attempt move the message to a **dead-letter queue** and alert, so one bad message never blocks the rest or disappears silently.',
+          'Queue-based kaam ke liye main queue se backoff ke saath retry karta hoon, aur aakhri attempt ke baad message ko **dead-letter queue** mein bhej ke alert karta hoon, taaki ek kharab message baaki ko na roke ya chupchaap gayab na ho.',
+        ),
+      ),
+    ],
+    interview: {
+      text: [
+        bi(
+          'No. I first classify the failure: timeouts, connection errors, 502/503/504 and 429 are usually transient and worth retrying; validation, authentication and business errors are permanent, so retrying them only adds load.',
+          'Nahi. Main pehle failure classify karta hoon: timeouts, connection errors, 502/503/504 aur 429 aam taur pe transient hote hain aur retry karne layak; validation, authentication aur business errors permanent hain, unhe retry karne se sirf load badhta hai.',
+        ),
+        bi(
+          'Second, I only retry operations that are safe to repeat — GET, PUT and DELETE, or POST with an idempotency key — because a timeout does not tell you whether the first attempt succeeded. When I retry, I use exponential backoff with jitter, two or three attempts within an overall deadline, retry at a single layer to avoid amplification, and put a circuit breaker in front of flaky dependencies. For background jobs, failed messages go to a dead-letter queue after the last attempt.',
+          'Doosra, main sirf woh operations retry karta hoon jo dobara karna safe hon — GET, PUT aur DELETE, ya idempotency key wala POST — kyunki timeout nahi batata ki pehli koshish succeed hui ya nahi. Retry karte waqt main jitter ke saath exponential backoff, overall deadline ke andar do-teen attempts, amplification se bachne ke liye ek hi layer pe retry, aur unreliable dependencies ke aage circuit breaker use karta hoon. Background jobs mein aakhri attempt ke baad fail messages dead-letter queue mein jaate hain.',
+        ),
       ],
       keywords: [
         'Transient vs permanent failure',
         'Idempotency key',
         'Exponential backoff',
         'Jitter',
-        'Retry budget',
-        'Retry storm / thundering herd',
+        'Retry-After',
+        'Retry storm',
         'Retry amplification',
         'Circuit breaker',
-        'Retry-After header',
+        'Timeout / deadline',
         'Dead-letter queue',
-        'Timeout',
       ],
     },
     listenFor: [
       bi('Separating temporary failures from permanent ones.', 'Temporary aur permanent failures ko alag karna.'),
       bi('Linking retries to idempotency.', 'Retries ko idempotency se jodna.'),
-      bi('Backoff with jitter, and awareness of retry storms and amplification.', 'Jitter ke saath backoff, aur retry storms aur amplification ki samajh.'),
+      bi('Backoff with jitter, and awareness of retry storms.', 'Jitter ke saath backoff, aur retry storms ki samajh.'),
     ],
     mistakes: [
-      bi('Retrying everything immediately in a tight loop.', 'Sab kuch turant, tight loop mein retry karna.'),
-      bi('Retrying payment POSTs without idempotency keys.', 'Bina idempotency keys ke payment POST retry karna.'),
-      bi('Retrying 4xx errors that can never succeed.', '4xx errors retry karna jo kabhi succeed nahi honge.'),
-      bi('Infinite retries with no dead-letter queue; retries at every layer.', 'Bina dead-letter queue ke infinite retries; har layer pe retries.'),
+      bi('Retrying everything immediately in a loop.', 'Sab kuch turant, loop mein retry karna.'),
+      bi('Retrying payments without an idempotency key.', 'Bina idempotency key ke payments retry karna.'),
     ],
     followUps: [
       {
-        q: bi('Why add jitter?', 'Jitter kyun jodte hain?'),
-        a: bi(
-          'Without it, every client retries at exactly the same moments and hits the server in synchronized waves. Random jitter spreads the retries out.',
-          'Iske bina har client bilkul same pal pe retry karta hai aur server pe ek saath lehron mein girta hai. Random jitter retries ko faila deta hai.',
-        ),
-      },
-      {
         q: bi('What does a circuit breaker do?', 'Circuit breaker kya karta hai?'),
         a: bi(
-          'After too many failures it “opens” and fails fast for a cool-down period, then lets a few trial requests through (“half-open”); if they succeed it closes again and normal traffic resumes.',
-          'Bahut failures ke baad yeh “open” ho jaata hai aur kuch der turant fail karta hai, phir kuch trial requests jaane deta hai (“half-open”); woh succeed karein to wapas close hota hai aur normal traffic shuru.',
+          'After too many failures it “opens” and fails fast for a cool-down period, then lets a few trial requests through (“half-open”). If they succeed it closes and normal traffic resumes. It protects both the caller and the struggling dependency.',
+          'Bahut failures ke baad yeh “open” hota hai aur kuch der turant fail karta hai, phir kuch trial requests jaane deta hai (“half-open”). Woh succeed karein to close hota hai aur normal traffic shuru. Yeh caller aur pareshaan dependency dono ko bachata hai.',
         ),
       },
     ],

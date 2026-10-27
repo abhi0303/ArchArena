@@ -10,9 +10,12 @@ interface PreferencesState {
   language: ExplanationLanguage;
   theme: ThemePreference;
   walkthroughDone: boolean;
+  /** Underline glossary terms in explanations. */
+  termHints: boolean;
   setLanguage: (l: ExplanationLanguage) => void;
   setTheme: (t: ThemePreference) => void;
   setWalkthroughDone: (done: boolean) => void;
+  setTermHints: (on: boolean) => void;
 }
 
 export const usePreferences = create<PreferencesState>()(
@@ -21,9 +24,11 @@ export const usePreferences = create<PreferencesState>()(
       language: 'en',
       theme: 'system',
       walkthroughDone: false,
+      termHints: true,
       setLanguage: (language) => set({ language }),
       setTheme: (theme) => set({ theme }),
       setWalkthroughDone: (walkthroughDone) => set({ walkthroughDone }),
+      setTermHints: (termHints) => set({ termHints }),
     }),
     {
       name: 'archarena-preferences',

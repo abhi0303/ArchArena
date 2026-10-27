@@ -15,6 +15,9 @@ interface DialogProps {
   dismissible?: boolean;
 }
 
+/** Open dialogs, innermost last: only the top one reacts to Escape and Tab (dialogs can open on top of each other). */
+const openStack: symbol[] = [];
+
 const FOCUSABLE = 'a[href], button:not([disabled]), textarea, input, select, [tabindex]:not([tabindex="-1"])';
 
 export function Dialog({ open, onClose, title, description, children, footer, size = 'md', dismissible = true }: DialogProps) {
@@ -24,11 +27,14 @@ export function Dialog({ open, onClose, title, description, children, footer, si
 
   useEffect(() => {
     if (!open) return;
+    const token = Symbol('dialog');
+    openStack.push(token);
     const previous = document.activeElement as HTMLElement | null;
     const node = ref.current;
     const first = node?.querySelector<HTMLElement>('[data-autofocus]') ?? node?.querySelector<HTMLElement>(FOCUSABLE);
     first?.focus();
     const onKey = (e: KeyboardEvent) => {
+      if (openStack[openStack.length - 1] !== token) return;
       if (e.key === 'Escape' && dismissible) {
         e.stopPropagation();
         onClose();
@@ -52,6 +58,7 @@ export function Dialog({ open, onClose, title, description, children, footer, si
     document.body.style.overflow = 'hidden';
     return () => {
       document.removeEventListener('keydown', onKey, true);
+      openStack.splice(openStack.indexOf(token), 1);
       document.body.style.overflow = overflow;
       previous?.focus?.();
     };

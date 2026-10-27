@@ -9,6 +9,7 @@ import { getComparison, getGuide } from './content';
 import { ActorIcon, ComponentTile, LearnSection, Paragraphs, componentLabel } from './parts';
 import { SceneView } from './SceneView';
 import type { Comparison, Text } from './types';
+import { InlineText } from '@/features/glossary/InlineText';
 
 function Quiz({ comparison }: { comparison: Comparison }) {
   const t = useExplanation();
@@ -159,7 +160,9 @@ export default function ComparisonPage() {
                   </span>
                   <span className="font-semibold">{componentLabel(r.type)}</span>
                 </div>
-                <p className="text-sm leading-relaxed text-slate-700 dark:text-slate-300">{t(r.role)}</p>
+                <p className="text-sm leading-relaxed text-slate-700 dark:text-slate-300">
+                  <InlineText text={t(r.role)} />
+                </p>
               </li>
             ))}
           </ul>

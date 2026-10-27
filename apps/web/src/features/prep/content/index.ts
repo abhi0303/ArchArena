@@ -40,5 +40,5 @@ export function questionsIn(category: string, topic?: string): PrepQuestion[] {
 
 /** Lower-case text used by search: the question in both languages, tags, topic and keywords. */
 export function prepSearchText(q: PrepQuestion): string {
-  return [q.question.en, q.question.hi, q.simple.en, ...q.tags, ...q.interview.keywords, q.category, q.topic].join(' ').toLowerCase();
+  return [q.question.en, q.question.hi, q.answer.en, ...q.tags, ...q.interview.keywords, q.category, q.topic].join(' ').toLowerCase();
 }

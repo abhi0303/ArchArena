@@ -1,4 +1,5 @@
 import { lazy, Suspense, useEffect, useRef } from 'react';
+import { GlossaryRoot } from '@/features/glossary/GlossaryRoot';
 import { createBrowserRouter, Outlet, useRouteError, isRouteErrorResponse, Link, Navigate } from 'react-router';
 import { Toaster } from '@/components/ui/Toaster';
 import { PageSpinner } from '@/components/ui/Spinner';
@@ -27,6 +28,7 @@ const LearnPage = lazy(() => import('@/features/learn/LearnPage'));
 const ComponentGuidePage = lazy(() => import('@/features/learn/ComponentGuidePage'));
 const ComparisonPage = lazy(() => import('@/features/learn/ComparisonPage'));
 const SettingsGuidePage = lazy(() => import('@/features/learn/SettingsGuidePage'));
+const GlossaryPage = lazy(() => import('@/features/glossary/GlossaryPage'));
 const PrepHomePage = lazy(() => import('@/features/prep/PrepHomePage'));
 const PrepCategoryPage = lazy(() => import('@/features/prep/PrepCategoryPage'));
 const PrepQuestionPage = lazy(() => import('@/features/prep/PrepQuestionPage'));
@@ -63,6 +65,7 @@ function Root() {
       <DraftSyncManager />
       <PwaManager />
       <Outlet />
+      <GlossaryRoot />
       <Toaster />
     </>
   );
@@ -109,6 +112,7 @@ export const router = createBrowserRouter(
           { path: 'challenges/:slug/reference', element: <ReferencePage /> },
           { path: 'learn', element: <LearnPage /> },
           { path: 'learn/settings', element: <SettingsGuidePage /> },
+          { path: 'learn/glossary', element: <GlossaryPage /> },
           { path: 'learn/compare/:slug', element: <ComparisonPage /> },
           { path: 'learn/:type', element: <ComponentGuidePage /> },
           { path: 'prep', element: <PrepHomePage /> },

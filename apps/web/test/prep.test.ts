@@ -73,26 +73,33 @@ describe('interview prep: questions', () => {
     }
   });
 
-  it('every answer is explained in all its parts', () => {
+  it('every answer has a short answer, numbered parts with concrete examples, and an interview answer', () => {
     const problems: string[] = [];
     for (const q of PREP_QUESTIONS) {
-      if ((q.kind === 'scenario' || q.kind === 'behavioral') && !q.scenario) problems.push(`${q.id}: scenario and behavioral questions explain the situation`);
-      if (q.kind === 'comparison' && !q.table) problems.push(`${q.id}: comparisons need a side-by-side table`);
-      if (q.simple.en.length < 120) problems.push(`${q.id}: the simple explanation is too short`);
-      if (q.example.en.length < 100) problems.push(`${q.id}: the real-life example is too short`);
-      if (q.interview.points.length < 4) problems.push(`${q.id}: the interview answer needs at least 4 points`);
+      if (q.answer.en.length < 150) problems.push(`${q.id}: the short answer is too short`);
+      if (q.answer.en.length > 700) problems.push(`${q.id}: the short answer should stay short (under 700 characters)`);
+      if (q.sections.length < 3) problems.push(`${q.id}: explain it in at least 3 numbered parts`);
+      for (const [i, s] of q.sections.entries()) if (!s.blocks.length) problems.push(`${q.id}: part ${i + 1} is empty`);
+      const blocks = q.sections.flatMap((s) => s.blocks);
+      const concrete = blocks.filter((b) => b.type === 'code' || b.type === 'table' || b.type === 'steps' || b.type === 'options' || b.type === 'scene');
+      if (concrete.length < 2) problems.push(`${q.id}: add concrete examples (code, tables, steps, diagrams)`);
+      if (q.kind === 'comparison' && !blocks.some((b) => b.type === 'table')) problems.push(`${q.id}: comparisons need a side-by-side table`);
+      for (const b of blocks) {
+        if (b.type === 'table' && b.rows.some((r) => r.length !== b.columns.length)) problems.push(`${q.id}: table rows must match the columns`);
+        if (b.type === 'code' && !b.code.trim()) problems.push(`${q.id}: empty code block`);
+      }
+      if (q.interview.text.length < 1 || q.interview.text.map((p) => p.en).join(' ').length < 300) problems.push(`${q.id}: the interview answer needs a few spoken sentences`);
       if (q.interview.keywords.length < 6) problems.push(`${q.id}: list at least 6 keywords`);
       if (new Set(q.interview.keywords).size !== q.interview.keywords.length) problems.push(`${q.id}: duplicate keywords`);
       if (q.listenFor.length < 2) problems.push(`${q.id}: say what the interviewer listens for`);
-      if ((q.parts?.length ?? 0) < 2 && !q.table) problems.push(`${q.id}: explain it in detail (parts or a table)`);
-      if (q.table && q.table.rows.some((r) => r.length !== q.table!.columns.length)) problems.push(`${q.id}: table rows must match the columns`);
+      if (!q.followUps?.length) problems.push(`${q.id}: add at least one follow-up question`);
     }
     expect(problems).toEqual([]);
   });
 
   it('every explanation has English and a different Hinglish version', () => {
     const all = collectBi(PREP_QUESTIONS, 'prep').concat(collectBi(PREP_CATEGORIES, 'categories'));
-    expect(all.length).toBeGreaterThan(600);
+    expect(all.length).toBeGreaterThan(800);
     const problems = all.filter(({ bi }) => !bi.en.trim() || !bi.hi.trim() || bi.en.trim() === bi.hi.trim()).map(({ path, bi }) => `${path}: "${bi.en.slice(0, 60)}"`);
     expect(problems).toEqual([]);
   });
@@ -111,10 +118,12 @@ describe('interview prep: questions', () => {
   it('illustrations use real icons and connect real nodes', () => {
     const problems: string[] = [];
     for (const q of PREP_QUESTIONS) {
-      if (!q.scene) continue;
-      const ids = new Set(q.scene.cols.flat().map((n) => n.id));
-      for (const n of q.scene.cols.flat()) if (!hasLearnIcon(n.icon)) problems.push(`${q.id}: unknown icon ${n.icon}`);
-      for (const e of q.scene.edges) if (!ids.has(e.from) || !ids.has(e.to)) problems.push(`${q.id}: edge ${e.from} → ${e.to}`);
+      for (const b of q.sections.flatMap((s) => s.blocks)) {
+        if (b.type !== 'scene') continue;
+        const ids = new Set(b.scene.cols.flat().map((n) => n.id));
+        for (const n of b.scene.cols.flat()) if (!hasLearnIcon(n.icon)) problems.push(`${q.id}: unknown icon ${n.icon}`);
+        for (const e of b.scene.edges) if (!ids.has(e.from) || !ids.has(e.to)) problems.push(`${q.id}: edge ${e.from} → ${e.to}`);
+      }
     }
     expect(problems).toEqual([]);
   });

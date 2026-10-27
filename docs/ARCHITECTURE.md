@@ -125,11 +125,23 @@ React 19 with React Router 7 (lazy-loaded pages), TanStack Query for server stat
 
 `features/prep/` holds the Interview Prep tab (`/prep`, `/prep/:category`, `/prep/:category/:questionId`):
 
-- `catalog.ts` — categories and their sections; `content/*.ts` — the questions (`PrepQuestion` in `types.ts`), bilingual and split into parts; `content/index.ts` sorts them by category and section.
-- `PrepHomePage.tsx` (search, progress, categories, “revise later” list), `PrepCategoryPage.tsx` (section tabs and a progress filter, kept in the URL with `useUrlFilters`) and `PrepQuestionPage.tsx` (every part of the answer, a jump-to bar, practice mode, a copyable English interview answer with a Hinglish version, follow-ups, links to Learn guides and challenges, and prev/next).
+- `catalog.ts` — categories and their sections; `content/*.ts` — the questions (`PrepQuestion` in `types.ts`): a short answer, numbered sections made of blocks (paragraphs, lists, tables, code, notes, steps, option cards, diagrams — written with `dsl.ts`), a spoken interview answer and follow-ups; `content/index.ts` sorts them by category and section. `Blocks.tsx` renders the blocks, including `**bold**` and `` `code` `` inside text.
+- `PrepHomePage.tsx` (search, progress, categories, “revise later” list), `PrepCategoryPage.tsx` (section tabs and a progress filter, kept in the URL with `useUrlFilters`) and `PrepQuestionPage.tsx` (short answer, numbered parts with deep links such as `#part-2`, a jump-to bar, practice mode, a copyable English interview answer with a Hinglish version, follow-ups, links to Learn guides and challenges, and prev/next).
 - `progress.ts` — “I knew this / Revise later” and practice mode, stored in `localStorage` (a personal study aid, not graded progress).
 - Diagrams reuse the Learn `SceneView`. The content is code-split and precached, so the tab works offline and in the browser-only build.
-- `test/prep.test.ts` checks the requested categories and sections, that every original question is present in the right place, that every answer has all its parts (scenarios explain the situation, comparisons have a table, at least four interview points and six keywords), that every Hinglish text differs from the English, and that links and diagrams point to real components, challenges and icons. See [INTERVIEW_PREP.md](INTERVIEW_PREP.md).
+- `test/prep.test.ts` checks the requested categories and sections, that every original question is present in the right place, that every answer has a short answer, at least three numbered parts with concrete examples, a table for comparisons, a spoken interview answer, six keywords and a follow-up, that every Hinglish text differs from the English, and that links and diagrams point to real components, challenges and icons. See [INTERVIEW_PREP.md](INTERVIEW_PREP.md).
+
+### Glossary
+
+`features/glossary/` provides tap-to-explain terms across the explanatory pages:
+
+- `terms-1.ts`, `terms-2.ts` — about 150 `GlossaryTerm`s: a title, the aliases that link to it, a bilingual meaning, an optional real-life example, related terms, an optional “go deeper” page, and the component(s) it names.
+- `index.ts` — `splitTerms(text, skip, seen)` finds aliases with one case-insensitive regex built lazily (longest phrase first, whole words, optional plural “s”, no look-behind so older Safari works) and links each term once per text block.
+- `InlineText.tsx` — renders `**bold**`, `` `code` `` and `TermButton`s; used by Interview Prep blocks, Learn `Paragraphs` and guide lists, and Configuration guide cards. `GlossarySkip` stops a page’s own topic from being underlined (a component’s own guide, the terms in a prep question, a setting’s own name).
+- `GlossaryRoot.tsx` is mounted at the router root and lazy-loads `GlossaryDialog.tsx` (meaning, example, language switch, related terms) the first time a term is tapped. `GlossaryPage.tsx` is `/learn/glossary` with ranked search and `#term-<id>` anchors.
+- The `termHints` preference turns underlines off. `components/FloatingLanguageBar.tsx` (in `AppLayout`) shows the language and underline switches once the reader scrolls on Learn, Interview Prep and challenge pages.
+- `components/ui/Dialog.tsx` keeps a stack of open dialogs so only the top one reacts to Escape and Tab — a term popup can open on top of another dialog.
+- `test/glossary.test.ts` checks unique ids and aliases, distinct Hinglish, valid links, whole-word and plural matching, once-per-block linking, and that every interview answer contains explainable terms.
 
 ### PWA and offline
 
