@@ -1,4 +1,4 @@
-import { COMPONENTS, collectRuleSelectors, type Rubric, type Selector } from '@arch-arena/shared';
+import { COMPONENTS, collectRuleSelectors, type Rubric, type Rule, type Selector } from '@arch-arena/shared';
 
 /** Clients appear in almost every flow rule; they are rarely what a learner is missing. */
 const CLIENTS = new Set(['web-client', 'mobile-client', 'desktop-client']);
@@ -25,5 +25,18 @@ export function learnTypesForCheck(rubric: Rubric | undefined, checkId: string |
   for (const sel of collectRuleSelectors(check.rule)) {
     for (const type of typesForSelector(sel)) if (!CLIENTS.has(type) && !out.includes(type)) out.push(type);
   }
+  return out.slice(0, max);
+}
+
+/** Component settings a rubric check looks at, so feedback can link to their explanations. */
+export function settingKeysForCheck(rubric: Rubric | undefined, checkId: string | undefined, max = 2): string[] {
+  const check = rubric && checkId ? rubric.checks.find((c) => c.id === checkId) : undefined;
+  if (!check) return [];
+  const out: string[] = [];
+  const walk = (rule: Rule) => {
+    if (rule.kind === 'prop' && !out.includes(rule.key)) out.push(rule.key);
+    if (rule.kind === 'any' || rule.kind === 'all') rule.rules.forEach(walk);
+  };
+  walk(check.rule);
   return out.slice(0, max);
 }

@@ -1,7 +1,7 @@
 import { QUESTION_CATEGORIES, type Difficulty, type ProgressDTO, type ProgressStatus, type QuestionSummaryDTO } from '@arch-arena/shared';
 import { Clock, Play, RotateCcw, Search, SearchX } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
-import { Link, useSearchParams } from 'react-router';
+import { Link } from 'react-router';
 import { DifficultyBadge, StatusBadge } from '@/components/ui/Badge';
 import { Button, ButtonLink } from '@/components/ui/Button';
 import { EmptyState, Segmented, Skeleton } from '@/components/ui/misc';
@@ -9,12 +9,15 @@ import { ProgressBar } from '@/components/ui/ProgressBar';
 import { Stars } from '@/components/ui/Stars';
 import { listLocalDrafts, GUEST } from '@/lib/drafts/localDrafts';
 import { useMe, useProgress, useQuestions } from '@/lib/queries';
+import { useUrlFilters } from '@/lib/useUrlFilters';
 
 const PAGE_SIZE = 24;
 const DIFF_ORDER: Record<Difficulty, number> = { easy: 0, medium: 1, hard: 2 };
 
 type SortKey = 'recommended' | 'difficulty' | 'title' | 'time';
 type StatusFilter = 'all' | ProgressStatus;
+
+const FILTERS = { q: '', difficulty: 'all', category: 'all', status: 'all', sort: 'recommended' };
 
 function ChallengeCard({ q, progress }: { q: QuestionSummaryDTO; progress?: ProgressDTO }) {
   const status = progress?.status ?? 'not_started';
@@ -51,21 +54,17 @@ export default function ExplorerPage() {
   const { data: questions, isLoading } = useQuestions();
   const { data: user } = useMe();
   const { data: progress } = useProgress(!!user);
-  const [params, setParams] = useSearchParams();
+  const [filters, setFilters] = useUrlFilters(FILTERS);
   const [guestDrafts, setGuestDrafts] = useState<Set<string>>(new Set());
   const [page, setPage] = useState(1);
 
-  const q = params.get('q') ?? '';
-  const difficulty = (params.get('difficulty') ?? 'all') as 'all' | Difficulty;
-  const category = params.get('category') ?? 'all';
-  const status = (params.get('status') ?? 'all') as StatusFilter;
-  const sort = (params.get('sort') ?? 'recommended') as SortKey;
+  const { q, category } = filters;
+  const difficulty = filters.difficulty as 'all' | Difficulty;
+  const status = filters.status as StatusFilter;
+  const sort = filters.sort as SortKey;
 
-  const update = (key: string, value: string) => {
-    const next = new URLSearchParams(params);
-    if (!value || value === 'all' || (key === 'sort' && value === 'recommended')) next.delete(key);
-    else next.set(key, value);
-    setParams(next, { replace: true });
+  const update = (key: keyof typeof FILTERS, value: string) => {
+    setFilters({ [key]: value || FILTERS[key] });
     setPage(1);
   };
 
@@ -186,7 +185,15 @@ export default function ExplorerPage() {
           </select>
         </label>
         {filtersActive && (
-          <Button variant="ghost" size="sm" icon={<RotateCcw className="h-3.5 w-3.5" />} onClick={() => setParams(new URLSearchParams(), { replace: true })}>
+          <Button
+            variant="ghost"
+            size="sm"
+            icon={<RotateCcw className="h-3.5 w-3.5" />}
+            onClick={() => {
+              setFilters(FILTERS);
+              setPage(1);
+            }}
+          >
             Reset
           </Button>
         )}

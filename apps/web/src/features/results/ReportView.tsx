@@ -1,4 +1,4 @@
-import { getComponent, type AttemptDTO, type CoverageStatus, type EvaluationReport, type Finding, type QuestionDetailDTO, type Rubric } from '@arch-arena/shared';
+import { getComponent, getPropertyField, type AttemptDTO, type CoverageStatus, type EvaluationReport, type Finding, type QuestionDetailDTO, type Rubric } from '@arch-arena/shared';
 import {
   ArrowDownRight,
   ArrowUpRight,
@@ -13,6 +13,7 @@ import {
   Puzzle,
   ShieldAlert,
   Shrink,
+  SlidersHorizontal,
   Sparkles,
   TriangleAlert,
   type LucideIcon,
@@ -24,7 +25,8 @@ import { LanguageToggle, useExplanation } from '@/components/LanguageToggle';
 import { ProgressBar, scoreTone } from '@/components/ui/ProgressBar';
 import { Stars } from '@/components/ui/Stars';
 import { cn } from '@/lib/cn';
-import { learnTypesForCheck } from '@/features/learn/related';
+import { learnTypesForCheck, settingKeysForCheck } from '@/features/learn/related';
+import { settingsGuidePath } from '@/features/learn/settingsCatalog';
 
 export function ScoreHero({ report, children }: { report: EvaluationReport; children?: ReactNode }) {
   return (
@@ -159,9 +161,9 @@ const COVERAGE: Record<CoverageStatus, { icon: LucideIcon; cls: string; label: s
   'not-assessed': { icon: CircleDashed, cls: 'text-slate-400', label: 'Not assessed' },
 };
 
-/** Links from a piece of feedback to the guides of the components it is about. */
-function LearnLinks({ types, className }: { types: string[]; className?: string }) {
-  if (!types.length) return null;
+/** Links from a piece of feedback to the guides of the components and settings it is about. */
+function LearnLinks({ types, settings = [], className }: { types: string[]; settings?: string[]; className?: string }) {
+  if (!types.length && !settings.length) return null;
   return (
     <p className={cn('mt-1.5 flex flex-wrap items-center gap-1.5 text-xs', className)} data-testid="learn-links">
       <span className="inline-flex items-center gap-1 text-slate-500">
@@ -181,6 +183,17 @@ function LearnLinks({ types, className }: { types: string[]; className?: string 
           </Link>
         );
       })}
+      {settings.map((key) => (
+        <Link
+          key={key}
+          to={settingsGuidePath({ key })}
+          className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 py-0.5 pl-1.5 pr-2 font-medium text-emerald-800 hover:border-emerald-300 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-300"
+          data-testid="learn-setting-link"
+        >
+          <SlidersHorizontal className="h-3 w-3" aria-hidden />
+          Setting: {getPropertyField(key)?.label ?? key}
+        </Link>
+      ))}
     </p>
   );
 }
@@ -202,7 +215,7 @@ function FindingList({ title, icon: Icon, items, tone, empty, rubric }: { title:
               <p className="font-medium">{f.title}</p>
               <p className="text-slate-600 dark:text-slate-300">{f.detail}</p>
               {f.fix && <p className="mt-1 text-slate-500">→ {f.fix}</p>}
-              <LearnLinks types={learnTypesForCheck(rubric, f.checkId)} />
+              <LearnLinks types={learnTypesForCheck(rubric, f.checkId)} settings={settingKeysForCheck(rubric, f.checkId)} />
             </li>
           ))}
         </ul>
@@ -215,6 +228,7 @@ export function ReportDetails({ report, question }: { report: EvaluationReport; 
   const t = useExplanation();
   const rubric = question?.rubric;
   const criticalTypes = [...new Set(report.criticalFailures.flatMap((c) => learnTypesForCheck(rubric, c.checkId)))].slice(0, 4);
+  const criticalSettings = [...new Set(report.criticalFailures.flatMap((c) => settingKeysForCheck(rubric, c.checkId)))].slice(0, 3);
   return (
     <div className="space-y-6">
       <section className="card p-5" aria-labelledby="breakdown-title">
@@ -232,7 +246,7 @@ export function ReportDetails({ report, question }: { report: EvaluationReport; 
             <TriangleAlert className="h-4 w-4 shrink-0" aria-hidden />
             <span>
               Score capped at {report.scoreCap} because a critical capability is missing: {report.criticalFailures.map((c) => c.title).join('; ')}.
-              <LearnLinks types={criticalTypes} />
+              <LearnLinks types={criticalTypes} settings={criticalSettings} />
             </span>
           </p>
         )}

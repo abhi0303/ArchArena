@@ -10,7 +10,7 @@ import {
   type QuestionDetailDTO,
   type ValidationResult,
 } from '@arch-arena/shared';
-import { ArrowLeftRight, ChevronDown, CircleCheck, CircleDashed, Copy, GraduationCap, Info, SquareStack, Trash2, Ungroup } from 'lucide-react';
+import { ArrowLeftRight, ChevronDown, CircleCheck, CircleDashed, Copy, GraduationCap, Info, Replace, SlidersHorizontal, SquareStack, Trash2, Ungroup } from 'lucide-react';
 import { useState } from 'react';
 import { ACCENTS, DynamicIcon } from '@/components/icons';
 import { useExplanation } from '@/components/LanguageToggle';
@@ -19,7 +19,9 @@ import { Segmented } from '@/components/ui/misc';
 import { Tooltip } from '@/components/ui/Tooltip';
 import { cn } from '@/lib/cn';
 import { LearnDialog } from '@/features/learn/LearnDialog';
+import { SettingsDialog } from '@/features/learn/SettingsDialog';
 import type { AppEdge, AppNode, ComponentNodeT } from './model';
+import { ReplaceDialog } from './ReplaceDialog';
 import { useEditor } from './store';
 
 function Help({ text }: { text: string }) {
@@ -101,6 +103,8 @@ function ComponentProperties({ node }: { node: ComponentNodeT }) {
   const remove = useEditor((s) => s.deleteSelected);
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [learnOpen, setLearnOpen] = useState(false);
+  const [replaceOpen, setReplaceOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const fields = (def?.properties ?? []).map((k) => getPropertyField(k)).filter((f): f is PropertyField => !!f);
   const basic = fields.filter((f) => !f.advanced);
   const advanced = fields.filter((f) => f.advanced);
@@ -114,17 +118,41 @@ function ComponentProperties({ node }: { node: ComponentNodeT }) {
         <div className="min-w-0">
           <p className="text-sm font-semibold">{def?.label}</p>
           <p className="text-xs text-slate-500 dark:text-slate-400">{def?.details}</p>
-          <button
-            type="button"
-            onClick={() => setLearnOpen(true)}
-            className="mt-2 inline-flex items-center gap-1.5 rounded-md bg-indigo-50 px-2 py-1 text-xs font-medium text-indigo-700 hover:bg-indigo-100 dark:bg-indigo-950 dark:text-indigo-300 dark:hover:bg-indigo-900"
-            data-testid="learn-component"
-          >
-            <GraduationCap className="h-3.5 w-3.5" aria-hidden /> Learn about {def?.label}
-          </button>
+          <div className="mt-2 flex flex-wrap gap-1.5">
+            <button
+              type="button"
+              onClick={() => setReplaceOpen(true)}
+              title="Swap for another component and keep every connection"
+              className="inline-flex items-center gap-1.5 rounded-md bg-slate-100 px-2 py-1 text-xs font-medium text-slate-700 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
+              data-testid="replace-component"
+            >
+              <Replace className="h-3.5 w-3.5" aria-hidden /> Replace with…
+            </button>
+            <button
+              type="button"
+              onClick={() => setLearnOpen(true)}
+              className="inline-flex items-center gap-1.5 rounded-md bg-indigo-50 px-2 py-1 text-xs font-medium text-indigo-700 hover:bg-indigo-100 dark:bg-indigo-950 dark:text-indigo-300 dark:hover:bg-indigo-900"
+              data-testid="learn-component"
+            >
+              <GraduationCap className="h-3.5 w-3.5" aria-hidden /> Learn about {def?.label}
+            </button>
+            {fields.length > 0 && (
+              <button
+                type="button"
+                onClick={() => setSettingsOpen(true)}
+                title="What every setting and option below means"
+                className="inline-flex items-center gap-1.5 rounded-md bg-emerald-50 px-2 py-1 text-xs font-medium text-emerald-700 hover:bg-emerald-100 dark:bg-emerald-950 dark:text-emerald-300 dark:hover:bg-emerald-900"
+                data-testid="explain-settings"
+              >
+                <SlidersHorizontal className="h-3.5 w-3.5" aria-hidden /> Explain settings
+              </button>
+            )}
+          </div>
         </div>
       </div>
       <LearnDialog type={node.data.componentType} open={learnOpen} onClose={() => setLearnOpen(false)} />
+      <ReplaceDialog node={node} open={replaceOpen} onClose={() => setReplaceOpen(false)} />
+      <SettingsDialog componentType={node.data.componentType} values={node.data.props} open={settingsOpen} onClose={() => setSettingsOpen(false)} />
       <div>
         <FieldLabel htmlFor={`name-${node.id}`} label="Name" help="Rename this instance, e.g. “Order Service” or “Read Replica (EU)”." />
         <input
@@ -152,6 +180,12 @@ function ComponentProperties({ node }: { node: ComponentNodeT }) {
           </button>
           {showAdvanced && (
             <div className="space-y-3 border-t border-slate-200 p-3 dark:border-slate-800">
+              <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                Not sure what these mean?{' '}
+                <button type="button" className="font-medium text-indigo-600 hover:underline dark:text-indigo-400" onClick={() => setSettingsOpen(true)}>
+                  Explain settings
+                </button>
+              </p>
               {advanced.map((f) => (
                 <PropertyInput key={f.key} node={node} field={f} />
               ))}
@@ -181,14 +215,24 @@ function EdgeProperties({ edge, nodes }: { edge: AppEdge; nodes: AppNode[] }) {
     return n?.type === 'component' ? n.data.label : 'Unknown';
   };
   const set = (patch: Partial<ConnectionProps>) => update(edge.id, patch);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   return (
     <div className="space-y-4">
+      <SettingsDialog values={props as unknown as Record<string, unknown>} open={settingsOpen} onClose={() => setSettingsOpen(false)} />
       <div>
         <p className="text-sm font-semibold">Connection</p>
         <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
           <span className="font-medium text-slate-700 dark:text-slate-200">{label(edge.source)}</span> → <span className="font-medium text-slate-700 dark:text-slate-200">{label(edge.target)}</span>
         </p>
         <p className="mt-1 text-[11px] text-slate-500">Arrows point from the caller to the component it calls. Responses flow back automatically.</p>
+        <button
+          type="button"
+          onClick={() => setSettingsOpen(true)}
+          className="mt-2 inline-flex items-center gap-1.5 rounded-md bg-emerald-50 px-2 py-1 text-xs font-medium text-emerald-700 hover:bg-emerald-100 dark:bg-emerald-950 dark:text-emerald-300 dark:hover:bg-emerald-900"
+          data-testid="explain-connection-settings"
+        >
+          <SlidersHorizontal className="h-3.5 w-3.5" aria-hidden /> Explain these settings
+        </button>
       </div>
       <div>
         <FieldLabel htmlFor="edge-label" label="Label" help="Short text shown on the arrow, e.g. “write order” or “publish OrderPlaced”." />

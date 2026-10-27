@@ -71,12 +71,15 @@ export function AppLayout() {
       <footer className="border-t border-slate-200 py-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] text-xs text-slate-500 dark:border-slate-800 dark:text-slate-400">
         <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 px-4 sm:px-6">
           <p>HLD Arena — practice system design by building it.</p>
-          <nav aria-label="Footer" className="flex gap-4">
+          <nav aria-label="Footer" className="flex flex-wrap gap-x-4 gap-y-2">
             <Link to="/challenges" className="hover:underline">
               Challenges
             </Link>
             <Link to="/learn" className="hover:underline">
               Learn
+            </Link>
+            <Link to="/prep" className="hover:underline">
+              Interview Prep
             </Link>
             <Link to="/about" className="hover:underline">
               How scoring works

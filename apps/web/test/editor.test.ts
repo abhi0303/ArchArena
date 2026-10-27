@@ -146,3 +146,96 @@ describe('diagram serialization', () => {
     expect(restored.edges).toHaveLength(0);
   });
 });
+
+describe('replace component', () => {
+  const comp = (id: string) => {
+    const n = ed().nodes.find((x) => x.id === id);
+    if (!n || n.type !== 'component') throw new Error('not a component');
+    return n;
+  };
+
+  it('swaps the type in place and keeps every connection wired', () => {
+    const lb = add('load-balancer');
+    const app = add('app-server', 200, 0);
+    const cache = add('in-memory-cache', 400, -100);
+    const db = add('sql-db', 400, 100);
+    ed().connect({ source: lb, target: app, sourceHandle: 'r', targetHandle: 'l' });
+    ed().connect({ source: app, target: cache, sourceHandle: 't', targetHandle: 'l' });
+    ed().connect({ source: app, target: db, sourceHandle: 'r', targetHandle: 'l' });
+    const before = ed().edges.map((e) => ({ id: e.id, source: e.source, target: e.target, sourceHandle: e.sourceHandle, targetHandle: e.targetHandle }));
+    const position = { ...comp(app).position };
+
+    const result = ed().replaceComponent(app, 'microservice');
+    expect(result).toEqual({ label: 'Microservice', connections: 3, keptSettings: [], droppedSettings: [] });
+    expect(comp(app).data.componentType).toBe('microservice');
+    expect(comp(app).data.label).toBe('Microservice');
+    expect(comp(app).position).toEqual(position);
+    expect(ed().edges.map((e) => ({ id: e.id, source: e.source, target: e.target, sourceHandle: e.sourceHandle, targetHandle: e.targetHandle }))).toEqual(before);
+  });
+
+  it('keeps custom names and numbers default names', () => {
+    add('distributed-cache', 0, 200);
+    const a = add('in-memory-cache');
+    const b = add('app-server', 200, 0);
+    ed().updateNodeData(b, { label: 'Order Service' });
+    ed().replaceComponent(a, 'distributed-cache');
+    ed().replaceComponent(b, 'microservice');
+    expect(comp(a).data.label).toBe('Distributed Cache 2');
+    expect(comp(b).data.label).toBe('Order Service');
+  });
+
+  it('carries over only the settings the new component supports', () => {
+    const app = add('app-server');
+    ed().setNodeProp(app, 'instances', 'autoscaled');
+    ed().setNodeProp(app, 'timeout', 'short');
+    ed().setNodeProp(app, 'stateless', true);
+    const result = ed().replaceComponent(app, 'background-worker');
+    expect(result?.keptSettings).toEqual(['instances']);
+    expect(result?.droppedSettings.sort()).toEqual(['stateless', 'timeout']);
+    expect(comp(app).data.props).toEqual({ instances: 'autoscaled' });
+  });
+
+  it('re-detects untouched connection defaults but keeps customised connections and labels', () => {
+    const app = add('app-server');
+    const queue = add('message-queue', 200, 0);
+    const other = add('app-server', 0, 200);
+    ed().connect({ source: app, target: queue, sourceHandle: 'r', targetHandle: 'l' });
+    ed().connect({ source: other, target: queue, sourceHandle: 'r', targetHandle: 'l' });
+    const [untouched, custom] = ed().edges;
+    ed().updateEdgeProps(untouched!.id, { label: 'store orders' });
+    ed().updateEdgeProps(custom!.id, { critical: true });
+    expect(untouched!.data!.props.mode).toBe('async');
+
+    ed().replaceComponent(queue, 'sql-db');
+    const after = (id: string) => ed().edges.find((e) => e.id === id)!.data!.props;
+    expect(after(untouched!.id).mode).toBe('sync');
+    expect(after(untouched!.id).protocol).not.toBe('queue');
+    expect(after(untouched!.id).label).toBe('store orders');
+    // The customised connection is left exactly as the user set it.
+    expect(after(custom!.id).critical).toBe(true);
+    expect(after(custom!.id).mode).toBe('async');
+  });
+
+  it('is a single undo step', () => {
+    const app = add('app-server');
+    const db = add('sql-db', 200, 0);
+    ed().connect({ source: app, target: db, sourceHandle: 'r', targetHandle: 'l' });
+    ed().setNodeProp(db, 'replication', 'leader-follower-sync');
+    const snapshot = JSON.stringify(ed().snapshot());
+    ed().replaceComponent(db, 'nosql-db');
+    expect(comp(db).data.componentType).toBe('nosql-db');
+    ed().undo();
+    expect(JSON.stringify(ed().snapshot())).toBe(snapshot);
+    ed().redo();
+    expect(comp(db).data.componentType).toBe('nosql-db');
+  });
+
+  it('ignores invalid replacements', () => {
+    const app = add('app-server');
+    const note = ed().addNote({ x: 0, y: 200 });
+    expect(ed().replaceComponent(app, 'app-server')).toBeNull();
+    expect(ed().replaceComponent(app, 'not-a-component')).toBeNull();
+    expect(ed().replaceComponent(note, 'sql-db')).toBeNull();
+    expect(ed().replaceComponent('missing', 'sql-db')).toBeNull();
+  });
+});
