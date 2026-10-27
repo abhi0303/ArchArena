@@ -1,4 +1,5 @@
-import { a, bi, c, scene } from '@/features/learn/dsl';
+import { a, c, scene } from '@/features/learn/dsl';
+import { bi, code, figure, h, note, p, section, steps, table, ul } from '../dsl';
 import type { PrepQuestion } from '../types';
 
 export const databaseQuestions: PrepQuestion[] = [
@@ -9,126 +10,132 @@ export const databaseQuestions: PrepQuestion[] = [
     question: bi('What is a database index and when can it hurt performance?', 'Database index kya hota hai aur yeh performance ko kab nuksaan pahunchata hai?'),
     kind: 'concept',
     level: 'beginner',
-    tags: ['index', 'b-tree', 'query performance', 'write amplification', 'sql', 'explain'],
-    simple: bi(
-      'An index is a separate, sorted list that helps the database find rows quickly without reading the whole table — like the index at the back of a book. It makes reads much faster, but every time a row is added, changed or deleted, the database must also update every index on that table. So too many indexes, or the wrong ones, slow down writes and use extra space.',
-      'Index ek alag, sorted list hai jo database ko poori table padhe bina rows jaldi dhoondhne mein madad karti hai — bilkul kitaab ke peeche wale index ki tarah. Isse reads bahut fast ho jaate hain, par har baar row add, change ya delete hone pe database ko us table ke har index ko bhi update karna padta hai. Isliye bahut zyaada ya galat indexes writes ko slow karte hain aur extra jagah lete hain.',
+    tags: ['index', 'b-tree', 'query performance', 'write amplification', 'sql', 'explain', 'postgresql'],
+    answer: bi(
+      'An index is a separate, sorted data structure — usually a B-tree — that lets the database find rows without scanning the whole table, like the index at the back of a book. It makes reads much faster, but every insert, update and delete must also update the index, so the wrong indexes, or too many of them, slow down writes and use extra storage and memory.',
+      'Index ek alag, sorted data structure hai — aam taur pe B-tree — jisse database poori table scan kiye bina rows dhoondh leta hai, bilkul kitaab ke peeche wale index ki tarah. Isse reads bahut fast hote hain, par har insert, update aur delete ko index bhi update karna padta hai, isliye galat ya bahut zyaada indexes writes ko slow karte hain aur extra storage aur memory lete hain.',
     ),
-    example: bi(
-      'Your phone contacts are sorted by name, so you jump straight to “R” for Rahul. If they were stored in the order you saved them, you would scroll through all 2,000. But every new contact must be slotted into the right place — and if the phone kept three sorted lists (by name, by company, by city), every new contact would mean updating all three.',
-      'Aapke phone ke contacts naam se sorted hain, to aap seedha “R” pe Rahul tak pahunch jaate ho. Agar woh save karne ke order mein hote, to saare 2,000 scroll karne padte. Par har naya contact sahi jagah pe ghusana padta hai — aur agar phone teen sorted lists rakhe (naam, company, shehar se), to har naye contact pe teeno update karni padengi.',
-    ),
-    why: bi(
-      'Without an index, a query like WHERE email = ? reads every row (a full table scan) — fine at 1,000 rows, painfully slow at 50 million. An index turns that scan into a lookup that touches only a handful of pages.',
-      'Index ke bina WHERE email = ? jaisi query har row padhti hai (full table scan) — 1,000 rows pe theek, 5 crore pe bahut slow. Index us scan ko lookup bana deta hai jo sirf kuch pages chhoota hai.',
-    ),
-    without: bi(
-      'As users grow, logins and searches take seconds, CPU and disk usage spike, and queries start timing out under load.',
-      'Users badhte hi login aur search mein seconds lagne lagte hain, CPU aur disk ka use achanak badhta hai, aur load mein queries time out hone lagti hain.',
-    ),
-    partsTitle: bi('How it works, and when it hurts', 'Yeh kaise kaam karta hai, aur kab nuksaan karta hai'),
-    parts: [
-      {
-        title: bi('How it works', 'Yeh kaise kaam karta hai'),
-        text: bi(
-          'Most indexes are B-trees: balanced, sorted trees that map a column value to the location of the row. Finding a value walks a few levels of the tree — a handful of reads even for millions of rows. Ranges (“between two dates”) and ORDER BY can use the same sorted order. Other types exist for special needs: hash (equality only), full-text, geospatial.',
-          'Zyaadatar indexes B-trees hote hain: balanced, sorted trees jo column ki value ko row ki location se jodte hain. Value dhoondhne mein tree ke kuch levels hi chalne padte hain — lakhon rows mein bhi kuch hi reads. Ranges (“do dates ke beech”) aur ORDER BY bhi isi sorted order ka use kar sakte hain. Khaas zarooraton ke liye doosre types bhi hain: hash (sirf equality), full-text, geospatial.',
+    sections: [
+      section(
+        'How an index helps',
+        'Index kaise madad karta hai',
+        p(
+          'Login looks up a user by email. Without an index, the database reads every row (a full table scan) — fine at 1,000 users, painfully slow at 50 million:',
+          'Login email se user dhoondhta hai. Index ke bina database har row padhta hai (full table scan) — 1,000 users pe theek, 5 crore pe bahut slow:',
         ),
-      },
-      {
-        title: bi('Where indexes help', 'Indexes kahan madad karte hain'),
-        text: bi(
-          'Columns in WHERE filters that are selective (many different values), JOIN keys and foreign keys, ORDER BY and GROUP BY columns, and unique constraints (which are enforced through an index).',
-          'WHERE filters ke woh columns jo selective hon (bahut alag-alag values), JOIN keys aur foreign keys, ORDER BY aur GROUP BY columns, aur unique constraints (jo index se hi enforce hote hain).',
+        code(
+          'sql',
+          `
+SELECT id, password_hash FROM users WHERE email = 'abhi@example.com';
+
+CREATE INDEX idx_users_email ON users (email);`,
         ),
-      },
-      {
-        title: bi('Composite indexes: column order matters', 'Composite indexes: column ka order maayne rakhta hai'),
-        text: bi(
-          'An index on (country, city) helps WHERE country = ? AND city = ? and WHERE country = ?, but not WHERE city = ? alone — the “leftmost prefix” rule. If an index contains every column a query needs, the database can answer from the index alone (a covering index / index-only scan).',
-          '(country, city) pe index WHERE country = ? AND city = ? aur WHERE country = ? mein madad karta hai, par akele WHERE city = ? mein nahi — yeh “leftmost prefix” rule hai. Agar index mein query ke saare columns hon, to database sirf index se jawab de sakta hai (covering index / index-only scan).',
+        p('`EXPLAIN ANALYZE` shows the difference:', '`EXPLAIN ANALYZE` fark dikhata hai:'),
+        code(
+          'text',
+          `
+-- before
+Seq Scan on users  (actual time=0.031..4210.512 rows=1)
+-- after
+Index Scan using idx_users_email on users  (actual time=0.021..0.048 rows=1)`,
         ),
-      },
-      {
-        title: bi('It hurts writes', 'Yeh writes ko nuksaan karta hai'),
-        text: bi(
-          'Every INSERT, UPDATE and DELETE must update every index on the table (write amplification). A write-heavy table — logs, events, clicks — with eight indexes can be several times slower to write, take longer locks and increase replication lag.',
-          'Har INSERT, UPDATE aur DELETE ko table ke har index ko update karna padta hai (write amplification). Write-heavy table — logs, events, clicks — pe aath indexes hon to likhna kai guna slow ho sakta hai, locks lambe chalte hain aur replication lag badhta hai.',
+        p(
+          'The B-tree keeps emails sorted, so the database walks a few levels of the tree — a handful of page reads even for millions of rows. The same sorted order also speeds up ranges (`created_at BETWEEN …`) and `ORDER BY`.',
+          'B-tree emails ko sorted rakhta hai, to database tree ke kuch levels hi chalta hai — lakhon rows mein bhi kuch hi page reads. Yahi sorted order ranges (`created_at BETWEEN …`) aur `ORDER BY` ko bhi fast karta hai.',
         ),
-      },
-      {
-        title: bi('It costs storage and memory', 'Yeh storage aur memory khaata hai'),
-        text: bi(
-          'Indexes take disk space and compete for RAM. When the indexes no longer fit in memory, more reads go to disk and everything slows down. Unused or duplicate indexes are pure cost.',
-          'Indexes disk ki jagah lete hain aur RAM ke liye muqabla karte hain. Jab indexes memory mein fit nahi hote, zyaada reads disk pe jaate hain aur sab slow ho jaata hai. Bina use ke ya duplicate indexes sirf kharcha hain.',
+      ),
+      section(
+        'Where I add indexes',
+        'Main index kahan lagata hoon',
+        ul(
+          ['Columns used in `WHERE` filters that are selective (many distinct values).', '`WHERE` filters ke woh columns jo selective hon (bahut alag values).'],
+          ['Foreign keys and `JOIN` columns.', 'Foreign keys aur `JOIN` columns.'],
+          ['Columns used for `ORDER BY` / `GROUP BY` on large tables.', 'Badi tables pe `ORDER BY` / `GROUP BY` wale columns.'],
+          ['Unique business rules (`UNIQUE (email)`), which are enforced through an index anyway.', 'Unique business rules (`UNIQUE (email)`), jo waise bhi index se hi enforce hote hain.'],
         ),
-      },
-      {
-        title: bi('It may not be used at all', 'Ho sakta hai use hi na ho'),
-        text: bi(
-          'Low-variety columns (true/false, status with three values) point to huge parts of the table, so a full scan is often cheaper and the planner ignores the index. Reading many rows through an index means many random reads — sometimes slower than one sequential scan. Functions on the column (WHERE LOWER(email) = ?), a leading wildcard (LIKE ‘%abc’), or a type mismatch also stop the index from being used.',
-          'Kam variety wale columns (true/false, teen values wala status) table ke bade hisse ki taraf ishaara karte hain, isliye full scan aksar sasta padta hai aur planner index ignore kar deta hai. Index se bahut saari rows padhna matlab bahut saare random reads — kabhi-kabhi ek sequential scan se bhi slow. Column pe function (WHERE LOWER(email) = ?), shuru mein wildcard (LIKE ‘%abc’), ya type mismatch bhi index ko use hone se rokte hain.',
+        h('Composite indexes: column order matters', 'Composite indexes: column ka order maayne rakhta hai'),
+        code('sql', 'CREATE INDEX idx_orders_user_status ON orders (user_id, status);'),
+        table(
+          ['Query', bi('Uses the index?', 'Index use hoga?')],
+          [
+            ["WHERE user_id = 7 AND status = 'PAID'", bi('Yes', 'Haan')],
+            ['WHERE user_id = 7', bi('Yes (leftmost column)', 'Haan (sabse left wala column)')],
+            ["WHERE status = 'PAID'", bi('No — it skips the first column', 'Nahi — pehla column chhoot gaya')],
+          ],
         ),
-      },
-      {
-        title: bi('How to decide', 'Kaise decide karein'),
-        text: bi(
-          'Index for real query patterns, not “just in case”. Check the slow-query log and EXPLAIN (ANALYZE) to see whether a query uses the index. Remove indexes nobody uses. On large production tables, build indexes online (CREATE INDEX CONCURRENTLY in PostgreSQL) so writes are not blocked.',
-          'Asli query patterns ke liye index banao, “shayad kaam aaye” ke liye nahi. Slow-query log aur EXPLAIN (ANALYZE) se dekho ki query index use kar rahi hai ya nahi. Jo indexes koi use nahi karta unhe hatao. Badi production tables pe index online banao (PostgreSQL mein CREATE INDEX CONCURRENTLY) taaki writes block na hon.',
+        p(
+          'If an index contains every column a query needs, the database answers from the index alone (a covering index / index-only scan).',
+          'Agar index mein query ke saare columns hon, to database sirf index se jawab de deta hai (covering index / index-only scan).',
         ),
-      },
+      ),
+      section(
+        'When an index hurts performance',
+        'Index kab performance ko nuksaan karta hai',
+        ul(
+          [
+            '**Write-heavy tables:** every `INSERT`, `UPDATE` and `DELETE` updates every index (write amplification). An events table with eight indexes can write several times slower.',
+            '**Write-heavy tables:** har `INSERT`, `UPDATE` aur `DELETE` har index update karta hai (write amplification). Aath indexes wali events table kai guna slow likh sakti hai.',
+          ],
+          ['**Too many, duplicate or unused indexes:** they cost disk, memory and write time and help nobody.', '**Bahut zyaada, duplicate ya bina use ke indexes:** disk, memory aur write time khaate hain aur kisi ki madad nahi karte.'],
+          [
+            '**Low-selectivity columns** such as a boolean or a status with three values: the index points at half the table, so a sequential scan is often cheaper and the planner ignores it.',
+            '**Low-selectivity columns** jaise boolean ya teen values wala status: index aadhi table ki taraf ishaara karta hai, to sequential scan aksar sasta padta hai aur planner use ignore kar deta hai.',
+          ],
+          ['**Reading a large share of the table** through an index means many random reads — slower than one sequential scan.', '**Table ka bada hissa** index se padhna matlab bahut random reads — ek sequential scan se slow.'],
+          ['**Memory pressure:** when indexes no longer fit in RAM, lookups go to disk and everything slows down.', '**Memory ka dabaav:** jab indexes RAM mein fit nahi hote, lookups disk pe jaate hain aur sab slow ho jaata hai.'],
+          ['**Building one on a big production table** can block writes for minutes.', '**Badi production table pe index banana** writes ko minutes tak rok sakta hai.'],
+        ),
+        code('sql', '-- PostgreSQL: build without blocking writes\nCREATE INDEX CONCURRENTLY idx_orders_created_at ON orders (created_at);'),
+      ),
+      section(
+        'Queries that cannot use the index',
+        'Queries jo index use nahi kar sakti',
+        table(
+          ['Query', bi('Why the index is skipped', 'Index kyun skip hota hai'), 'Fix'],
+          [
+            ['WHERE LOWER(email) = ?', bi('A function wraps the column', 'Column pe function laga hai'), bi('Expression index on `LOWER(email)`', '`LOWER(email)` pe expression index')],
+            ["WHERE name LIKE '%abhi'", bi('Leading wildcard', 'Shuru mein wildcard'), bi('Full-text or trigram index', 'Full-text ya trigram index')],
+            ['WHERE phone = 9876543210', bi('Type mismatch (the column is text)', 'Type mismatch (column text hai)'), bi('Compare with the right type', 'Sahi type se compare karo')],
+            ['WHERE a = 1 OR b = 2', bi('OR across different columns', 'Alag columns pe OR'), bi('Separate indexes or UNION', 'Alag indexes ya UNION')],
+          ],
+        ),
+        p(
+          'I decide with evidence: the slow-query log and `EXPLAIN ANALYZE` for real query patterns, and `pg_stat_user_indexes` to find indexes nobody uses.',
+          'Main saboot se decide karta hoon: asli query patterns ke liye slow-query log aur `EXPLAIN ANALYZE`, aur jo indexes koi use nahi karta unhe dhoondhne ke liye `pg_stat_user_indexes`.',
+        ),
+      ),
     ],
     interview: {
-      opening: bi(
-        'An index is an auxiliary data structure, usually a B-tree, that maps column values to rows so the database can find data in logarithmic time instead of scanning the table; it speeds up reads at the cost of slower writes, extra storage and maintenance.',
-        'Index ek auxiliary data structure hai, aam taur pe B-tree, jo column values ko rows se map karta hai taaki database table scan kiye bina logarithmic time mein data dhoondh sake; yeh reads ko fast karta hai par writes slow, extra storage aur maintenance ki keemat pe.',
-      ),
-      points: [
-        bi('B-tree indexes support equality, ranges and ordering; hash indexes only equality.', 'B-tree indexes equality, ranges aur ordering support karte hain; hash indexes sirf equality.'),
-        bi('Index selective columns used in WHERE, JOIN and ORDER BY.', 'WHERE, JOIN aur ORDER BY mein use hone wale selective columns pe index lagao.'),
-        bi('Composite indexes follow the leftmost-prefix rule; covering indexes allow index-only scans.', 'Composite indexes leftmost-prefix rule follow karte hain; covering indexes index-only scan dete hain.'),
-        bi('Every write updates every index — write amplification on write-heavy tables.', 'Har write har index update karta hai — write-heavy tables pe write amplification.'),
-        bi('Indexes use disk and memory; unused or duplicate indexes are pure overhead.', 'Indexes disk aur memory lete hain; bina use ke ya duplicate indexes sirf bojh hain.'),
-        bi('Low cardinality, functions on columns, leading wildcards and type casts prevent index use.', 'Low cardinality, column pe functions, shuru ka wildcard aur type casts index use hone se rokte hain.'),
-        bi('I validate with EXPLAIN ANALYZE and the slow-query log, and build indexes concurrently in production.', 'Main EXPLAIN ANALYZE aur slow-query log se check karta hoon, aur production mein indexes concurrently banata hoon.'),
+      text: [
+        bi(
+          'An index is an auxiliary data structure, usually a B-tree, that maps column values to rows, so the database can find data in logarithmic time instead of scanning the whole table. I add indexes on selective columns used in WHERE, JOIN and ORDER BY, and for composite indexes I keep the leftmost-prefix rule in mind.',
+          'Index ek auxiliary data structure hai, aam taur pe B-tree, jo column values ko rows se map karta hai, taaki database poori table scan karne ki jagah logarithmic time mein data dhoondh sake. Main WHERE, JOIN aur ORDER BY mein use hone wale selective columns pe index lagata hoon, aur composite indexes mein leftmost-prefix rule ka dhyaan rakhta hoon.',
+        ),
+        bi(
+          'Indexes hurt when a table is write-heavy, because every write updates every index; when there are too many or unused indexes; on low-selectivity columns; and when they no longer fit in memory. Functions on columns, leading wildcards and type mismatches also stop an index from being used. I validate with EXPLAIN ANALYZE and the slow-query log, and build indexes concurrently in production.',
+          'Index tab nuksaan karta hai jab table write-heavy ho, kyunki har write har index update karta hai; jab bahut zyaada ya bina use ke indexes hon; low-selectivity columns pe; aur jab woh memory mein fit na hon. Column pe functions, shuru ka wildcard aur type mismatch bhi index ko use hone se rokte hain. Main EXPLAIN ANALYZE aur slow-query log se check karta hoon, aur production mein indexes concurrently banata hoon.',
+        ),
       ],
-      keywords: [
-        'B-tree',
-        'Full table scan',
-        'Selectivity / cardinality',
-        'Composite index',
-        'Leftmost prefix',
-        'Covering index',
-        'Index-only scan',
-        'Write amplification',
-        'Query planner',
-        'EXPLAIN ANALYZE',
-        'Clustered vs non-clustered index',
-      ],
+      keywords: ['B-tree', 'Full table scan', 'Selectivity / cardinality', 'Composite index', 'Leftmost prefix', 'Covering index', 'Write amplification', 'Query planner', 'EXPLAIN ANALYZE', 'CREATE INDEX CONCURRENTLY'],
     },
     listenFor: [
       bi('The trade-off: faster reads, slower writes.', 'Trade-off ki samajh: fast reads, slow writes.'),
-      bi('Concrete cases where an index does not help.', 'Thos cases jahan index madad nahi karta.'),
-      bi('Using EXPLAIN to check instead of guessing; knowing that composite column order matters.', 'Andaaze ki jagah EXPLAIN se check karna; yeh jaanna ki composite column order maayne rakhta hai.'),
+      bi('Concrete cases where an index does not help, and using EXPLAIN instead of guessing.', 'Thos cases jahan index madad nahi karta, aur andaaze ki jagah EXPLAIN use karna.'),
     ],
-    mistakes: [
-      bi('“Just index every column.”', '“Har column pe index laga do.”'),
-      bi('Believing indexes are free.', 'Yeh maanna ki indexes free hain.'),
-      bi('Building an index on a huge production table in a way that locks writes for minutes.', 'Badi production table pe aise index banana ki writes minutes tak lock ho jaayein.'),
-    ],
+    mistakes: [bi('“Just index every column.”', '“Har column pe index laga do.”'), bi('Believing indexes are free.', 'Yeh maanna ki indexes free hain.')],
     followUps: [
       {
         q: bi('What is the difference between a clustered and a non-clustered index?', 'Clustered aur non-clustered index mein kya fark hai?'),
         a: bi(
-          'In a clustered index the table rows themselves are stored in index order (only one per table, e.g. the InnoDB primary key). A non-clustered index is a separate structure that points to the rows.',
-          'Clustered index mein table ki rows khud index ke order mein store hoti hain (har table mein sirf ek, jaise InnoDB ki primary key). Non-clustered index ek alag structure hai jo rows ki taraf point karta hai.',
+          'In a clustered index the table rows themselves are stored in index order — only one per table, such as the InnoDB primary key. A non-clustered index is a separate structure that points to the rows.',
+          'Clustered index mein table ki rows khud index ke order mein store hoti hain — har table mein sirf ek, jaise InnoDB ki primary key. Non-clustered index ek alag structure hai jo rows ki taraf point karta hai.',
         ),
       },
       {
         q: bi('Would you index a boolean column?', 'Kya aap boolean column pe index lagaoge?'),
         a: bi(
-          'Usually not — it splits the table in two, so a scan is often cheaper. If one value is rare (say is_flagged = true), a partial index on just those rows works well.',
-          'Aam taur pe nahi — yeh table ko do hisson mein baant-ta hai, to scan aksar sasta padta hai. Agar ek value kam hoti ho (jaise is_flagged = true), to sirf un rows pe partial index accha kaam karta hai.',
+          'Usually not. If one value is rare — say `is_flagged = true` — a partial index on just those rows works well: `CREATE INDEX … WHERE is_flagged`.',
+          'Aam taur pe nahi. Agar ek value kam hoti ho — jaise `is_flagged = true` — to sirf un rows pe partial index accha kaam karta hai: `CREATE INDEX … WHERE is_flagged`.',
         ),
       },
     ],
@@ -143,131 +150,102 @@ export const databaseQuestions: PrepQuestion[] = [
     kind: 'scenario',
     level: 'intermediate',
     tags: ['slow query', 'query plan', 'statistics', 'data growth', 'locks', 'explain', 'vacuum'],
-    scenario: bi(
-      'Nothing in the code changed — the same SQL that took 20 ms last month now takes 3 seconds. Because the query is identical, something around it must have changed: the amount or shape of the data, the plan the database chooses to run it, the indexes, the load on the server, or the environment. The interviewer wants a list of likely causes and, more importantly, how you would check each one instead of guessing.',
-      'Code mein kuch nahi badla — jo SQL pichhle mahine 20 ms leti thi, ab 3 second le rahi hai. Query same hai, to uske aas-paas kuch badla hoga: data ki maatra ya shape, query chalane ke liye database ka chuna hua plan, indexes, server pe load, ya environment. Interviewer chahta hai ki aap sambhavit kaaran batao aur, usse bhi zyaada zaroori, har ek ko andaaze ki jagah kaise check karoge.',
+    answer: bi(
+      'If the SQL has not changed, something around it has: the data grew or became skewed, the optimizer chose a different plan (often because of stale statistics), an index was dropped or became bloated, the query now waits on locks, or the server is under more pressure. I confirm which one with evidence — when it started, the query plan and database metrics — instead of guessing.',
+      'Agar SQL nahi badla, to uske aas-paas kuch badla hai: data badh gaya ya skewed ho gaya, optimizer ne alag plan chuna (aksar purane statistics ki wajah se), koi index drop ho gaya ya phool gaya, query ab locks pe wait karti hai, ya server pe dabaav badh gaya. Kaunsa kaaran hai, yeh main andaaze ki jagah saboot se confirm karta hoon — kab shuru hua, query plan aur database metrics.',
     ),
-    simple: bi(
-      'If the query did not change, its surroundings did. The table grew, the database picked a different (worse) way to run the query, an index disappeared or got bloated, other work is competing for the same machine, or the query now waits on locks. You compare “before” and “after” with evidence — query plans and metrics — to find out which.',
-      'Query nahi badli, to uske aas-paas kuch badla. Table badi ho gayi, database ne query chalane ka alag (bura) tareeka chun liya, koi index gayab ya phool gaya, doosra kaam same machine ke liye muqabla kar raha hai, ya query ab locks pe wait karti hai. Kaunsa kaaran hai, yeh “pehle” aur “ab” ko sabooton — query plans aur metrics — se compare karke pata karte ho.',
-    ),
-    example: bi(
-      'Your commute took 20 minutes last month and now takes 50. The road is the same (the same query). Maybe traffic grew (more data), a flyover closed so the maps app chose a longer route (a different query plan), there is construction (maintenance), or a broken-down truck blocks a lane (locks). You check traffic reports before blaming your car.',
-      'Aapka office ka safar pichhle mahine 20 minute ka tha, ab 50 ka. Sadak wahi hai (same query). Shayad traffic badh gaya (zyaada data), flyover band hua to maps app ne lamba raasta chuna (alag query plan), construction chal raha hai (maintenance), ya kharab truck ek lane rok raha hai (locks). Gaadi ko dosh dene se pehle traffic report dekhte ho.',
-    ),
-    partsTitle: bi('What might have changed — and how to check', 'Kya badla ho sakta hai — aur kaise check karein'),
-    parts: [
-      {
-        title: bi('1. More data, or differently shaped data', '1. Zyaada data, ya alag shape ka data'),
-        text: bi(
-          'The table grew ten times, or one customer now has millions of rows (skew). A plan that was fine for 100,000 rows can be terrible for 10 million. Check table sizes and row counts over time, and whether the slow cases involve “big” customers.',
-          'Table das guna badi ho gayi, ya ek customer ki ab lakhon rows hain (skew). Jo plan 1 lakh rows ke liye theek tha woh 1 crore pe bahut bura ho sakta hai. Samay ke saath table size aur row count dekho, aur kya slow cases “bade” customers ke hain.',
+    sections: [
+      section(
+        'First: when did it start?',
+        'Pehle: kab shuru hua?',
+        p('I line the slowdown up with everything that changed around that time:', 'Main slowness ko us waqt badli har cheez se milata hoon:'),
+        ul(
+          ['Deploys and database migrations.', 'Deploys aur database migrations.'],
+          ['Big data loads, imports or a new batch job.', 'Bade data loads, imports ya naya batch job.'],
+          ['Traffic growth or a new heavy customer.', 'Traffic badhna ya koi naya bhaari customer.'],
+          ['Is it slow for every input, or only for some parameters (one large account)?', 'Har input ke liye slow hai, ya sirf kuch parameters ke liye (ek bada account)?'],
         ),
-      },
-      {
-        title: bi('2. The query plan changed', '2. Query plan badal gaya'),
-        text: bi(
-          'The optimizer chooses a plan from table statistics. Stale statistics make it guess wrong — a sequential scan instead of the index, a bad join order, a nested loop over millions of rows. A cached plan built for one parameter value can also be bad for another. Run EXPLAIN (ANALYZE, BUFFERS) and compare estimated vs actual rows; run ANALYZE to refresh statistics; compare with history in tools like pg_stat_statements.',
-          'Optimizer table statistics se plan chunta hai. Purane statistics usse galat andaaza lagwate hain — index ki jagah sequential scan, galat join order, lakhon rows pe nested loop. Ek parameter value ke liye bana cached plan doosri value ke liye bura ho sakta hai. EXPLAIN (ANALYZE, BUFFERS) chalao aur estimated vs actual rows compare karo; statistics refresh karne ke liye ANALYZE chalao; pg_stat_statements jaise tools mein history se compare karo.',
+      ),
+      section(
+        'Compare the query plan',
+        'Query plan compare karo',
+        code('sql', "EXPLAIN (ANALYZE, BUFFERS)\nSELECT * FROM orders WHERE customer_id = 42 AND status = 'PAID';"),
+        code(
+          'text',
+          `
+Nested Loop  (rows=120) (actual rows=2,400,000 time=3120 ms)   ← estimate is 20,000× off
+  -> Seq Scan on orders (actual rows=2,400,000)`,
         ),
-      },
-      {
-        title: bi('3. Index problems', '3. Index ki problems'),
-        text: bi(
-          'A migration dropped or renamed an index, an index build failed and left it invalid, the index is bloated, or a schema change introduced a type cast that stops the index being used.',
-          'Kisi migration ne index drop ya rename kar diya, index build fail hoke invalid reh gaya, index phool gaya, ya schema change se type cast aa gaya jo index use hone se rokta hai.',
+        p(
+          'When the **estimated** rows are far from the **actual** rows, the optimizer is working from stale statistics and picked a bad plan. Refreshing them often fixes it immediately:',
+          'Jab **estimated** rows **actual** rows se bahut door hon, to optimizer purane statistics pe kaam kar raha hai aur usne bura plan chuna. Unhe refresh karna aksar turant theek kar deta hai:',
         ),
-      },
-      {
-        title: bi('4. Bloat and maintenance', '4. Bloat aur maintenance'),
-        text: bi(
-          'Lots of updates and deletes leave dead rows behind (PostgreSQL needs VACUUM to clean them). If autovacuum falls behind, the table and its indexes grow and scans read far more pages than necessary.',
-          'Bahut saare updates aur deletes mari hui rows chhod dete hain (PostgreSQL ko inhe saaf karne ke liye VACUUM chahiye). Autovacuum peeche reh jaaye to table aur indexes phool jaate hain aur scans zaroorat se kahin zyaada pages padhte hain.',
+        code('sql', 'ANALYZE orders;'),
+      ),
+      section(
+        'Common causes and how I check each',
+        'Aam kaaran aur har ek ko kaise check karta hoon',
+        table(
+          [bi('Cause', 'Kaaran'), bi('How I check', 'Kaise check karta hoon'), 'Fix'],
+          [
+            [bi('Data growth or skew', 'Data growth ya skew'), bi('Table size and row counts over time', 'Samay ke saath table size aur row count'), bi('Better index, partition, archive old rows', 'Behtar index, partition, purani rows archive')],
+            [bi('Stale statistics / plan change', 'Purane statistics / plan change'), bi('Estimated vs actual rows in EXPLAIN', 'EXPLAIN mein estimated vs actual rows'), bi('`ANALYZE`, tune autovacuum', '`ANALYZE`, autovacuum tune karo')],
+            [bi('Missing, invalid or bloated index', 'Missing, invalid ya bloated index'), bi('Plan shows Seq Scan; check indexes after migrations', 'Plan mein Seq Scan; migrations ke baad indexes dekho'), bi('Recreate or reindex (concurrently)', 'Dobara banao ya reindex (concurrently)')],
+            [bi('Table bloat (dead rows)', 'Table bloat (mari hui rows)'), bi('Dead tuples in `pg_stat_user_tables`', '`pg_stat_user_tables` mein dead tuples'), bi('VACUUM; fix autovacuum settings', 'VACUUM; autovacuum settings theek karo')],
+            ['Lock contention', bi('`pg_stat_activity` wait events', '`pg_stat_activity` ke wait events'), bi('Shorten transactions, reschedule batch jobs', 'Transactions chhote karo, batch jobs ka time badlo')],
+            [bi('Resource pressure', 'Resources pe dabaav'), bi('CPU, IO, cache hit ratio, pool waits', 'CPU, IO, cache hit ratio aur pool waits'), bi('Scale, add replicas, cache, fix heavy queries', 'Scale, replicas, cache, bhaari queries theek karo')],
+            [bi('Environment change', 'Environment ka badalna'), bi('DB upgrade, config change, ORM upgrade', 'DB upgrade, config change, ORM upgrade dekho'), bi('Compare settings and generated SQL', 'Settings aur bana hua SQL compare karo')],
+          ],
         ),
-      },
-      {
-        title: bi('5. Locks and contention', '5. Locks aur contention'),
-        text: bi(
-          'A new batch job, a long-running transaction or a migration holds locks, so the query is waiting rather than working. Check pg_stat_activity and the lock and wait-event views while it is slow.',
-          'Naya batch job, lamba chalta transaction ya migration locks pakde hue hai, to query kaam nahi, wait kar rahi hai. Slow hote waqt pg_stat_activity aur lock aur wait-event views dekho.',
+      ),
+      section(
+        'Is it running, or waiting?',
+        'Query chal rahi hai, ya wait kar rahi hai?',
+        p('A query blocked by a lock looks exactly like a slow query. While it is slow, I check what is running:', 'Lock se ruki query bilkul slow query jaisi dikhti hai. Jab slow ho, main dekhta hoon kya chal raha hai:'),
+        code(
+          'sql',
+          `
+SELECT pid, state, wait_event_type, wait_event,
+       now() - query_start AS running_for, left(query, 60) AS query
+FROM   pg_stat_activity
+WHERE  state <> 'idle'
+ORDER  BY running_for DESC;`,
         ),
-      },
-      {
-        title: bi('6. Resource pressure', '6. Resources pe dabaav'),
-        text: bi(
-          'More traffic, a noisy neighbour, or a working set that no longer fits in memory (the buffer cache hit ratio drops, so reads go to disk). CPU or disk saturation, or the app waiting for a free connection from the pool, all look like a “slow query”.',
-          'Zyaada traffic, shor machane wala padosi, ya working set jo ab memory mein fit nahi hota (buffer cache hit ratio girta hai, reads disk pe jaate hain). CPU ya disk saturation, ya app ka pool se free connection ka wait — sab “slow query” jaisa hi dikhta hai.',
+      ),
+      section(
+        'Fix and prevent',
+        'Theek karo aur roko',
+        ul(
+          ['Fix the root cause, then confirm with before/after latency.', 'Root cause theek karo, phir pehle/baad ki latency se confirm karo.'],
+          ['For ever-growing tables: partition by time and archive old rows.', 'Hamesha badhti tables ke liye: time se partition karo aur purani rows archive karo.'],
+          ['Track per-query p95/p99 with `pg_stat_statements` and alert on regressions.', '`pg_stat_statements` se har query ka p95/p99 track karo aur regressions pe alert karo.'],
         ),
-      },
-      {
-        title: bi('7. The environment changed', '7. Environment badal gaya'),
-        text: bi(
-          'A database version upgrade, a configuration change (memory settings), a smaller instance type, reads now going to a lagging replica, or an ORM upgrade that generates different SQL.',
-          'Database version upgrade, configuration change (memory settings), chhota instance type, reads ab peeche chal rahe replica pe jaana, ya ORM upgrade jo alag SQL banata hai.',
-        ),
-      },
-      {
-        title: bi('8. A systematic approach', '8. Ek systematic tareeka'),
-        text: bi(
-          'Find exactly when it started and line it up with deploys, migrations, data jobs and traffic. Reproduce with EXPLAIN ANALYZE and compare with an old plan. Fix the cause (statistics, index, query rewrite, partitioning or archiving old data), then add an alert on that query’s p95/p99 latency so the next regression is caught early.',
-          'Bilkul kab shuru hua yeh pata karo aur use deploys, migrations, data jobs aur traffic se milao. EXPLAIN ANALYZE se reproduce karo aur purane plan se compare karo. Kaaran theek karo (statistics, index, query rewrite, partitioning ya purana data archive), phir us query ki p95/p99 latency pe alert lagao taaki agli regression jaldi pakdi jaaye.',
-        ),
-      },
+      ),
     ],
     interview: {
-      opening: bi(
-        'If the query text is unchanged, the cause is usually data growth or skew, a plan change from stale statistics, a missing or bloated index, lock contention or resource pressure — and I would confirm which one with metrics and EXPLAIN ANALYZE rather than guess.',
-        'Agar query text nahi badla, to kaaran aam taur pe data growth ya skew, purane statistics se plan change, missing ya bloated index, lock contention ya resource pressure hota hai — aur kaunsa hai, yeh main andaaze ki jagah metrics aur EXPLAIN ANALYZE se confirm karunga.',
-      ),
-      points: [
-        bi('Pinpoint when it started; correlate with deploys, migrations, batch jobs and traffic.', 'Pata karo kab shuru hua; deploys, migrations, batch jobs aur traffic se milao.'),
-        bi('Data growth or skew: the same plan now touches far more rows.', 'Data growth ya skew: same plan ab kahin zyaada rows chhoota hai.'),
-        bi('Plan regression from stale statistics or parameter-sensitive plans — compare estimated vs actual rows.', 'Purane statistics ya parameter-sensitive plans se plan regression — estimated vs actual rows compare karo.'),
-        bi('Index issues: dropped, invalid, bloated, or unusable because of a cast or function.', 'Index issues: drop hua, invalid, bloated, ya cast/function ki wajah se use nahi ho pa raha.'),
-        bi('Table bloat when vacuum and maintenance fall behind.', 'Vacuum aur maintenance peeche reh jaayein to table bloat.'),
-        bi('Lock contention or long transactions — check pg_stat_activity and wait events.', 'Lock contention ya lambe transactions — pg_stat_activity aur wait events dekho.'),
-        bi('Resource pressure: working set no longer fits in memory, CPU/IO saturation, connection-pool waits.', 'Resource pressure: working set memory mein fit nahi, CPU/IO saturation, connection-pool waits.'),
-        bi('Fix the root cause and add alerting on query latency percentiles.', 'Root cause theek karo aur query latency percentiles pe alert lagao.'),
+      text: [
+        bi(
+          'If the query text has not changed, I look at what changed around it. First I pin down when it started and correlate it with deploys, migrations, data loads and traffic. Then I run EXPLAIN ANALYZE and compare it with the old plan — a big gap between estimated and actual rows usually means stale statistics and a plan regression, which ANALYZE can fix.',
+          'Agar query text nahi badla, to main dekhta hoon uske aas-paas kya badla. Pehle pata karta hoon kab shuru hua aur use deploys, migrations, data loads aur traffic se milata hoon. Phir EXPLAIN ANALYZE chala ke purane plan se compare karta hoon — estimated aur actual rows mein bada fark aksar purane statistics aur plan regression ka matlab hai, jise ANALYZE theek kar sakta hai.',
+        ),
+        bi(
+          'Other usual causes are data growth or skew, a dropped or bloated index, table bloat from dead rows, lock contention from long transactions or new batch jobs, and resource pressure such as the working set no longer fitting in memory. I confirm the cause with pg_stat_activity and metrics, fix it, and add alerting on query latency so the next regression is caught early.',
+          'Doosre aam kaaran hain data growth ya skew, drop hua ya bloated index, mari hui rows se table bloat, lambe transactions ya naye batch jobs se lock contention, aur resource pressure jaise working set ka memory mein fit na hona. Main pg_stat_activity aur metrics se kaaran confirm karta hoon, use theek karta hoon, aur query latency pe alert lagata hoon taaki agli regression jaldi pakdi jaaye.',
+        ),
       ],
-      keywords: [
-        'Execution plan',
-        'Query optimizer',
-        'Table statistics',
-        'EXPLAIN ANALYZE',
-        'Cardinality estimate',
-        'Plan regression',
-        'Parameter sniffing',
-        'Index bloat',
-        'VACUUM / autovacuum',
-        'Lock contention',
-        'Buffer cache hit ratio',
-        'Working set',
-        'Partitioning',
-      ],
+      keywords: ['Execution plan', 'Query optimizer', 'Table statistics', 'EXPLAIN ANALYZE', 'Plan regression', 'Cardinality estimate', 'Index bloat', 'VACUUM', 'Lock contention', 'pg_stat_statements'],
     },
     listenFor: [
       bi('A structured, evidence-based investigation rather than guesses.', 'Andaazon ki jagah structured, saboot pe aadharit jaanch.'),
-      bi('Understanding the query planner and table statistics.', 'Query planner aur table statistics ki samajh.'),
-      bi('Considering causes outside the query itself — locks, resources, environment — and proposing prevention.', 'Query ke bahar ke kaaranon pe bhi sochna — locks, resources, environment — aur roktham ka sujhaav.'),
+      bi('Understanding the query planner and statistics, and considering locks and resources.', 'Query planner aur statistics ki samajh, aur locks aur resources pe bhi sochna.'),
     ],
-    mistakes: [
-      bi('Jumping straight to “add an index” or “buy a bigger server”.', 'Seedha “index laga do” ya “bada server le lo” pe kood jaana.'),
-      bi('Not asking when it started.', 'Yeh na poochhna ki kab shuru hua.'),
-      bi('Not comparing the current plan with the old one.', 'Abhi ke plan ko purane se compare na karna.'),
-    ],
+    mistakes: [bi('Jumping straight to “add an index” or “buy a bigger server”.', 'Seedha “index laga do” ya “bada server le lo” pe kood jaana.'), bi('Not asking when it started.', 'Yeh na poochhna ki kab shuru hua.')],
     followUps: [
       {
         q: bi('What are table statistics?', 'Table statistics kya hote hain?'),
         a: bi(
-          'Summaries such as row counts and histograms of value distribution. The optimizer uses them to estimate how many rows each step returns and to pick the cheapest plan.',
+          'Summaries such as row counts and histograms of value distribution. The optimizer uses them to estimate how many rows each step returns and to choose the cheapest plan.',
           'Row counts aur values ke distribution ke histograms jaisi summaries. Optimizer inse andaaza lagata hai ki har step kitni rows dega, aur sabse sasta plan chunta hai.',
-        ),
-      },
-      {
-        q: bi('The data will keep growing. What is the long-term fix?', 'Data badhta hi rahega. Long-term fix kya hai?'),
-        a: bi(
-          'Partition by time, archive old rows, move reporting to read replicas or a warehouse, cache hot results, and keep queries index-friendly.',
-          'Time se partition karo, purani rows archive karo, reporting ko read replicas ya warehouse pe le jao, hot results cache karo, aur queries ko index-friendly rakho.',
         ),
       },
     ],
@@ -281,136 +259,143 @@ export const databaseQuestions: PrepQuestion[] = [
     question: bi('What happens if your database connection pool becomes exhausted?', 'Agar aapka database connection pool exhaust ho jaaye to kya hota hai?'),
     kind: 'scenario',
     level: 'intermediate',
-    tags: ['connection pool', 'database', 'timeouts', 'latency', 'backpressure', 'pgbouncer'],
-    scenario: bi(
-      'Your app keeps a fixed number of open database connections — a pool, say 20 — and lends one to each request that needs the database. “Exhausted” means all 20 are busy and more requests want one. The interviewer wants to know what users would experience, why it happens (it is usually a symptom, not the root cause), and how you would fix and prevent it.',
-      'Aapka app database ke kuch fixed open connections rakhta hai — ek pool, maan lo 20 — aur database chahne wali har request ko ek udhaar deta hai. “Exhausted” ka matlab hai saare 20 busy hain aur aur requests ko connection chahiye. Interviewer jaanna chahta hai ki users ko kya dikhega, yeh kyun hota hai (aam taur pe yeh lakshan hai, asli kaaran nahi), aur aap ise kaise theek karoge aur rokoge.',
+    tags: ['connection pool', 'database', 'timeouts', 'latency', 'backpressure', 'pgbouncer', 'node.js'],
+    answer: bi(
+      'New requests have to wait for a free connection, and if none frees up before the pool’s acquire timeout, they fail. Users see slow responses, then errors, and the slowdown can cascade to every service that calls this one. Exhaustion is usually a symptom — of slow queries, connection leaks or long transactions — so I fix the cause instead of just making the pool bigger.',
+      'Nayi requests ko free connection ka wait karna padta hai, aur pool ke acquire timeout tak koi free na ho to woh fail ho jaati hain. Users ko pehle slow responses dikhte hain, phir errors, aur yeh slowness is service ko call karne wali har service tak fail sakti hai. Exhaustion aam taur pe ek lakshan hai — slow queries, connection leaks ya lambe transactions ka — isliye main pool bada karne ki jagah kaaran theek karta hoon.',
     ),
-    simple: bi(
-      'New requests have to wait in line for a free connection. If none frees up within the pool’s wait timeout, the request fails. Users first see slow pages, then errors — and the slowdown can spread to every service that calls this one.',
-      'Nayi requests ko free connection ke liye line mein wait karna padta hai. Pool ke wait timeout tak koi free na ho, to request fail. Users ko pehle slow pages dikhte hain, phir errors — aur yeh slowness un sab services tak fail sakti hai jo is service ko call karti hain.',
-    ),
-    example: bi(
-      'A restaurant with 20 tables. Normally guests eat and leave, so tables free up. If some guests sit for hours (slow queries) or leave without telling anyone so the table stays “occupied” (connection leaks), new guests queue at the door, get tired and leave (timeouts). Adding more tables does not help if the kitchen (the database) is the slow part — it only makes the kitchen busier.',
-      '20 tables wala restaurant. Normally guests khaate hain aur chale jaate hain, tables free hoti rehti hain. Agar kuch guests ghanton baithe rahein (slow queries) ya bina bataye chale jaayein aur table “occupied” hi rahe (connection leaks), to naye guests darwaze pe line lagate hain, thak ke chale jaate hain (timeouts). Agar kitchen (database) hi slow hai to zyaada tables lagane se kuch nahi hoga — kitchen aur busy ho jaayegi.',
-    ),
-    why: bi(
-      'Pools exist because opening a database connection is expensive (network, TLS, authentication, often a whole process on the database side) and databases can only handle a limited number of connections. A pool reuses a few connections and caps the load on the database.',
-      'Pool isliye hote hain kyunki database connection kholna mehnga hai (network, TLS, authentication, database side pe aksar poora process) aur database limited connections hi sambhaal sakta hai. Pool kuch connections ko baar-baar use karta hai aur database pe load ki seema tay karta hai.',
-    ),
-    without: bi(
-      'When it is exhausted: requests block → latency climbs → threads or the event loop back up → timeouts and 500/503 errors → health checks may fail and instances restart → callers retry and add even more load. That is a cascading failure.',
-      'Exhaust hone pe: requests ruk jaati hain → latency badhti hai → threads ya event loop jaam → timeouts aur 500/503 errors → health checks fail ho sakte hain aur instances restart → callers retry karke aur load badha dete hain. Yahi cascading failure hai.',
-    ),
-    scene: scene(
-      [
-        [a('users', 'Users', bi('Many requests', 'Bahut requests'))],
-        [c('app-server', { state: 'bad', note: bi('pool 20/20 busy', 'pool 20/20 full') })],
-        [c('sql-db', { note: bi('slow queries', 'queries slow hain') })],
-      ],
-      [['users!>app-server', bi('queued', 'line mein')], 'app-server>sql-db'],
-      bi(
-        'Every connection is busy, so new requests queue inside the app and eventually time out — even though the app server itself has spare CPU.',
-        'Har connection busy hai, to nayi requests app ke andar line mein lagti hain aur aakhir mein time out — jabki app server ke paas CPU bacha hua hai.',
+    sections: [
+      section(
+        'What a connection pool is',
+        'Connection pool kya hai',
+        p(
+          'Opening a database connection is expensive (network, TLS, authentication), and the database allows only a limited number (`max_connections`). So the app keeps a few connections open and lends one to each request:',
+          'Database connection kholna mehnga hai (network, TLS, authentication), aur database sirf limited connections allow karta hai (`max_connections`). Isliye app kuch connections khule rakhta hai aur har request ko ek udhaar deta hai:',
+        ),
+        code(
+          'ts',
+          `
+import { Pool } from 'pg';
+
+export const pool = new Pool({
+  max: 20,                         // connections in this instance's pool
+  connectionTimeoutMillis: 2000,   // wait at most 2 s for a free connection
+  idleTimeoutMillis: 30000,
+  statement_timeout: 5000,         // cancel queries running longer than 5 s
+});`,
+        ),
       ),
-    ),
-    partsTitle: bi('What happens, why, and how to fix it', 'Kya hota hai, kyun, aur kaise theek karein'),
-    parts: [
-      {
-        title: bi('What happens inside', 'Andar kya hota hai'),
-        text: bi(
-          'A request asks the pool for a connection; none is free; it waits up to the acquire timeout (often 30 seconds by default — far too long); then it throws “timeout acquiring connection”. Meanwhile more requests pile up behind it.',
-          'Request pool se connection maangti hai; koi free nahi; acquire timeout tak wait karti hai (default aksar 30 second — bahut zyaada); phir “timeout acquiring connection” error. Is beech peeche aur requests jamaa hoti jaati hain.',
+      section(
+        'What happens when it is exhausted',
+        'Exhaust hone pe kya hota hai',
+        figure(
+          scene(
+            [
+              [a('users', 'Users', bi('Many requests', 'Bahut requests'))],
+              [c('app-server', { state: 'bad', note: bi('pool 20/20 busy', 'pool 20/20 full') })],
+              [c('sql-db', { note: bi('slow queries', 'queries slow hain') })],
+            ],
+            [['users!>app-server', bi('queued', 'line mein')], 'app-server>sql-db'],
+            bi(
+              'Every connection is busy, so new requests queue inside the app and eventually time out — even though the app server has spare CPU.',
+              'Har connection busy hai, to nayi requests app ke andar line mein lagti hain aur aakhir mein time out — jabki app server ke paas CPU bacha hai.',
+            ),
+          ),
         ),
-      },
-      {
-        title: bi('Common root causes', 'Aam asli kaaran'),
-        text: bi(
-          'Slow queries holding connections longer (missing index, lock waits); connection leaks (a code path that never returns the connection, usually on errors); long transactions (calling an external API while a transaction is open); traffic spikes; a pool that is too small; an overloaded database; N+1 query patterns.',
-          'Slow queries jo connections zyaada der pakadti hain (missing index, lock waits); connection leaks (code path jo connection kabhi wapas nahi karta, aksar error pe); lambe transactions (transaction khula rakh ke external API call karna); traffic spikes; bahut chhota pool; overloaded database; N+1 query patterns.',
+        steps(
+          ['All 20 connections are busy', 'Saare 20 connections busy', 'Usually because queries became slow or connections are not returned.', 'Aam taur pe isliye ki queries slow ho gayi ya connections wapas nahi aa rahe.'],
+          ['New requests wait in the pool’s queue', 'Nayi requests pool ki line mein', 'Response time climbs for everyone, including requests that need a 2 ms query.', 'Sabka response time badhta hai, un requests ka bhi jinhe 2 ms ki query chahiye.'],
+          ['Waits hit the acquire timeout', 'Wait acquire timeout tak', 'Requests fail with “timeout exceeded when trying to connect” → 500/503 errors.', 'Requests “timeout exceeded when trying to connect” se fail → 500/503 errors.'],
+          ['It cascades', 'Yeh failta hai', 'Health checks fail, callers retry and add more load, and upstream services slow down too.', 'Health checks fail, callers retry karke aur load badhate hain, aur upar ki services bhi slow ho jaati hain.'],
         ),
-      },
-      {
-        title: bi('Immediate mitigation', 'Turant raahat'),
-        text: bi(
-          'Find out what holds the connections (pool metrics: active, idle, pending; on the database: pg_stat_activity), kill runaway queries, roll back a bad deploy, shed load with rate limiting, and scale carefully — more app instances means more connections hitting the same database.',
-          'Pata karo connections kisne pakde hain (pool metrics: active, idle, pending; database pe: pg_stat_activity), bekaabu queries kill karo, kharab deploy roll back karo, rate limiting se load kam karo, aur dhyaan se scale karo — zyaada app instances matlab same database pe zyaada connections.',
+      ),
+      section(
+        'Why it happens',
+        'Yeh kyun hota hai',
+        table(
+          [bi('Cause', 'Kaaran'), 'Example'],
+          [
+            ['Slow queries', bi('A missing index makes each query hold its connection for seconds', 'Missing index ki wajah se har query seconds tak connection pakadti hai')],
+            ['Connection leaks', bi('A code path that never releases the connection, usually on an error', 'Aisa code path jo connection kabhi release nahi karta, aksar error pe')],
+            [bi('Long transactions', 'Lambe transactions'), bi('Calling a payment API while a transaction is open', 'Transaction khula rakh ke payment API call karna')],
+            ['Traffic spike', bi('A sale doubles concurrent requests', 'Sale se concurrent requests double')],
+            [bi('Pool too small / database overloaded', 'Pool bahut chhota / database overloaded'), bi('More app instances, same database capacity', 'Zyaada app instances, database ki capacity wahi')],
+          ],
         ),
-      },
-      {
-        title: bi('Lasting fixes', 'Pakke fixes'),
-        text: bi(
-          'Fix slow queries and indexes; always release connections (try/finally, or let the ORM manage them); keep transactions short and never make network calls inside them; set statement timeouts; size the pool from measurements — often small (a common starting point is about twice the database’s CPU cores, shared across all instances) — so the total across instances stays below the database’s max_connections; put a connection proxy such as PgBouncer or RDS Proxy in front when you have many instances or serverless functions.',
-          'Slow queries aur indexes theek karo; connections hamesha release karo (try/finally, ya ORM ko sambhalne do); transactions chhote rakho aur unke andar network calls kabhi mat karo; statement timeouts set karo; pool ka size naap ke rakho — aksar chhota (shuruaat ke liye aam taur pe database ke CPU cores ka lagbhag do guna, saare instances mein baant ke) — taaki saare instances ka total database ke max_connections se kam rahe; bahut instances ya serverless functions hon to aage PgBouncer ya RDS Proxy jaisa connection proxy lagao.',
+        p('The most common bug is a leak:', 'Sabse common bug leak hai:'),
+        code(
+          'ts',
+          `
+// ❌ leaks the connection when the query throws
+const client = await pool.connect();
+const result = await client.query(sql);
+client.release();
+
+// ✅ always released
+const client = await pool.connect();
+try {
+  return await client.query(sql);
+} finally {
+  client.release();
+}`,
         ),
-      },
-      {
-        title: bi('Fail fast and isolate', 'Jaldi fail karo aur alag rakho'),
-        text: bi(
-          'A short acquire timeout (1–2 seconds) makes requests fail quickly instead of hanging. Circuit breakers and backpressure protect callers. Separate pools (bulkheads) stop slow reporting queries from starving the checkout path.',
-          'Chhota acquire timeout (1–2 second) requests ko latakne ki jagah jaldi fail karwata hai. Circuit breakers aur backpressure callers ko bachate hain. Alag pools (bulkheads) slow reporting queries ko checkout path ke connections khaane se rokte hain.',
+      ),
+      section(
+        'What I do during the incident',
+        'Incident ke dauraan main kya karta hoon',
+        ul(
+          ['Check pool metrics (active, idle, pending) and `pg_stat_activity` to see what holds the connections.', 'Pool metrics (active, idle, pending) aur `pg_stat_activity` dekho ki connections kisne pakde hain.'],
+          ['Cancel runaway queries; roll back a bad deploy.', 'Bekaabu queries cancel karo; kharab deploy roll back karo.'],
+          [
+            'Shed load with rate limiting rather than adding instances blindly — more instances mean more connections on the same database.',
+            'Aankh band karke instances jodne ki jagah rate limiting se load kam karo — zyaada instances matlab same database pe zyaada connections.',
+          ],
         ),
-      },
-      {
-        title: bi('Monitor it', 'Ise monitor karo'),
-        text: bi(
-          'Track pool utilisation, wait time and pending requests, turn on leak detection, and alert before the pool is full — together with database connections and query latency.',
-          'Pool utilisation, wait time aur pending requests track karo, leak detection on karo, aur pool bharne se pehle alert karo — database connections aur query latency ke saath.',
+      ),
+      section(
+        'How I prevent it',
+        'Main ise kaise rokta hoon',
+        ul(
+          ['Fix slow queries and indexes; set statement timeouts.', 'Slow queries aur indexes theek karo; statement timeouts set karo.'],
+          ['Always release connections (`try/finally`, or let the ORM manage them).', 'Connections hamesha release karo (`try/finally`, ya ORM ko sambhalne do).'],
+          ['Keep transactions short — never make network calls inside them.', 'Transactions chhote rakho — unke andar kabhi network calls mat karo.'],
+          [
+            'Fail fast with a short acquire timeout (1–2 s) and use separate pools (bulkheads) for critical and reporting queries.',
+            'Chhote acquire timeout (1–2 s) se jaldi fail karo aur critical aur reporting queries ke liye alag pools (bulkheads) rakho.',
+          ],
+          ['Alert on pool utilisation and wait time before the pool is full.', 'Pool bharne se pehle pool utilisation aur wait time pe alert karo.'],
         ),
-      },
+        note(
+          'important',
+          'Size pools against the database: 10 instances × 20 connections = 200 connections. Keep the total below `max_connections`, or put a proxy such as PgBouncer or RDS Proxy in front.',
+          'Pools ko database ke hisaab se size karo: 10 instances × 20 connections = 200 connections. Total `max_connections` se kam rakho, ya aage PgBouncer ya RDS Proxy jaisa proxy lagao.',
+        ),
+      ),
     ],
     interview: {
-      opening: bi(
-        'When the pool is exhausted, new requests block waiting for a connection and then time out, so latency spikes and errors cascade; exhaustion is usually a symptom of slow queries, leaks or long transactions, so I fix the cause, fail fast, and size the pool against the database’s limits.',
-        'Pool exhaust hone pe nayi requests connection ke wait mein ruk jaati hain aur phir time out hoti hain, to latency spike aur errors cascade karte hain; exhaustion aam taur pe slow queries, leaks ya lambe transactions ka lakshan hai, isliye main kaaran theek karta hoon, fail fast karta hoon, aur pool ko database ki limits ke hisaab se size karta hoon.',
-      ),
-      points: [
-        bi('Requests queue until the acquire timeout, then fail: p99 latency spike, 5xx errors, thread/event-loop backlog.', 'Requests acquire timeout tak line mein, phir fail: p99 latency spike, 5xx errors, thread/event-loop backlog.'),
-        bi('It cascades: health checks fail, callers retry, load increases.', 'Yeh cascade karta hai: health checks fail, callers retry, load badhta hai.'),
-        bi('Root causes: slow queries, connection leaks, long transactions, traffic spikes, an under-sized pool, an overloaded database.', 'Asli kaaran: slow queries, connection leaks, lambe transactions, traffic spikes, chhota pool, overloaded database.'),
-        bi('Mitigate: find holders with pool metrics and pg_stat_activity, kill runaway queries, roll back, shed load.', 'Raahat: pool metrics aur pg_stat_activity se holders dhoondho, bekaabu queries kill karo, roll back, load kam karo.'),
-        bi('Prevent: release in finally blocks, short transactions, statement timeouts, short acquire timeout, bulkhead pools.', 'Roktham: finally blocks mein release, chhote transactions, statement timeouts, chhota acquire timeout, bulkhead pools.'),
-        bi('Size pools so instances × pool size stays below max_connections; use PgBouncer or RDS Proxy at scale.', 'Pools aise size karo ki instances × pool size max_connections se kam rahe; scale pe PgBouncer ya RDS Proxy.'),
-        bi('Monitor active, idle and pending connections and wait time; enable leak detection.', 'Active, idle aur pending connections aur wait time monitor karo; leak detection on karo.'),
+      text: [
+        bi(
+          'When the pool is exhausted, requests block waiting for a connection until the acquire timeout and then fail, so latency spikes, 5xx errors appear, and it can cascade as health checks fail and callers retry.',
+          'Pool exhaust hone pe requests acquire timeout tak connection ke wait mein rukti hain aur phir fail hoti hain, to latency spike hoti hai, 5xx errors aate hain, aur health checks fail hone aur callers ke retry se yeh cascade kar sakta hai.',
+        ),
+        bi(
+          'Exhaustion is usually a symptom: slow queries, connection leaks, long transactions that make network calls, or a traffic spike. During an incident I check pool metrics and pg_stat_activity, kill runaway queries and shed load. To prevent it, I release connections in finally blocks, keep transactions short, set statement and acquire timeouts, use bulkhead pools, and size pools so that instances times pool size stays below max_connections — with PgBouncer at scale.',
+          'Exhaustion aam taur pe lakshan hai: slow queries, connection leaks, network calls karne wale lambe transactions, ya traffic spike. Incident mein main pool metrics aur pg_stat_activity dekhta hoon, bekaabu queries kill karta hoon aur load kam karta hoon. Rokne ke liye finally blocks mein connections release karta hoon, transactions chhote rakhta hoon, statement aur acquire timeouts lagata hoon, bulkhead pools use karta hoon, aur pools aise size karta hoon ki instances × pool size max_connections se kam rahe — scale pe PgBouncer ke saath.',
+        ),
       ],
-      keywords: [
-        'Connection pool',
-        'Acquire timeout',
-        'Connection leak',
-        'max_connections',
-        'Pool sizing',
-        'Long-running transaction',
-        'Backpressure',
-        'Fail fast',
-        'Bulkhead',
-        'PgBouncer / RDS Proxy',
-        'Cascading failure',
-        'Statement timeout',
-      ],
+      keywords: ['Connection pool', 'Acquire timeout', 'Connection leak', 'max_connections', 'Pool sizing', 'Long-running transaction', 'Statement timeout', 'Fail fast', 'Bulkhead', 'PgBouncer'],
     },
     listenFor: [
-      bi('Treating exhaustion as a symptom and looking for the cause.', 'Exhaustion ko lakshan maan ke kaaran dhoondhna.'),
-      bi('Mentioning connection leaks and long transactions.', 'Connection leaks aur lambe transactions ka zikr.'),
-      bi('Knowing that a bigger pool is not the fix, and talking about timeouts and monitoring.', 'Yeh jaanna ki bada pool fix nahi hai, aur timeouts aur monitoring ki baat.'),
+      bi('Treating exhaustion as a symptom and finding the cause.', 'Exhaustion ko lakshan maan ke kaaran dhoondhna.'),
+      bi('Knowing that a bigger pool is not the fix; mentioning leaks, timeouts and monitoring.', 'Yeh jaanna ki bada pool fix nahi; leaks, timeouts aur monitoring ka zikr.'),
     ],
-    mistakes: [
-      bi('“Just raise the pool to 500” — it overloads the database and can exceed max_connections.', '“Pool 500 kar do” — isse database overload hota hai aur max_connections paar ho sakta hai.'),
-      bi('Ignoring leaks.', 'Leaks ko ignore karna.'),
-      bi('Leaving default 30-second timeouts so requests hang.', 'Default 30 second timeouts chhod dena jisse requests latki rehti hain.'),
-    ],
+    mistakes: [bi('“Just raise the pool to 500.”', '“Pool 500 kar do.”'), bi('Leaving default 30-second timeouts so requests hang.', 'Default 30 second timeouts chhod dena jisse requests latki rehti hain.')],
     followUps: [
       {
         q: bi('Why not just make the pool huge?', 'Pool ko bahut bada hi kyun na kar dein?'),
         a: bi(
-          'Each connection costs database memory and CPU. Past a point, more concurrent queries make every query slower through contention — and N instances × pool size can exceed the database’s connection limit.',
-          'Har connection database ki memory aur CPU khaata hai. Ek had ke baad zyaada concurrent queries contention se har query ko slow kar deti hain — aur N instances × pool size database ki connection limit paar kar sakta hai.',
-        ),
-      },
-      {
-        q: bi('What is a connection leak?', 'Connection leak kya hai?'),
-        a: bi(
-          'Code that borrows a connection and never gives it back — typically when an exception skips the release. The pool slowly shrinks until it is empty.',
-          'Aisa code jo connection udhaar leta hai aur kabhi wapas nahi karta — aam taur pe jab exception release ko skip kar de. Pool dheere-dheere sikudta hai jab tak khaali na ho jaaye.',
+          'Each connection costs database memory and CPU. Past a point, more concurrent queries make every query slower through contention, and many instances × a big pool exceed the database’s connection limit.',
+          'Har connection database ki memory aur CPU khaata hai. Ek had ke baad zyaada concurrent queries contention se har query ko slow karti hain, aur kai instances × bada pool database ki connection limit paar kar dete hain.',
         ),
       },
     ],

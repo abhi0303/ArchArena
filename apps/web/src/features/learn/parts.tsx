@@ -4,6 +4,7 @@ import { Link } from 'react-router';
 import { ACCENTS, DynamicIcon } from '@/components/icons';
 import { cn } from '@/lib/cn';
 import { learnIcon } from './icons';
+import { InlineText } from '@/features/glossary/InlineText';
 
 /** The coloured icon tile used for a catalog component. */
 export function ComponentTile({ type, size = 'md', className }: { type: string; size?: 'sm' | 'md' | 'lg' | 'xl'; className?: string }) {
@@ -62,7 +63,9 @@ export function Paragraphs({ text, className }: { text: string; className?: stri
   return (
     <div className={cn('space-y-3 leading-relaxed text-slate-700 dark:text-slate-300', className)}>
       {text.split(/\n\s*\n/).map((p, i) => (
-        <p key={i}>{p.trim()}</p>
+        <p key={i}>
+          <InlineText text={p.trim()} />
+        </p>
       ))}
     </div>
   );

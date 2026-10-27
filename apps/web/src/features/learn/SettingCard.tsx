@@ -5,6 +5,8 @@ import { cn } from '@/lib/cn';
 import { ComponentChip } from './parts';
 import { settingAnchor, type SettingField } from './settingsCatalog';
 import type { SettingGuide } from './types';
+import { GlossarySkip, InlineText } from '@/features/glossary/InlineText';
+import { termIdsIn } from '@/features/glossary';
 
 const TYPE_LABEL: Record<SettingField['type'], string> = { select: 'Pick one option', boolean: 'On / off switch', text: 'Free text' };
 
@@ -76,6 +78,7 @@ export function SettingCard({
   const users = allUsers ? field.usedBy : field.usedBy.slice(0, 8);
 
   return (
+    <GlossarySkip ids={termIdsIn(field.label)}>
     <article id={anchor} className="card scroll-mt-24 p-4 sm:p-5" data-testid={`setting-card-${anchor}`}>
       <header className="mb-3 flex flex-wrap items-start justify-between gap-2">
         <div className="min-w-0">
@@ -109,13 +112,13 @@ export function SettingCard({
       ) : (
         <div className="space-y-4">
           <Block icon={<Wand2 className="h-3.5 w-3.5" aria-hidden />} title="What it means">
-            {t(guide.what)}
+            <InlineText text={t(guide.what)} />
           </Block>
           <Block icon={<TriangleAlert className="h-3.5 w-3.5" aria-hidden />} title="Why it matters">
-            {t(guide.why)}
+            <InlineText text={t(guide.why)} />
           </Block>
           <Block icon={<Lightbulb className="h-3.5 w-3.5" aria-hidden />} title="Real-life example" tone="amber">
-            {t(guide.example)}
+            <InlineText text={t(guide.example)} />
           </Block>
 
           {options.length > 0 && (
@@ -140,7 +143,7 @@ export function SettingCard({
                         {o.label}
                         {isChosen && <span className="rounded-full bg-emerald-600 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white">Selected</span>}
                       </p>
-                      <p className="text-slate-600 dark:text-slate-300">{meaning ? t(meaning).replace(/^(On|Off):\s*/, '') : ''}</p>
+                      <p className="text-slate-600 dark:text-slate-300">{meaning ? <InlineText text={t(meaning).replace(/^(On|Off):\s*/, '')} /> : ''}</p>
                     </li>
                   );
                 })}
@@ -150,12 +153,12 @@ export function SettingCard({
 
           {guide.goodValues && (
             <Block icon={<ListChecks className="h-3.5 w-3.5" aria-hidden />} title="Good values to type">
-              {t(guide.goodValues)}
+              <InlineText text={t(guide.goodValues)} />
             </Block>
           )}
 
           <Block icon={<Target className="h-3.5 w-3.5" aria-hidden />} title="In challenges" tone="indigo">
-            {t(guide.inChallenges)}
+            <InlineText text={t(guide.inChallenges)} />
           </Block>
         </div>
       )}
@@ -182,5 +185,6 @@ export function SettingCard({
         </div>
       )}
     </article>
+    </GlossarySkip>
   );
 }

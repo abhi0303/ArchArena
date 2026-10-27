@@ -1,4 +1,4 @@
-import { ArrowRight, BriefcaseBusiness, CircleCheck, Ear, Lightbulb, MessageSquareQuote, RotateCcw, Search, SearchX, Sparkles, TriangleAlert, Wand2 } from 'lucide-react';
+import { ArrowRight, BriefcaseBusiness, Code, Ear, ListOrdered, MessageSquareQuote, MessagesSquare, RotateCcw, Search, SearchX, Zap } from 'lucide-react';
 import { useEffect, useMemo } from 'react';
 import { Link } from 'react-router';
 import { LanguageToggle, useExplanation } from '@/components/LanguageToggle';
@@ -14,13 +14,12 @@ const FILTERS = { q: '' };
 
 /** The parts every answer is explained in — shown so learners know what to expect. */
 const ANSWER_PARTS = [
-  { icon: Sparkles, label: 'In simple words' },
-  { icon: Lightbulb, label: 'Real-life example' },
-  { icon: CircleCheck, label: 'Why we need it' },
-  { icon: TriangleAlert, label: 'What happens without it' },
-  { icon: Wand2, label: 'Step by step, in detail' },
+  { icon: Zap, label: 'Short answer' },
+  { icon: ListOrdered, label: 'Explained in numbered parts' },
+  { icon: Code, label: 'Real examples: code, tables, commands' },
   { icon: MessageSquareQuote, label: 'Interview-ready answer + keywords' },
   { icon: Ear, label: 'What the interviewer listens for' },
+  { icon: MessagesSquare, label: 'Follow-up questions' },
 ];
 
 export default function PrepHomePage() {
@@ -50,8 +49,8 @@ export default function PrepHomePage() {
           <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Prepare for interviews, one question at a time</h1>
           <p className="mt-2 leading-relaxed text-slate-600 dark:text-slate-300">
             {t({
-              en: 'Real interview questions, grouped by topic. Every answer starts in the simplest words, adds a real-life example and the “why”, walks through the details step by step, and ends with a crisp interview-ready answer and the keywords interviewers listen for. Use it to prepare, to learn, or to clear a doubt.',
-              hi: 'Asli interview questions, topic ke hisaab se. Har jawab sabse simple shabdon se shuru hota hai, real-life example aur “kyun” jodta hai, details step by step samjhata hai, aur ek crisp interview-ready answer aur un keywords pe khatam hota hai jo interviewer sunna chahte hain. Ise tayyari, seekhne, ya koi doubt clear karne ke liye use karo.',
+              en: 'Real interview questions, grouped by topic. Every answer is simple, informative and straight to the point: a short answer first, then numbered parts with concrete examples — endpoints, JSON, code, commands, tables — and finally an interview-ready answer you can say out loud, with the keywords interviewers listen for. Use it to prepare, to learn, or to clear a doubt.',
+              hi: 'Asli interview questions, topic ke hisaab se. Har jawab simple, kaam ka aur seedha point pe hai: pehle short answer, phir thos examples ke saath numbered parts — endpoints, JSON, code, commands, tables — aur aakhir mein ek interview-ready answer jo aap bol sako, un keywords ke saath jo interviewer sunna chahte hain. Ise tayyari, seekhne, ya koi doubt clear karne ke liye use karo.',
             })}
           </p>
         </div>

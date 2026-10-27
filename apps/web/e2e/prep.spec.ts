@@ -21,10 +21,13 @@ test('interview prep: categories, search, a full answer, practice mode and progr
   await page.getByTestId('prep-question-card').click();
   await expect(page).toHaveURL(/\/prep\/security\/sso-authentication-and-jwt$/);
 
-  // Every part of the answer is there.
-  for (const section of ['In simple words', 'Real-life example', 'Why we need it', 'What happens without it', 'Interview-ready answer', 'What the interviewer listens for', 'Likely follow-up questions']) {
+  // Short answer, numbered parts with concrete examples, then the interview answer.
+  await expect(page.getByTestId('prep-short-answer')).toContainText('central identity provider');
+  await expect(page.getByTestId('prep-section')).toHaveCount(4);
+  for (const section of ['The players', 'Where JWT fits', 'Interview-ready answer', 'What the interviewer listens for', 'Follow-up questions to prepare']) {
     await expect(page.getByRole('heading', { name: section })).toBeVisible();
   }
+  await expect(page.getByTestId('prep-code').first()).toBeVisible();
   await expect(page.getByTestId('prep-keywords').getByRole('listitem').first()).toBeVisible();
   await page.getByTestId('prep-follow-up').first().locator('summary').click();
   await expect(page.getByTestId('prep-follow-up').first()).toHaveAttribute('open', '');
@@ -34,7 +37,7 @@ test('interview prep: categories, search, a full answer, practice mode and progr
   await expect(page.getByTestId('prep-question-title')).toContainText('SSO system mein authentication');
   await expect(page.getByText(/In the interview: “In an SSO system/)).toBeVisible();
   await page.getByRole('button', { name: 'Hinglish mein samjho' }).click();
-  await expect(page.getByTestId('prep-interview-answer')).toContainText('SSO authentication ko ek central identity provider');
+  await expect(page.getByTestId('prep-interview-answer')).toContainText('SSO mein authentication ek central identity provider');
   await page.getByRole('button', { name: 'English' }).first().click();
 
   // Progress is remembered and shows up on the home page.
@@ -50,7 +53,7 @@ test('interview prep: categories, search, a full answer, practice mode and progr
   await expect(page.getByTestId('prep-interview-answer')).toHaveCount(0);
   await page.getByTestId('prep-reveal').click();
   await expect(page.getByTestId('prep-interview-answer')).toBeVisible();
-  await expect(page.getByRole('heading', { name: 'At a glance' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Side by side' })).toBeVisible();
 
   // The next question starts hidden again.
   await page.getByTestId('prep-next').click();

@@ -6,6 +6,7 @@ import { ActorIcon, ComponentTile, LearnSection, Paragraphs, componentLabel } fr
 import { settingsGuidePath } from './settingsCatalog';
 import { SceneView } from './SceneView';
 import type { ComponentGuide } from './types';
+import { InlineText } from '@/features/glossary/InlineText';
 
 /**
  * Every section of a component guide. Used by the full guide page and, in a compact
@@ -39,7 +40,9 @@ export function GuideView({ guide, compact = false }: { guide: ComponentGuide; c
               <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-indigo-600 text-sm font-semibold text-white" aria-hidden>
                 {i + 1}
               </span>
-              <p className="pt-0.5 leading-relaxed text-slate-700 dark:text-slate-300">{t(s)}</p>
+              <p className="pt-0.5 leading-relaxed text-slate-700 dark:text-slate-300">
+                <InlineText text={t(s)} />
+              </p>
             </li>
           ))}
         </ol>
@@ -70,7 +73,9 @@ export function GuideView({ guide, compact = false }: { guide: ComponentGuide; c
             {guide.perfectFit.why.map((w, i) => (
               <li key={i} className="flex gap-2 text-sm leading-relaxed text-slate-700 dark:text-slate-300">
                 <CircleCheck className="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" aria-hidden />
-                {t(w)}
+                <span>
+                  <InlineText text={t(w)} />
+                </span>
               </li>
             ))}
           </ul>
@@ -83,7 +88,9 @@ export function GuideView({ guide, compact = false }: { guide: ComponentGuide; c
             {guide.avoidWhen.map((w, i) => (
               <li key={i} className="flex gap-2 rounded-lg border border-slate-200 bg-white p-3 text-sm leading-relaxed text-slate-700 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300">
                 <Ban className="mt-0.5 h-4 w-4 shrink-0 text-rose-400" aria-hidden />
-                {t(w)}
+                <span>
+                  <InlineText text={t(w)} />
+                </span>
               </li>
             ))}
           </ul>
@@ -93,7 +100,9 @@ export function GuideView({ guide, compact = false }: { guide: ComponentGuide; c
             {guide.decisions.map((w, i) => (
               <li key={i} className="flex gap-2 rounded-lg border border-slate-200 bg-white p-3 text-sm leading-relaxed text-slate-700 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300">
                 <SlidersHorizontal className="mt-0.5 h-4 w-4 shrink-0 text-indigo-400" aria-hidden />
-                {t(w)}
+                <span>
+                  <InlineText text={t(w)} />
+                </span>
               </li>
             ))}
           </ul>
@@ -121,7 +130,9 @@ export function GuideView({ guide, compact = false }: { guide: ComponentGuide; c
                   <ComponentTile type={cw.type} size="sm" />
                   <span className="font-semibold">{componentLabel(cw.type)}</span>
                 </div>
-                <p className="flex-1 text-sm leading-relaxed text-slate-700 dark:text-slate-300">{t(cw.difference)}</p>
+                <p className="flex-1 text-sm leading-relaxed text-slate-700 dark:text-slate-300">
+                  <InlineText text={t(cw.difference)} />
+                </p>
                 <div className="mt-3 flex flex-wrap gap-3 text-sm font-medium">
                   {cw.compare && (
                     <Link

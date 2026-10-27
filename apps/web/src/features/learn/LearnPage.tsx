@@ -1,5 +1,5 @@
 import { COMPONENT_CATEGORIES, getComponent, type ComponentCategoryId } from '@arch-arena/shared';
-import { ArrowRight, ChevronRight, GraduationCap, Route, Search, SearchX, SlidersHorizontal, Split } from 'lucide-react';
+import { ArrowRight, BookA, ChevronRight, GraduationCap, Route, Search, SearchX, SlidersHorizontal, Split } from 'lucide-react';
 import { useEffect, useMemo } from 'react';
 import { Link } from 'react-router';
 import { LanguageToggle, useExplanation } from '@/components/LanguageToggle';
@@ -52,27 +52,50 @@ export default function LearnPage() {
         <LanguageToggle size="xs" />
       </header>
 
-      <Link
-        to="/learn/settings"
-        className="group mb-10 flex flex-col gap-4 rounded-2xl border border-emerald-200 bg-gradient-to-br from-emerald-50 to-white p-5 hover:shadow-md sm:flex-row sm:items-center dark:border-emerald-900/60 dark:from-emerald-950/40 dark:to-slate-900"
-        data-testid="configuration-guide-link"
-      >
-        <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-emerald-600 text-white shadow-sm" aria-hidden>
-          <SlidersHorizontal className="h-6 w-6" />
-        </span>
-        <span className="min-w-0 flex-1">
-          <span className="block text-lg font-semibold">Configuration guide</span>
-          <span className="mt-0.5 block text-sm leading-relaxed text-slate-600 dark:text-slate-300">
+      <div className="mb-10 grid gap-4 lg:grid-cols-[2fr_1fr]">
+        <Link
+          to="/learn/settings"
+          className="group flex flex-col gap-4 rounded-2xl border border-emerald-200 bg-gradient-to-br from-emerald-50 to-white p-5 hover:shadow-md sm:flex-row sm:items-center dark:border-emerald-900/60 dark:from-emerald-950/40 dark:to-slate-900"
+          data-testid="configuration-guide-link"
+        >
+          <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-emerald-600 text-white shadow-sm" aria-hidden>
+            <SlidersHorizontal className="h-6 w-6" />
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block text-lg font-semibold">Configuration guide</span>
+            <span className="mt-0.5 block text-sm leading-relaxed text-slate-600 dark:text-slate-300">
+              {t({
+                en: 'Confused by settings like “Availability”, “Consistency” or “Retry strategy” in the Properties panel? Every setting of every component — and every option — explained simply, with real-life examples and tips for challenges.',
+                hi: 'Properties panel mein “Availability”, “Consistency” ya “Retry strategy” jaisi settings samajh nahi aa rahi? Har component ki har setting — aur har option — simple tareeke se, real-life examples aur challenges ke tips ke saath.',
+              })}
+            </span>
+          </span>
+          <span className="inline-flex shrink-0 items-center gap-1.5 self-start rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white group-hover:bg-emerald-700 sm:self-center">
+            Open guide <ArrowRight className="h-4 w-4" aria-hidden />
+          </span>
+        </Link>
+        <Link
+          to="/learn/glossary"
+          className="group flex flex-col gap-3 rounded-2xl border border-indigo-200 bg-gradient-to-br from-indigo-50 to-white p-5 hover:shadow-md dark:border-indigo-900/60 dark:from-indigo-950/40 dark:to-slate-900"
+          data-testid="glossary-link"
+        >
+          <span className="flex items-center gap-3">
+            <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-indigo-600 text-white shadow-sm" aria-hidden>
+              <BookA className="h-6 w-6" />
+            </span>
+            <span className="text-lg font-semibold">Glossary</span>
+          </span>
+          <span className="text-sm leading-relaxed text-slate-600 dark:text-slate-300">
             {t({
-              en: 'Confused by settings like “Availability”, “Consistency” or “Retry strategy” in the Properties panel? Every setting of every component — and every option — explained simply, with real-life examples and tips for challenges.',
-              hi: 'Properties panel mein “Availability”, “Consistency” ya “Retry strategy” jaisi settings samajh nahi aa rahi? Har component ki har setting — aur har option — simple tareeke se, real-life examples aur challenges ke tips ke saath.',
+              en: 'Every technical term in simple words. Tip: tap any word with a dotted underline to see its meaning right there.',
+              hi: 'Har technical term simple shabdon mein. Tip: dotted underline wale kisi bhi shabd pe tap karo, matlab wahin dikh jaayega.',
             })}
           </span>
-        </span>
-        <span className="inline-flex shrink-0 items-center gap-1.5 self-start rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white group-hover:bg-emerald-700 sm:self-center">
-          Open guide <ArrowRight className="h-4 w-4" aria-hidden />
-        </span>
-      </Link>
+          <span className="mt-auto inline-flex items-center gap-1 text-sm font-semibold text-indigo-700 dark:text-indigo-300">
+            Browse terms <ArrowRight className="h-4 w-4" aria-hidden />
+          </span>
+        </Link>
+      </div>
 
       {!filtering && (
         <>

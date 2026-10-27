@@ -10,11 +10,29 @@ export type PrepKind = 'concept' | 'scenario' | 'comparison' | 'behavioral';
 
 export type PrepLevel = 'beginner' | 'intermediate' | 'advanced';
 
-/** One titled part of a longer explanation (a principle, a step, a strategy…). */
-export interface PrepPart {
-  /** A plain string is shown as-is in both languages. */
+/**
+ * One building block of an answer. Text supports **bold** and `inline code`.
+ * Plain strings (in tables, option titles) are shown as-is in both languages.
+ */
+export type PrepBlock =
+  | { type: 'p'; text: Bi }
+  /** A sub-heading inside a section. A plain string is the same in both languages. */
+  | { type: 'h'; text: Text }
+  | { type: 'list'; items: Bi[]; ordered?: boolean }
+  | { type: 'table'; columns: Text[]; rows: Text[][] }
+  /** Code, commands, JSON, config or console output. Never translated. */
+  | { type: 'code'; lang: string; code: string; title?: string }
+  | { type: 'note'; tone: 'important' | 'tip' | 'warning' | 'example'; text: Bi }
+  /** Numbered steps with a title each (a migration, a debugging order…). */
+  | { type: 'steps'; items: { title: Text; text: Bi }[] }
+  /** Alternatives side by side (e.g. three versioning styles), optionally with a badge and code. */
+  | { type: 'options'; items: { title: string; badge?: Bi; text: Bi; code?: string; lang?: string }[] }
+  | { type: 'scene'; scene: Scene };
+
+export interface PrepSection {
+  /** A plain string is the same in both languages. */
   title: Text;
-  text: Bi;
+  blocks: PrepBlock[];
 }
 
 export interface PrepQuestion {
@@ -28,32 +46,17 @@ export interface PrepQuestion {
   /** Search keywords (English). */
   tags: string[];
 
-  /** Scenario questions: the situation, explained in detail. */
-  scenario?: Bi;
-  /** The idea in the simplest possible words. */
-  simple: Bi;
-  /** A real-life example. */
-  example: Bi;
-  /** Why we need it. */
-  why?: Bi;
-  /** What happens without it. */
-  without?: Bi;
-  /** The deeper explanation, in parts (principles, steps, strategies…). */
-  parts?: PrepPart[];
-  /** Heading shown above `parts`, e.g. “Step by step”. Defaults to “In detail”. */
-  partsTitle?: Bi;
-  /** A comparison table. Plain strings are shown as-is in both languages. */
-  table?: { columns: string[]; rows: Text[][] };
-  /** An illustration (same format as the Learn guides). */
-  scene?: Scene;
-
-  /** What to say in the interview: a one-line answer, crisp points and the terms to use. */
-  interview: { opening: Bi; points: Bi[]; keywords: string[] };
+  /** The direct answer in two or three sentences — what you would say first. */
+  answer: Bi;
+  /** The explanation, as numbered sections full of concrete examples. */
+  sections: PrepSection[];
+  /** What to say in the interview: a short spoken answer, plus the terms to use. */
+  interview: { text: Bi[]; keywords: string[] };
   /** What the interviewer is listening for. */
   listenFor: Bi[];
   /** Mistakes and red flags. */
   mistakes?: Bi[];
-  /** Questions an interviewer is likely to ask next, with short answers. */
+  /** Questions an interviewer is likely to ask next, with how to answer them. */
   followUps?: { q: Bi; a: Bi }[];
   /** Learn guides (component types) and challenges (slugs) that go deeper. */
   related?: { components?: string[]; challenges?: string[] };

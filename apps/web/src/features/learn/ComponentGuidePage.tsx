@@ -8,6 +8,8 @@ import { EmptyState } from '@/components/ui/misc';
 import { GUIDES, comparisonsFor, getGuide } from './content';
 import { GuideView } from './GuideView';
 import { ComponentTile, componentLabel } from './parts';
+import { GlossarySkip } from '@/features/glossary/InlineText';
+import { termIdsForComponent } from '@/features/glossary';
 
 export default function ComponentGuidePage() {
   const { type = '' } = useParams();
@@ -85,7 +87,9 @@ export default function ComponentGuidePage() {
         </div>
       )}
 
-      <GuideView guide={guide} />
+      <GlossarySkip ids={termIdsForComponent(type)}>
+        <GuideView guide={guide} />
+      </GlossarySkip>
 
       <div className="mt-12 rounded-2xl border border-slate-200 bg-white p-5 text-center dark:border-slate-800 dark:bg-slate-900">
         <p className="font-semibold">Ready to use {def.label} in a real design?</p>

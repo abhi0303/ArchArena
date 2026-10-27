@@ -1,4 +1,4 @@
-import { bi } from '@/features/learn/dsl';
+import { bi, code, note, p, section, steps, table, ul } from '../dsl';
 import type { PrepQuestion } from '../types';
 
 export const devopsQuestions: PrepQuestion[] = [
@@ -11,134 +11,151 @@ export const devopsQuestions: PrepQuestion[] = [
     kind: 'scenario',
     level: 'intermediate',
     tags: ['kubernetes', 'pod', 'crashloopbackoff', 'oomkilled', 'liveness probe', 'kubectl', 'exit code'],
-    scenario: bi(
-      'In Kubernetes a pod runs your container. If the container exits or fails its liveness probe, the kubelet restarts it. When that keeps happening, kubectl get pods shows a rising RESTARTS count and the status CrashLoopBackOff — Kubernetes waits longer and longer between restarts (10 s, 20 s, 40 s… up to 5 minutes). The question tests your debugging order: where do you look first, and what are the usual causes?',
-      'Kubernetes mein pod aapka container chalata hai. Agar container exit ho jaaye ya liveness probe fail kare, to kubelet use restart karta hai. Jab yeh baar-baar ho, to kubectl get pods mein RESTARTS count badhta dikhta hai aur status CrashLoopBackOff — Kubernetes har restart ke beech zyaada wait karta hai (10 s, 20 s, 40 s… 5 minute tak). Sawaal aapke debugging order ko parakhta hai: pehle kahan dekhoge, aur aam kaaran kya hote hain?',
+    answer: bi(
+      'First I find out why the container stops: `kubectl describe pod` for the last termination reason, exit code and events, then `kubectl logs --previous` for the logs of the crashed container. It is usually one of three things — the app crashes at startup (bad config, missing secret, unreachable dependency), it is OOMKilled, or a liveness probe is killing an app that is slow but healthy.',
+      'Pehle main pata karta hoon ki container ruk kyun raha hai: last termination reason, exit code aur events ke liye `kubectl describe pod`, phir crash hue container ke logs ke liye `kubectl logs --previous`. Aam taur pe teen mein se ek hota hai — app startup pe crash (galat config, missing secret, dependency tak nahi pahunch pa raha), OOMKilled, ya liveness probe ek slow par healthy app ko maar raha hai.',
     ),
-    simple: bi(
-      'First find out why the container stopped: read the pod’s events and the last exit reason (kubectl describe), then read the logs of the crashed container (kubectl logs --previous). It is almost always one of three things: the app crashes on start (bad config, missing secret, cannot reach the database), it runs out of memory (OOMKilled), or a liveness probe is too strict and Kubernetes kills an app that is healthy but slow.',
-      'Pehle pata karo container ruka kyun: pod ke events aur aakhri exit reason padho (kubectl describe), phir crash hue container ke logs padho (kubectl logs --previous). Lagbhag hamesha teen mein se ek hota hai: app start hote hi crash (galat config, missing secret, database tak nahi pahunch pa raha), memory khatam (OOMKilled), ya liveness probe bahut sakht hai aur Kubernetes ek healthy par slow app ko maar deta hai.',
-    ),
-    example: bi(
-      'A shop assistant keeps fainting at work. Before replacing them you check: did they skip breakfast (missing config at startup)? Is the uniform too tight (memory limit too small)? Or is the supervisor too impatient, marking them “unresponsive” while they are just busy with a customer (a liveness probe that is too aggressive)?',
-      'Dukaan ka ek assistant baar-baar behosh ho jaata hai. Badalne se pehle check karte ho: kya usne naashta nahi kiya (startup pe missing config)? Kya uniform bahut tight hai (memory limit bahut chhoti)? Ya supervisor bahut be-sabr hai, aur jab woh customer mein busy hai tab use “jawab nahi de raha” maan leta hai (bahut aggressive liveness probe)?',
-    ),
-    partsTitle: bi('Debugging order', 'Debugging ka order'),
-    parts: [
-      {
-        title: bi('1. Look at the status', '1. Status dekho'),
-        text: bi(
-          'kubectl get pod <name> -o wide: the status (CrashLoopBackOff, Error, OOMKilled, ImagePullBackOff), the restart count and which node it runs on.',
-          'kubectl get pod <name> -o wide: status (CrashLoopBackOff, Error, OOMKilled, ImagePullBackOff), restart count aur kis node pe chal raha hai.',
+    sections: [
+      section(
+        'Step 1 — look at the status',
+        'Step 1 — status dekho',
+        code(
+          'bash',
+          `
+$ kubectl get pod expense-api-7d9f
+NAME               READY   STATUS             RESTARTS      AGE
+expense-api-7d9f   0/1     CrashLoopBackOff   6 (40s ago)   9m`,
         ),
-      },
-      {
-        title: bi('2. Describe the pod', '2. Pod ko describe karo'),
-        text: bi(
-          'kubectl describe pod <name>: “Last State: Terminated” with the Reason (Error, OOMKilled, Completed) and Exit Code; and the Events at the bottom — “Liveness probe failed”, image pull errors, volume or secret mount failures, scheduling problems.',
-          'kubectl describe pod <name>: “Last State: Terminated” ke saath Reason (Error, OOMKilled, Completed) aur Exit Code; aur neeche Events — “Liveness probe failed”, image pull errors, volume ya secret mount failures, scheduling problems.',
+        p(
+          '`CrashLoopBackOff` is not the error itself — it means Kubernetes keeps restarting a failing container and waits longer each time (10 s, 20 s, 40 s… up to 5 minutes).',
+          '`CrashLoopBackOff` khud error nahi hai — iska matlab Kubernetes ek fail hote container ko baar-baar restart kar raha hai aur har baar zyaada wait karta hai (10 s, 20 s, 40 s… 5 minute tak).',
         ),
-      },
-      {
-        title: bi('3. Read the logs of the crashed container', '3. Crash hue container ke logs padho'),
-        text: bi(
-          'kubectl logs <pod> --previous (add -c <container> for multi-container pods). The current container has just restarted, so its logs are almost empty — the stack trace is in the previous one: “cannot connect to database”, “missing environment variable”.',
-          'kubectl logs <pod> --previous (multi-container pods ke liye -c <container> jodo). Abhi wala container abhi restart hua hai, to uske logs lagbhag khaali hain — stack trace pichhle wale mein hai: “database se connect nahi ho paya”, “environment variable missing”.',
-        ),
-      },
-      {
-        title: bi('4. Read the exit code', '4. Exit code samjho'),
-        text: bi(
-          '1 = the application failed; 137 = killed with SIGKILL (usually OOMKilled, or killed after failed liveness probes); 143 = SIGTERM (a graceful stop); 139 = segmentation fault; 0 with restartPolicy Always = the process finished normally but was meant to keep running (wrong command, or it should be a Job).',
-          '1 = application fail hui; 137 = SIGKILL se maara gaya (aksar OOMKilled, ya liveness probe fail hone ke baad); 143 = SIGTERM (aaram se band); 139 = segmentation fault; restartPolicy Always ke saath 0 = process normally khatam hua par use chalte rehna tha (galat command, ya ise Job hona chahiye).',
-        ),
-      },
-      {
-        title: bi('5. Match the cause to the fix', '5. Kaaran ke hisaab se fix'),
-        text: bi(
-          'Config or dependency errors → fix the ConfigMap/Secret or connection string, and make startup retry dependencies. OOMKilled → compare real usage with the memory limit, raise it or fix the leak, and align runtime heap settings (JVM, Node) with the limit. Liveness failures → add a startupProbe for slow starts, relax timeouts and thresholds, and make liveness check only the process itself. Also check: a wrong entrypoint, file permissions, CPU throttling that makes probes time out, and node pressure evictions.',
-          'Config ya dependency errors → ConfigMap/Secret ya connection string theek karo, aur startup pe dependencies ko retry karwao. OOMKilled → asli use ko memory limit se milao, limit badhao ya leak theek karo, aur runtime heap settings (JVM, Node) ko limit ke hisaab se rakho. Liveness failures → slow start ke liye startupProbe jodo, timeouts aur thresholds dheele karo, aur liveness sirf process khud ko check kare. Yeh bhi dekho: galat entrypoint, file permissions, CPU throttling jisse probes time out hote hain, aur node pressure se evictions.',
-        ),
-      },
-      {
-        title: bi('6. Check what changed — and roll back if users are hurt', '6. Kya badla yeh dekho — aur users pe asar ho to roll back'),
-        text: bi(
-          'kubectl rollout history shows recent changes: a new image tag, new configuration, new resource limits. If production is affected, kubectl rollout undo first, investigate after.',
-          'kubectl rollout history haal ke changes dikhata hai: naya image tag, nayi configuration, nayi resource limits. Production pe asar ho to pehle kubectl rollout undo, jaanch baad mein.',
-        ),
-      },
-      {
-        title: bi('7. Prevent it next time', '7. Agli baar ke liye roko'),
-        text: bi(
-          'Startup probes, resource requests and limits based on real usage, alerts on restart counts and OOMKills, separate readiness and liveness endpoints, and logs shipped to a central system (they disappear with the pod).',
-          'Startup probes, asli use pe aadharit resource requests aur limits, restart count aur OOMKills pe alerts, alag readiness aur liveness endpoints, aur logs ko central system mein bhejna (pod ke saath gayab ho jaate hain).',
-        ),
-      },
-    ],
-    table: {
-      columns: ['What you see', 'Likely cause', 'First fix to try'],
-      rows: [
-        ['CrashLoopBackOff, exit code 1', bi('App error at startup (config, secret, dependency)', 'Startup pe app error (config, secret, dependency)'), bi('Read logs --previous and fix the config', 'logs --previous padho aur config theek karo')],
-        ['OOMKilled, exit code 137', bi('Memory limit too low or a memory leak', 'Memory limit bahut kam ya memory leak'), bi('Compare usage with the limit; raise it or fix the leak', 'Use ko limit se milao; badhao ya leak theek karo')],
-        [bi('“Liveness probe failed” in events', 'Events mein “Liveness probe failed”'), bi('Probe too strict, or slow startup', 'Probe bahut sakht, ya slow startup'), bi('Add a startupProbe, relax thresholds', 'startupProbe jodo, thresholds dheele karo')],
-        ['ImagePullBackOff', bi('Wrong image name/tag or registry credentials', 'Galat image name/tag ya registry credentials'), bi('Fix the image reference or imagePullSecret', 'Image reference ya imagePullSecret theek karo')],
-        [bi('Exit code 0, still restarting', 'Exit code 0, phir bhi restart'), bi('The process ends by design (wrong command)', 'Process design se khatam hota hai (galat command)'), bi('Run a long-lived process, or use a Job', 'Lamba chalne wala process chalao, ya Job use karo')],
-        ['Evicted', bi('The node ran out of memory or disk', 'Node ki memory ya disk khatam'), bi('Set requests properly; check node pressure', 'Requests sahi set karo; node pressure dekho')],
-      ],
-    },
-    interview: {
-      opening: bi(
-        'I would first find out why the container is terminating — kubectl describe pod for the last state, exit code and events, then kubectl logs --previous for the crashed container’s output — because the cause is usually a startup error, an OOMKill or a failing liveness probe.',
-        'Main pehle pata karunga ki container band kyun ho raha hai — last state, exit code aur events ke liye kubectl describe pod, phir crash hue container ka output dekhne ke liye kubectl logs --previous — kyunki kaaran aam taur pe startup error, OOMKill ya fail hota liveness probe hota hai.',
       ),
-      points: [
-        bi('kubectl get pods: status (CrashLoopBackOff, OOMKilled, ImagePullBackOff) and restart count.', 'kubectl get pods: status (CrashLoopBackOff, OOMKilled, ImagePullBackOff) aur restart count.'),
-        bi('kubectl describe pod: last state reason, exit code, and events (probe failures, image pulls, mounts).', 'kubectl describe pod: last state ka reason, exit code, aur events (probe failures, image pulls, mounts).'),
-        bi('kubectl logs --previous: logs of the crashed container instance.', 'kubectl logs --previous: crash hue container instance ke logs.'),
-        bi('Exit 137 → SIGKILL (OOMKilled or liveness kill); 1 → application error; 0 → the process exited, wrong command.', 'Exit 137 → SIGKILL (OOMKilled ya liveness kill); 1 → application error; 0 → process khatam, galat command.'),
-        bi('Common causes: missing ConfigMap/Secret, unreachable dependency, low memory limit, aggressive liveness probe, wrong entrypoint.', 'Aam kaaran: missing ConfigMap/Secret, na pahunchne wali dependency, kam memory limit, aggressive liveness probe, galat entrypoint.'),
-        bi('Correlate with recent changes via rollout history; roll back if users are affected.', 'Rollout history se haal ke changes milao; users pe asar ho to roll back.'),
-        bi('Prevent with startup probes, right-sized requests and limits, alerts on restarts and OOMKills, central logging.', 'Startup probes, sahi size ki requests aur limits, restarts aur OOMKills pe alerts, central logging se roko.'),
+      section(
+        'Step 2 — describe the pod',
+        'Step 2 — pod ko describe karo',
+        code(
+          'bash',
+          `
+$ kubectl describe pod expense-api-7d9f
+    Last State:  Terminated
+      Reason:    OOMKilled
+      Exit Code: 137
+Events:
+  Warning  Unhealthy  Liveness probe failed: Get "http://10.1.2.3:3000/health": context deadline exceeded
+  Warning  BackOff    Back-off restarting failed container`,
+        ),
+        p(
+          'The **reason**, the **exit code** and the **events** usually point straight at the cause.',
+          '**Reason**, **exit code** aur **events** aksar seedha kaaran ki taraf ishaara karte hain.',
+        ),
+      ),
+      section(
+        'Step 3 — read the logs of the crashed container',
+        'Step 3 — crash hue container ke logs padho',
+        code(
+          'bash',
+          `
+$ kubectl logs expense-api-7d9f --previous
+Error: Missing required environment variable DATABASE_URL
+    at loadConfig (/app/dist/config.js:12:11)`,
+        ),
+        note(
+          'tip',
+          'Without `--previous` you see the logs of the container that just started — usually empty. The stack trace is in the previous one.',
+          '`--previous` ke bina aapko abhi start hue container ke logs dikhte hain — aksar khaali. Stack trace pichhle wale mein hota hai.',
+        ),
+      ),
+      section(
+        'Step 4 — read the exit code',
+        'Step 4 — exit code samjho',
+        table(
+          ['Exit code', bi('Meaning', 'Matlab')],
+          [
+            ['1', bi('The application failed (exception, bad config)', 'Application fail hui (exception, galat config)')],
+            ['137', bi('Killed with SIGKILL — usually OOMKilled, or killed after failed liveness probes', 'SIGKILL se maara gaya — aksar OOMKilled, ya liveness probe fail hone ke baad')],
+            ['143', bi('SIGTERM — a normal, graceful stop', 'SIGTERM — normal, aaram se band')],
+            ['0', bi('The process finished normally — but it was meant to keep running (wrong command, or should be a Job)', 'Process normally khatam hua — par use chalte rehna tha (galat command, ya ise Job hona chahiye)')],
+          ],
+        ),
+      ),
+      section(
+        'Common causes and fixes',
+        'Aam kaaran aur fixes',
+        table(
+          [bi('What you see', 'Kya dikhta hai'), bi('Likely cause', 'Sambhavit kaaran'), 'Fix'],
+          [
+            [bi('Exit code 1, error in logs', 'Exit code 1, logs mein error'), bi('Missing ConfigMap/Secret, wrong env var, database unreachable', 'Missing ConfigMap/Secret, galat env var, database tak nahi pahunch'), bi('Fix config; retry dependencies at startup', 'Config theek karo; startup pe dependencies retry karo')],
+            ['OOMKilled, 137', bi('Memory limit too low, or a memory leak', 'Memory limit bahut kam, ya memory leak'), bi('Compare real usage with the limit; raise it or fix the leak', 'Asli use ko limit se milao; badhao ya leak theek karo')],
+            ['“Liveness probe failed”', bi('Probe too strict, or slow startup', 'Probe bahut sakht, ya slow startup'), bi('Add a startupProbe; relax timeouts', 'startupProbe jodo; timeouts dheele karo')],
+            ['ImagePullBackOff', bi('Wrong image tag or registry credentials', 'Galat image tag ya registry credentials'), bi('Fix the image reference or imagePullSecret', 'Image reference ya imagePullSecret theek karo')],
+            ['Evicted', bi('The node ran out of memory or disk', 'Node ki memory ya disk khatam'), bi('Set requests properly; check node pressure', 'Requests sahi set karo; node pressure dekho')],
+          ],
+        ),
+      ),
+      section(
+        'Step 5 — what changed? Roll back if users are hurt',
+        'Step 5 — kya badla? Users pe asar ho to roll back',
+        code(
+          'bash',
+          `
+$ kubectl rollout history deployment/expense-api
+$ kubectl rollout undo deployment/expense-api     # back to the last good version`,
+        ),
+      ),
+      section(
+        'How I prevent it',
+        'Main ise kaise rokta hoon',
+        code(
+          'yaml',
+          `
+resources:
+  requests: { memory: "256Mi", cpu: "250m" }
+  limits:   { memory: "512Mi" }
+startupProbe:                      # gives slow starts up to 60 s
+  httpGet: { path: /livez, port: 3000 }
+  periodSeconds: 2
+  failureThreshold: 30
+livenessProbe:                     # cheap check, no database calls
+  httpGet: { path: /livez, port: 3000 }
+  periodSeconds: 10
+  timeoutSeconds: 2
+  failureThreshold: 3`,
+        ),
+        ul(
+          ['Requests and limits based on real usage.', 'Asli use pe aadharit requests aur limits.'],
+          ['Alerts on restart counts and OOMKills.', 'Restart count aur OOMKills pe alerts.'],
+          ['Logs shipped to a central system — they disappear with the pod.', 'Logs central system mein bhejo — pod ke saath gayab ho jaate hain.'],
+        ),
+      ),
+    ],
+    interview: {
+      text: [
+        bi(
+          'I would first find out why the container is terminating. kubectl get pods shows the status and restart count; kubectl describe pod shows the last state, the reason — for example OOMKilled — the exit code and events such as failed liveness probes; and kubectl logs --previous shows the output of the crashed container, where the stack trace usually is.',
+          'Main pehle pata karunga ki container band kyun ho raha hai. kubectl get pods status aur restart count dikhata hai; kubectl describe pod last state, reason — jaise OOMKilled — exit code aur failed liveness probes jaise events dikhata hai; aur kubectl logs --previous crash hue container ka output dikhata hai, jahan aksar stack trace hota hai.',
+        ),
+        bi(
+          'Exit code 137 usually means OOMKilled or a liveness kill, 1 means an application error, and 0 means the process exited when it should not have. The common causes are a missing ConfigMap or Secret, an unreachable dependency, a memory limit that is too low, or an aggressive liveness probe. I check what changed in the rollout history, roll back if users are affected, and prevent it with startup probes, right-sized requests and limits, alerts on restarts and central logging.',
+          'Exit code 137 aksar OOMKilled ya liveness kill hota hai, 1 application error, aur 0 matlab process tab khatam hua jab nahi hona chahiye tha. Aam kaaran hain missing ConfigMap ya Secret, na pahunchne wali dependency, bahut kam memory limit, ya aggressive liveness probe. Main rollout history mein dekhta hoon kya badla, users pe asar ho to roll back karta hoon, aur startup probes, sahi requests aur limits, restarts pe alerts aur central logging se ise rokta hoon.',
+        ),
       ],
-      keywords: [
-        'CrashLoopBackOff',
-        'kubectl describe',
-        'kubectl logs --previous',
-        'Exit code 137',
-        'OOMKilled',
-        'Liveness probe',
-        'Startup probe',
-        'Resource requests and limits',
-        'ConfigMap / Secret',
-        'ImagePullBackOff',
-        'kubectl rollout undo',
-        'Eviction',
-      ],
+      keywords: ['CrashLoopBackOff', 'kubectl describe', 'kubectl logs --previous', 'Exit code 137', 'OOMKilled', 'Liveness probe', 'Startup probe', 'Requests and limits', 'ConfigMap / Secret', 'kubectl rollout undo'],
     },
     listenFor: [
       bi('A systematic order: describe → logs --previous → events.', 'Ek systematic order: describe → logs --previous → events.'),
-      bi('Knowing exit codes and OOMKilled.', 'Exit codes aur OOMKilled ki jaankari.'),
-      bi('Spotting probe misconfiguration, and checking what changed recently.', 'Probe ki galat configuration pehchaanna, aur haal mein kya badla yeh dekhna.'),
+      bi('Knowing exit codes, OOMKilled and probe misconfiguration, and checking what changed.', 'Exit codes, OOMKilled aur probe ki galat configuration ki jaankari, aur kya badla yeh dekhna.'),
     ],
     mistakes: [
       bi('Deleting the pod and hoping it goes away.', 'Pod delete karke ummeed karna ki problem chali jaayegi.'),
-      bi('Reading only the current logs, which are empty after a restart.', 'Sirf abhi ke logs padhna, jo restart ke baad khaali hote hain.'),
-      bi('Raising resources blindly.', 'Aankh band karke resources badhana.'),
       bi('A liveness probe that checks the database — a database outage then restarts every pod.', 'Liveness probe jo database check kare — phir database outage pe har pod restart.'),
     ],
     followUps: [
       {
-        q: bi('Is CrashLoopBackOff an error?', 'Kya CrashLoopBackOff ek error hai?'),
-        a: bi(
-          'Not by itself — it means Kubernetes is restarting a container that keeps failing, waiting longer each time (up to five minutes). The real error is in the exit reason and the previous logs.',
-          'Apne aap mein nahi — iska matlab hai Kubernetes ek baar-baar fail hote container ko restart kar raha hai, har baar zyaada wait karke (paanch minute tak). Asli error exit reason aur pichhle logs mein hai.',
-        ),
-      },
-      {
         q: bi('Why should a liveness probe not check the database?', 'Liveness probe database kyun check na kare?'),
         a: bi(
-          'If the database goes down, every pod fails liveness and restarts at once. Restarting does not fix the database and makes recovery slower. Put dependency checks in readiness instead.',
-          'Database down hua to har pod liveness fail karke ek saath restart hoga. Restart se database theek nahi hota aur recovery aur slow ho jaati hai. Dependency checks readiness mein daalo.',
+          'If the database goes down, every pod fails liveness and restarts at once. Restarting does not fix the database and makes recovery slower. Dependency checks belong in readiness.',
+          'Database down hua to har pod liveness fail karke ek saath restart hoga. Restart se database theek nahi hota aur recovery aur slow hoti hai. Dependency checks readiness mein hone chahiye.',
         ),
       },
     ],
@@ -153,120 +170,113 @@ export const devopsQuestions: PrepQuestion[] = [
     kind: 'comparison',
     level: 'intermediate',
     tags: ['kubernetes', 'readiness probe', 'liveness probe', 'startup probe', 'health check', 'rolling update'],
-    simple: bi(
-      'Both are health checks Kubernetes runs against your container, but they answer different questions and trigger different actions. Liveness asks: “Is this process stuck or broken beyond repair?” — if it fails, Kubernetes restarts the container. Readiness asks: “Can this container handle traffic right now?” — if it fails, Kubernetes stops sending it traffic (removes it from the Service) but does not restart it.',
-      'Dono health checks hain jo Kubernetes aapke container pe chalata hai, par alag sawaal poochte hain aur alag action lete hain. Liveness poochta hai: “Kya yeh process atak gaya ya theek hone layak nahi?” — fail hua to Kubernetes container restart karta hai. Readiness poochta hai: “Kya yeh container abhi traffic sambhaal sakta hai?” — fail hua to Kubernetes use traffic bhejna band kar deta hai (Service se hata deta hai) par restart nahi karta.',
+    answer: bi(
+      'Both are health checks Kubernetes runs against a container, but they trigger different actions. A **readiness** probe asks “can this pod receive traffic right now?” — if it fails, the pod is removed from the Service endpoints but not restarted. A **liveness** probe asks “is this container stuck beyond recovery?” — if it fails, the kubelet restarts the container.',
+      'Dono health checks hain jo Kubernetes container pe chalata hai, par alag action lete hain. **Readiness** probe poochta hai “kya yeh pod abhi traffic le sakta hai?” — fail hone pe pod Service endpoints se hat jaata hai par restart nahi hota. **Liveness** probe poochta hai “kya yeh container aisa atka hai ki theek nahi hoga?” — fail hone pe kubelet container restart karta hai.',
     ),
-    example: bi(
-      'A restaurant waiter. Readiness: “Are you free to take a new table?” — if they are busy or on a short break, the manager just does not seat new guests with them for a while. Liveness: “Are you conscious?” — if the waiter has fainted, waiting will not help; you call for help and bring someone else (restart).',
-      'Restaurant ka waiter. Readiness: “Kya tum naya table le sakte ho?” — busy ya chhote break pe ho to manager kuch der unhe naye guests nahi deta. Liveness: “Kya tum hosh mein ho?” — waiter behosh ho gaya to wait karne se kuch nahi hoga; madad bulao aur kisi aur ko laao (restart).',
-    ),
-    why: bi(
-      'Readiness lets pods warm up (load caches, open connections) and step out during overload or shutdown without users seeing errors. Liveness recovers automatically from deadlocks and hung processes.',
-      'Readiness pods ko garam hone deta hai (caches load, connections kholna) aur overload ya shutdown ke waqt bina users ko errors dikhaye side mein hatne deta hai. Liveness deadlocks aur atke processes se apne aap ubaarta hai.',
-    ),
-    without: bi(
-      'No readiness probe: traffic hits pods that are still starting, so every deploy or scale-up causes errors. No liveness probe: a deadlocked process stays “Running” forever while failing silently. A badly designed liveness probe: restart storms.',
-      'Readiness probe nahi: traffic abhi start ho rahe pods pe jaata hai, to har deploy ya scale-up pe errors. Liveness probe nahi: deadlock hua process hamesha “Running” dikhta hai aur chupchaap fail karta rehta hai. Galat bana liveness probe: restart storms.',
-    ),
-    table: {
-      columns: ['', 'Readiness probe', 'Liveness probe', 'Startup probe'],
-      rows: [
-        [bi('Question', 'Sawaal'), bi('Can it serve traffic now?', 'Kya abhi traffic serve kar sakta hai?'), bi('Is it alive, not stuck?', 'Kya zinda hai, atka nahi?'), bi('Has it finished starting?', 'Kya start ho chuka?')],
-        [bi('On failure', 'Fail hone pe'), bi('Removed from Service endpoints; no restart', 'Service endpoints se hataya; restart nahi'), bi('Container is killed and restarted', 'Container maara aur restart kiya jaata hai'), bi('Restarted after the threshold; other probes wait for it', 'Threshold ke baad restart; baaki probes iska wait karte hain')],
-        [bi('Runs', 'Kab chalta hai'), bi('Whole lifetime', 'Poori zindagi'), bi('Whole lifetime', 'Poori zindagi'), bi('Only during startup', 'Sirf startup ke dauraan')],
-        ['Typical check', bi('Ready to serve: config loaded, warmed up, not overloaded', 'Serve karne ko taiyaar: config load, garam, overload nahi'), bi('Cheap local check that the process responds', 'Sasta local check ki process jawab de raha hai'), bi('Same as liveness, with a long time budget', 'Liveness jaisa, lambe time budget ke saath')],
-        [bi('If configured badly', 'Galat configure ho to'), bi('Pods never get traffic, or all drop out together', 'Pods ko kabhi traffic nahi, ya sab ek saath bahar'), bi('Restart loops and cascading restarts', 'Restart loops aur cascading restarts'), bi('Without it, slow apps get killed early', 'Iske bina slow apps jaldi maare jaate hain')],
-      ],
-    },
-    partsTitle: bi('Using them well', 'Inhe sahi use karna'),
-    parts: [
-      {
-        title: bi('Probe types and settings', 'Probe types aur settings'),
-        text: bi(
-          'An HTTP GET (any 2xx–3xx is success), a TCP socket, an exec command, or gRPC. Tune initialDelaySeconds, periodSeconds, timeoutSeconds, failureThreshold and successThreshold to real start-up and response times.',
-          'HTTP GET (2xx–3xx success), TCP socket, exec command, ya gRPC. initialDelaySeconds, periodSeconds, timeoutSeconds, failureThreshold aur successThreshold ko asli startup aur response times ke hisaab se set karo.',
+    sections: [
+      section(
+        'Side by side',
+        'Aamne-saamne',
+        table(
+          ['', 'Readiness', 'Liveness', 'Startup'],
+          [
+            [bi('Question', 'Sawaal'), bi('Can it serve traffic now?', 'Kya abhi traffic serve kar sakta hai?'), bi('Is it stuck?', 'Kya atka hua hai?'), bi('Has it finished starting?', 'Kya start ho chuka?')],
+            [bi('On failure', 'Fail hone pe'), bi('Removed from Service endpoints — no restart', 'Service endpoints se hataya — restart nahi'), bi('Container is restarted', 'Container restart hota hai'), bi('Restarted after the threshold', 'Threshold ke baad restart')],
+            [bi('Runs', 'Kab chalta hai'), bi('Whole lifetime', 'Poori zindagi'), bi('Whole lifetime', 'Poori zindagi'), bi('Only at startup', 'Sirf startup pe')],
+            ['Typical check', bi('Config loaded, cache warm, not overloaded', 'Config load, cache garam, overload nahi'), bi('The process responds — nothing external', 'Process jawab deta hai — bahar ka kuch nahi'), bi('Same as liveness, longer budget', 'Liveness jaisa, lamba budget')],
+          ],
         ),
-      },
-      {
-        title: bi('Keep liveness cheap and local', 'Liveness ko sasta aur local rakho'),
-        text: bi(
-          'Liveness should only check that the process can respond (for example /livez) — not the database or other services. Otherwise a database outage makes every pod restart, which fixes nothing.',
-          'Liveness sirf yeh check kare ki process jawab de sakta hai (jaise /livez) — database ya doosri services nahi. Warna database outage pe har pod restart hoga, jisse kuch theek nahi hota.',
+      ),
+      section(
+        'A real example',
+        'Ek asli example',
+        p(
+          'An API that loads config and warms a cache for about 20 seconds at startup:',
+          'Ek API jo startup pe lagbhag 20 second config load aur cache garam karta hai:',
         ),
-      },
-      {
-        title: bi('Readiness can consider dependencies — carefully', 'Readiness dependencies dekh sakta hai — dhyaan se'),
-        text: bi(
-          'It is fine for readiness to wait until config is loaded and caches are warm. But if every pod depends on the same database and they all turn “not ready” together, the Service has no endpoints at all; sometimes it is better to stay ready and return a clear error or a degraded response.',
-          'Readiness ka config load aur caches garam hone tak wait karna theek hai. Par agar har pod same database pe depend kare aur sab ek saath “not ready” ho jaayein, to Service ke paas ek bhi endpoint nahi bachta; kabhi-kabhi ready rehna aur saaf error ya degraded response dena behtar hai.',
+        code(
+          'ts',
+          `
+let ready = false;
+
+app.get('/livez', (_req, res) => res.sendStatus(200));                  // the process is alive
+app.get('/readyz', (_req, res) => res.sendStatus(ready ? 200 : 503));   // it can take traffic
+
+await loadConfig();
+await warmCache();
+ready = true;
+
+process.on('SIGTERM', () => {
+  ready = false;              // stop receiving new traffic first
+  server.close(() => process.exit(0));
+});`,
         ),
-      },
-      {
-        title: bi('Slow starters need a startup probe', 'Slow start walon ko startup probe chahiye'),
-        text: bi(
-          'For JVM apps or apps that load large caches, use a startupProbe with a generous budget instead of a huge initialDelaySeconds on liveness.',
-          'JVM apps ya bade caches load karne wale apps ke liye, liveness pe bahut bada initialDelaySeconds lagane ki jagah lambe budget wala startupProbe use karo.',
+        code(
+          'yaml',
+          `
+startupProbe:
+  httpGet: { path: /livez, port: 3000 }
+  periodSeconds: 2
+  failureThreshold: 30        # up to 60 s to start
+readinessProbe:
+  httpGet: { path: /readyz, port: 3000 }
+  periodSeconds: 5
+livenessProbe:
+  httpGet: { path: /livez, port: 3000 }
+  periodSeconds: 10
+  failureThreshold: 3`,
         ),
-      },
-      {
-        title: bi('Readiness makes deploys smooth', 'Readiness se deploys smooth hote hain'),
-        text: bi(
-          'During a rolling update, new pods receive traffic only once they are ready. On shutdown (SIGTERM), the app should start failing readiness, finish in-flight requests, then exit (preStop hook, terminationGracePeriodSeconds) — that gives zero-downtime deploys.',
-          'Rolling update ke dauraan naye pods ko traffic tabhi milta hai jab woh ready hon. Shutdown (SIGTERM) pe app ko readiness fail karna shuru karna chahiye, chal rahi requests poori karni chahiye, phir exit (preStop hook, terminationGracePeriodSeconds) — isse zero-downtime deploys milte hain.',
+      ),
+      section(
+        'Rules I follow',
+        'Main kin rules ko follow karta hoon',
+        ul(
+          ['**Liveness is cheap and local.** It only checks that the process responds — never the database or other services.', '**Liveness sasta aur local.** Sirf yeh check karta hai ki process jawab de raha hai — kabhi database ya doosri services nahi.'],
+          ['**Readiness covers warm-up, overload and shutdown.** It decides who gets traffic.', '**Readiness warm-up, overload aur shutdown sambhaalta hai.** Yeh decide karta hai traffic kise mile.'],
+          ['**Slow starters get a startupProbe** instead of a huge `initialDelaySeconds`.', '**Slow start walon ko startupProbe** milta hai, bahut bade `initialDelaySeconds` ki jagah.'],
+          ['**Careful with shared dependencies in readiness:** if every pod depends on the same database and all turn “not ready”, the Service has no endpoints at all.', '**Readiness mein shared dependencies se savdhaan:** agar har pod same database pe depend kare aur sab “not ready” ho jaayein, to Service ke paas ek bhi endpoint nahi bachta.'],
         ),
-      },
+        note(
+          'warning',
+          'If liveness checks the database and the database goes down, every pod restarts at once — the outage gets worse, not better.',
+          'Agar liveness database check kare aur database down ho, to har pod ek saath restart hota hai — outage behtar nahi, aur bura hota hai.',
+        ),
+      ),
+      section(
+        'Readiness and zero-downtime deploys',
+        'Readiness aur zero-downtime deploys',
+        steps(
+          ['A new pod starts', 'Naya pod start hota hai', 'It is not ready yet, so it receives no traffic.', 'Abhi ready nahi, to traffic nahi milta.'],
+          ['It becomes ready', 'Ready ho jaata hai', 'Once `/readyz` returns 200, the Service starts routing to it.', '`/readyz` 200 lautate hi Service use traffic bhejne lagti hai.'],
+          ['The old pod gets SIGTERM', 'Purane pod ko SIGTERM milta hai', 'It fails readiness, finishes in-flight requests, then exits.', 'Woh readiness fail karta hai, chal rahi requests poori karta hai, phir exit.'],
+        ),
+      ),
     ],
     interview: {
-      opening: bi(
-        'A readiness probe decides whether a pod should receive traffic — failing it removes the pod from the Service endpoints without restarting it — while a liveness probe decides whether the container is healthy enough to keep running — failing it makes the kubelet restart the container.',
-        'Readiness probe decide karta hai ki pod ko traffic milna chahiye ya nahi — fail hone pe pod bina restart ke Service endpoints se hat jaata hai — jabki liveness probe decide karta hai ki container chalte rehne layak healthy hai ya nahi — fail hone pe kubelet container restart karta hai.',
-      ),
-      points: [
-        bi('Readiness: “can I serve now?” → controls membership in Service / load-balancer endpoints; used during startup, overload and shutdown.', 'Readiness: “kya abhi serve kar sakta hoon?” → Service / load-balancer endpoints mein shaamil hona tay karta hai; startup, overload aur shutdown mein kaam aata hai.'),
-        bi('Liveness: “am I stuck?” → restarts the container to recover from deadlocks or hung processes.', 'Liveness: “kya main atka hoon?” → deadlocks ya atke processes se ubaarne ke liye container restart karta hai.'),
-        bi('Startup probe protects slow-starting containers; liveness and readiness begin only after it succeeds.', 'Startup probe slow start hone wale containers ko bachata hai; liveness aur readiness iske succeed hone ke baad hi shuru hote hain.'),
-        bi('Liveness checks must be lightweight and must not depend on external services, to avoid cascading restarts.', 'Liveness checks halke hone chahiye aur external services pe depend nahi karne chahiye, taaki cascading restarts na hon.'),
-        bi('Readiness enables zero-downtime rolling updates and graceful shutdown.', 'Readiness zero-downtime rolling updates aur graceful shutdown deta hai.'),
-        bi('Tune delays, periods, timeouts and failure thresholds to real behaviour.', 'Delays, periods, timeouts aur failure thresholds asli behaviour ke hisaab se set karo.'),
+      text: [
+        bi(
+          'A readiness probe decides whether a pod should receive traffic: when it fails, Kubernetes removes the pod from the Service endpoints but does not restart it. I use it for startup warm-up, temporary overload and graceful shutdown, and it is what makes rolling updates zero-downtime.',
+          'Readiness probe decide karta hai ki pod ko traffic milna chahiye ya nahi: fail hone pe Kubernetes pod ko Service endpoints se hata deta hai par restart nahi karta. Main ise startup warm-up, thodi der ke overload aur graceful shutdown ke liye use karta hoon, aur isi se rolling updates zero-downtime hote hain.',
+        ),
+        bi(
+          'A liveness probe decides whether the container is stuck: when it fails, the kubelet restarts it, which recovers from deadlocks or hung processes. Liveness must be cheap and must not depend on external services, otherwise a database outage restarts every pod. For slow-starting apps I add a startup probe so liveness does not kill them while they boot.',
+          'Liveness probe decide karta hai ki container atka hai ya nahi: fail hone pe kubelet use restart karta hai, jo deadlocks ya atke processes se ubaarta hai. Liveness sasta hona chahiye aur external services pe depend nahi karna chahiye, warna database outage har pod ko restart kar dega. Slow start hone wale apps ke liye main startup probe jodta hoon taaki boot hote waqt liveness unhe na maare.',
+        ),
       ],
-      keywords: [
-        'Readiness probe',
-        'Liveness probe',
-        'Startup probe',
-        'Service endpoints',
-        'kubelet',
-        'failureThreshold',
-        'initialDelaySeconds',
-        'httpGet / tcpSocket / exec / grpc',
-        'Rolling update',
-        'Graceful shutdown',
-        'Cascading restarts',
-      ],
+      keywords: ['Readiness probe', 'Liveness probe', 'Startup probe', 'Service endpoints', 'kubelet', 'failureThreshold', 'Rolling update', 'Graceful shutdown', 'SIGTERM', 'Cascading restarts'],
     },
     listenFor: [
       bi('The correct action on failure for each probe.', 'Har probe ke fail hone pe sahi action.'),
-      bi('Awareness of the startup probe.', 'Startup probe ki jaankari.'),
-      bi('Not checking dependencies in liveness, and the link to rolling deployments.', 'Liveness mein dependencies check na karna, aur rolling deployments se rishta.'),
+      bi('Knowing the startup probe, and not checking dependencies in liveness.', 'Startup probe ki jaankari, aur liveness mein dependencies check na karna.'),
     ],
-    mistakes: [
-      bi('Using the same endpoint, which checks the database, for both probes.', 'Dono probes ke liye same endpoint jo database check karta ho.'),
-      bi('No readiness probe, so errors appear during every deploy.', 'Readiness probe nahi, to har deploy mein errors.'),
-      bi('An aggressive liveness probe that causes restart loops.', 'Aggressive liveness probe jo restart loops laaye.'),
-    ],
+    mistakes: [bi('Using the same endpoint, which checks the database, for both probes.', 'Dono probes ke liye same endpoint jo database check kare.'), bi('No readiness probe, so errors appear during every deploy.', 'Readiness probe nahi, to har deploy mein errors.')],
     followUps: [
       {
         q: bi('Can a pod be live but not ready?', 'Kya pod live ho par ready nahi?'),
         a: bi(
-          'Yes — for example while warming its cache or when temporarily overloaded: it is running, but it is not receiving traffic.',
-          'Haan — jaise cache garam karte waqt ya thodi der overload hone pe: chal raha hai, par traffic nahi le raha.',
-        ),
-      },
-      {
-        q: bi('What happens if readiness fails on every pod?', 'Agar har pod pe readiness fail ho jaaye to?'),
-        a: bi(
-          'The Service has no endpoints, so every request fails. That is why readiness should not depend blindly on a dependency that all pods share.',
-          'Service ke paas koi endpoint nahi bachta, to har request fail. Isliye readiness ko us dependency pe aankh band karke depend nahi karna chahiye jo saare pods share karte hain.',
+          'Yes — while warming its cache or when temporarily overloaded. It is running, but it is not receiving traffic.',
+          'Haan — cache garam karte waqt ya thodi der overload hone pe. Chal raha hai, par traffic nahi le raha.',
         ),
       },
     ],
@@ -278,145 +288,108 @@ export const devopsQuestions: PrepQuestion[] = [
     id: 'from-laptop-to-production',
     category: 'devops',
     topic: 'cicd',
-    question: bi(
-      "You've just completed a task on your machine. How does that work go about getting into production?",
-      'Aapne apni machine pe ek task poora kiya. Woh kaam production tak kaise pahunchta hai?',
-    ),
+    question: bi("You've just completed a task on your machine. How does that work go about getting into production?", 'Aapne apni machine pe ek task poora kiya. Woh kaam production tak kaise pahunchta hai?'),
     kind: 'behavioral',
     level: 'beginner',
-    tags: ['ci/cd', 'pull request', 'code review', 'pipeline', 'deployment', 'feature flags', 'canary'],
-    scenario: bi(
-      'This is a process question. The interviewer wants you to walk through the full path your change takes from your laptop to real users, and to show that you understand — and care about — every step: version control, review, the automated checks (and how they were set up), how deployments are made safe, and what you do after the release. Describe your team’s flow, or a typical good one.',
-      'Yeh process ka sawaal hai. Interviewer chahta hai ki aap batao aapka change laptop se asli users tak kaunsa poora raasta leta hai, aur dikhao ki aap har step samajhte ho — aur parwaah karte ho: version control, review, automated checks (aur woh kaise set hue), deployments ko safe kaise banate hain, aur release ke baad kya karte ho. Apni team ka flow batao, ya ek typical accha flow.',
+    tags: ['ci/cd', 'pull request', 'code review', 'pipeline', 'github actions', 'deployment', 'feature flags'],
+    answer: bi(
+      'My change goes through an automated pipeline, not a manual hand-off. I push a branch and open a pull request; CI builds it and runs tests, lint and security checks; a teammate reviews it; after merging, CD builds one versioned artifact and promotes it through staging to production with a gradual rollout. After the release I watch metrics and logs, ready to roll back.',
+      'Mera change ek automated pipeline se jaata hai, manual hand-off se nahi. Main branch push karke pull request kholta hoon; CI use build karke tests, lint aur security checks chalata hai; ek saathi review karta hai; merge ke baad CD ek versioned artifact banata hai aur use staging se production tak dheere-dheere rollout ke saath le jaata hai. Release ke baad main metrics aur logs dekhta hoon, roll back ko taiyaar.',
     ),
-    simple: bi(
-      'Commit the change on a branch, open a pull request, let automated checks run (tests, lint, security scans, build), get it reviewed, merge to the main branch, and let the pipeline build one artifact and deploy it through environments — staging, then production — usually gradually, with monitoring and a quick rollback ready. Your job is not done at merge: you watch it in production.',
-      'Branch pe change commit karo, pull request kholo, automated checks chalne do (tests, lint, security scans, build), review karwao, main branch mein merge karo, aur pipeline ko ek artifact banane do aur use environments se deploy karne do — pehle staging, phir production — aam taur pe dheere-dheere, monitoring aur jaldi rollback ki tayyari ke saath. Merge pe kaam khatam nahi hota: production mein use dekhte raho.',
-    ),
-    example: bi(
-      'Publishing a newspaper article: the reporter writes a draft (a branch), an editor reviews it (code review), spell-check and fact-check run automatically (CI), a print proof is checked (staging), it is printed for one city first (a canary) before going national, and the next morning the reporter reads readers’ reactions (monitoring) — ready to publish a correction (rollback).',
-      'Akhbaar ka article chhapna: reporter draft likhta hai (branch), editor review karta hai (code review), spell-check aur fact-check apne aap chalte hain (CI), print proof check hota hai (staging), poore desh se pehle ek shehar ke liye chhapta hai (canary), aur agli subah reporter readers ki pratikriya padhta hai (monitoring) — sudhaar chhaapne ko taiyaar (rollback).',
-    ),
-    why: bi(
-      'Automation makes releases frequent, small and safe; people cannot reliably remember every check; and small changes are easier to debug and roll back.',
-      'Automation releases ko baar-baar, chhote aur safe banata hai; insaan har check yaad nahi rakh sakte; aur chhote changes debug aur roll back karna aasaan hai.',
-    ),
-    without: bi(
-      '“Works on my machine” bugs, manual deploys done differently each time, big risky Friday-night releases, no record of who changed what, and slow rollbacks.',
-      '“Meri machine pe to chalta hai” wale bugs, har baar alag tareeke se manual deploys, bade risky Friday-night releases, kisne kya badla iska koi record nahi, aur slow rollbacks.',
-    ),
-    partsTitle: bi('The path, step by step', 'Raasta, step by step'),
-    parts: [
-      {
-        title: bi('1. Before pushing', '1. Push karne se pehle'),
-        text: bi(
-          'A small, focused change; tests written or updated; lint and tests run locally; your own review of the diff; documentation updated.',
-          'Chhota, focused change; tests likhe ya update kiye; local mein lint aur tests chalaye; diff ka khud review; documentation update.',
+    sections: [
+      section(
+        'The path, step by step',
+        'Raasta, step by step',
+        steps(
+          ['Before pushing', 'Push se pehle', 'Small, focused change; tests written; lint and tests run locally; I review my own diff.', 'Chhota, focused change; tests likhe; local mein lint aur tests chalaye; apna diff khud review kiya.'],
+          ['Pull request', 'Pull request', 'Clear description, linked ticket, screenshots and how to test it.', 'Saaf description, linked ticket, screenshots aur test karne ka tareeka.'],
+          ['Continuous Integration', 'Continuous Integration', 'On every push: build, lint, type-check, tests, security scans, container image.', 'Har push pe: build, lint, type-check, tests, security scans, container image.'],
+          ['Code review', 'Code review', 'A teammate checks correctness, design, tests and security; branch protection blocks merging until checks are green.', 'Saathi correctness, design, tests aur security check karta hai; branch protection checks green hone tak merge rokti hai.'],
+          ['Merge → staging', 'Merge → staging', 'CD builds one immutable, versioned image and deploys it to staging; smoke and end-to-end tests run.', 'CD ek immutable, versioned image banata hai aur staging pe deploy karta hai; smoke aur end-to-end tests chalte hain.'],
+          ['Production', 'Production', 'The same image goes out gradually (canary or rolling), often behind a feature flag.', 'Wahi image dheere-dheere jaati hai (canary ya rolling), aksar feature flag ke peeche.'],
+          ['After the release', 'Release ke baad', 'I watch dashboards, error rates and logs, and roll back if anything regresses.', 'Main dashboards, error rates aur logs dekhta hoon, aur kuch bigde to roll back.'],
         ),
-      },
-      {
-        title: bi('2. Branch and pull request', '2. Branch aur pull request'),
-        text: bi(
-          'Push the branch and open a PR with a clear description, the linked ticket, screenshots and how to test it. Keep PRs small so they get reviewed properly.',
-          'Branch push karo aur saaf description, linked ticket, screenshots aur test karne ke tareeke ke saath PR kholo. PRs chhote rakho taaki dhang se review hon.',
+      ),
+      section(
+        'What CI checks on every pull request',
+        'CI har pull request pe kya check karta hai',
+        code(
+          'yaml',
+          `
+# .github/workflows/ci.yml
+name: ci
+on: [pull_request]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm test -- --coverage
+      - run: npm audit --audit-level=high
+      - run: docker build -t expense-api:\${{ github.sha }} .`,
         ),
-      },
-      {
-        title: bi('3. Continuous Integration on every push', '3. Har push pe Continuous Integration'),
-        text: bi(
-          'Install, build, lint and format checks, type-check, unit and integration tests with coverage, dependency and secret scanning, static analysis, and building the container image — sometimes a preview environment too. Branch protection requires all of it to pass, plus approvals, before merging.',
-          'Install, build, lint aur format checks, type-check, coverage ke saath unit aur integration tests, dependency aur secret scanning, static analysis, aur container image build — kabhi preview environment bhi. Branch protection merge se pehle yeh sab pass hona aur approvals zaroori karti hai.',
+        p(
+          'Branch protection makes these checks — plus at least one approval — mandatory before merging.',
+          'Branch protection in checks ko — aur kam se kam ek approval ko — merge se pehle zaroori banati hai.',
         ),
-      },
-      {
-        title: '4. Code review',
-        text: bi(
-          'Peers check correctness, design, readability, tests and security; you address the comments.',
-          'Saathi correctness, design, readability, tests aur security check karte hain; aap comments pe kaam karte ho.',
+      ),
+      section(
+        'How we deploy safely',
+        'Hum safely kaise deploy karte hain',
+        table(
+          ['Strategy', bi('How it works', 'Kaise kaam karti hai'), bi('When I use it', 'Kab use karta hoon')],
+          [
+            ['Rolling', bi('Replace pods a few at a time', 'Kuch-kuch pods badlo'), bi('Default for stateless services', 'Stateless services ka default')],
+            ['Blue-green', bi('Start the new version beside the old, then switch traffic', 'Purane ke saath naya version chalao, phir traffic switch'), bi('Instant switch and instant rollback', 'Turant switch aur turant rollback')],
+            ['Canary', bi('Send 1% → 10% → 100% of traffic while watching metrics', 'Metrics dekhte hue 1% → 10% → 100% traffic bhejo'), 'Risky changes'],
+            ['Feature flag', bi('Deploy the code switched off; turn it on for some users', 'Code band karke deploy; kuch users ke liye on karo'), bi('Separating deploy from release', 'Deploy ko release se alag karna')],
+          ],
         ),
-      },
-      {
-        title: '5. Merge → Continuous Delivery',
-        text: bi(
-          'The pipeline builds an immutable, versioned artifact once (for example a Docker image), deploys it automatically to staging, runs smoke and end-to-end tests, and applies backward-compatible database migrations.',
-          'Pipeline ek baar immutable, versioned artifact banati hai (jaise Docker image), use apne aap staging pe deploy karti hai, smoke aur end-to-end tests chalati hai, aur backward-compatible database migrations lagati hai.',
+        note(
+          'important',
+          '**Build once, deploy many:** the exact image tested in staging is the one that goes to production — never rebuild per environment.',
+          '**Build once, deploy many:** jo image staging mein test hui, wahi production mein jaati hai — har environment ke liye dobara build nahi.',
         ),
-      },
-      {
-        title: '6. Production release',
-        text: bi(
-          'Automatic or approval-gated, using a safe strategy: rolling, blue-green or canary (1% → 10% → 100%). Feature flags separate deploying code from releasing a feature to users.',
-          'Apne aap ya approval ke baad, ek safe strategy se: rolling, blue-green ya canary (1% → 10% → 100%). Feature flags code deploy karne ko users ke liye feature release karne se alag karte hain.',
+      ),
+      section(
+        'Database changes',
+        'Database changes',
+        p(
+          'Schema changes must work with both the old and the new code, because during a rollout both run at once. I use **expand and contract**: add the new column → deploy code that writes both → backfill → switch reads → remove the old column in a later release.',
+          'Schema changes purane aur naye dono code ke saath chalne chahiye, kyunki rollout ke dauraan dono ek saath chalte hain. Main **expand and contract** use karta hoon: naya column jodo → dono mein likhne wala code deploy karo → backfill → reads switch karo → purana column agle release mein hatao.',
         ),
-      },
-      {
-        title: bi('7. After the deploy', '7. Deploy ke baad'),
-        text: bi(
-          'Watch dashboards, error rates, latency and logs for the release; verify the feature in production; be ready to roll back (redeploy the previous artifact or switch the flag off); update the ticket and changelog.',
-          'Release ke liye dashboards, error rates, latency aur logs dekho; production mein feature verify karo; roll back ko taiyaar raho (pichhla artifact dobara deploy ya flag off); ticket aur changelog update karo.',
-        ),
-      },
-      {
-        title: bi('8. Everything as code', '8. Sab kuch code ki tarah'),
-        text: bi(
-          'Pipeline configuration, infrastructure (Terraform), environment config and secrets managed in a vault — all reproducible and audited.',
-          'Pipeline configuration, infrastructure (Terraform), environment config aur vault mein managed secrets — sab reproducible aur audited.',
-        ),
-      },
+      ),
     ],
     interview: {
-      opening: bi(
-        'I push a small branch and open a pull request; CI automatically builds, lints and runs tests and security scans; after peer review and green checks it is merged to main, where CD builds an immutable artifact and promotes it through staging to production with a progressive rollout — and I monitor it after release, ready to roll back.',
-        'Main chhoti branch push karke pull request kholta hoon; CI apne aap build, lint, tests aur security scans chalata hai; peer review aur green checks ke baad main mein merge hota hai, jahan CD ek immutable artifact banata hai aur use staging se production tak progressive rollout ke saath le jaata hai — aur release ke baad main use monitor karta hoon, roll back ko taiyaar.',
-      ),
-      points: [
-        bi('Trunk-based development or short-lived feature branches; small, reviewable PRs.', 'Trunk-based development ya kam samay ki feature branches; chhote, review karne layak PRs.'),
-        bi('CI on every push: build, lint, type-check, unit and integration tests, coverage, dependency and secret scanning, image build.', 'Har push pe CI: build, lint, type-check, unit aur integration tests, coverage, dependency aur secret scanning, image build.'),
-        bi('Branch protection: required checks and review approval before merge.', 'Branch protection: merge se pehle zaroori checks aur review approval.'),
-        bi('CD: build once, deploy the same artifact everywhere; automatic staging deploy with smoke and end-to-end tests.', 'CD: ek baar build, wahi artifact har jagah deploy; smoke aur end-to-end tests ke saath apne aap staging deploy.'),
-        bi('Safe production rollout: canary, blue-green or rolling; backward-compatible migrations; feature flags.', 'Safe production rollout: canary, blue-green ya rolling; backward-compatible migrations; feature flags.'),
-        bi('Post-release ownership: dashboards and alerts, verifying behaviour, fast rollback.', 'Release ke baad ownership: dashboards aur alerts, behaviour verify karna, jaldi rollback.'),
-        bi('Pipelines and infrastructure as code; secrets in a vault.', 'Pipelines aur infrastructure as code; secrets vault mein.'),
+      text: [
+        bi(
+          'I push a small branch and open a pull request with a clear description. CI runs automatically on every push — build, lint, type-check, unit and integration tests, dependency and secret scanning, and the container image build — and branch protection requires those checks plus a code review before merging.',
+          'Main ek chhoti branch push karke saaf description ke saath pull request kholta hoon. CI har push pe apne aap chalta hai — build, lint, type-check, unit aur integration tests, dependency aur secret scanning, aur container image build — aur branch protection merge se pehle in checks aur code review ko zaroori banati hai.',
+        ),
+        bi(
+          'After merging, CD builds one immutable, versioned artifact, deploys it to staging with smoke tests, and promotes the same artifact to production with a canary or rolling rollout, often behind a feature flag, with backward-compatible database migrations. I do not merge and forget: I watch the dashboards and alerts after the release and roll back if anything regresses.',
+          'Merge ke baad CD ek immutable, versioned artifact banata hai, smoke tests ke saath staging pe deploy karta hai, aur wahi artifact canary ya rolling rollout se production mein le jaata hai, aksar feature flag ke peeche, backward-compatible database migrations ke saath. Main merge karke bhoolta nahi: release ke baad dashboards aur alerts dekhta hoon aur kuch bigde to roll back karta hoon.',
+        ),
       ],
-      keywords: [
-        'Pull request',
-        'Code review',
-        'Continuous Integration',
-        'Continuous Delivery / Deployment',
-        'Branch protection',
-        'Build once, deploy many',
-        'Immutable artifact',
-        'Staging environment',
-        'Canary / blue-green / rolling',
-        'Feature flags',
-        'Rollback',
-        'Infrastructure as Code',
-        'Shift left',
-      ],
+      keywords: ['Pull request', 'Code review', 'Continuous Integration', 'Continuous Delivery', 'Branch protection', 'Build once, deploy many', 'Immutable artifact', 'Staging', 'Canary / blue-green / rolling', 'Feature flags', 'Expand and contract', 'Rollback'],
     },
     listenFor: [
-      bi('Do they understand the full flow of getting their work to production?', 'Kya woh apne kaam ko production tak le jaane ka poora flow samajhte hain?'),
+      bi('Do they understand the full flow of getting their work into production?', 'Kya woh apne kaam ko production tak le jaane ka poora flow samajhte hain?'),
       bi('Do they talk about which automated checks run, and how that was set up?', 'Kya woh batate hain kaunse automated checks chalte hain, aur woh kaise set hue?'),
-      bi('Do they merge the PR and forget about it until there is a bug weeks later — or do they own it after release?', 'Kya woh PR merge karke bhool jaate hain jab tak hafton baad bug na aaye — ya release ke baad bhi zimmedari lete hain?'),
+      bi('Do they merge the PR and forget about it until there is a bug weeks later?', 'Kya woh PR merge karke bhool jaate hain jab tak hafton baad bug na aaye?'),
     ],
-    mistakes: [
-      bi('“I push to main and someone else deploys it.”', '“Main main pe push karta hoon aur koi aur deploy karta hai.”'),
-      bi('No mention of tests, review or automated checks.', 'Tests, review ya automated checks ka koi zikr nahi.'),
-      bi('No monitoring or rollback plan.', 'Koi monitoring ya rollback plan nahi.'),
-    ],
+    mistakes: [bi('“I push to main and someone else deploys it.”', '“Main main pe push karta hoon aur koi aur deploy karta hai.”'), bi('No mention of tests, review, monitoring or rollback.', 'Tests, review, monitoring ya rollback ka koi zikr nahi.')],
     followUps: [
       {
         q: bi('Continuous delivery vs continuous deployment?', 'Continuous delivery aur continuous deployment mein kya fark hai?'),
         a: bi(
-          'Continuous delivery: every change is always releasable, but production deploys need a manual approval. Continuous deployment: every change that passes the pipeline goes to production automatically.',
-          'Continuous delivery: har change hamesha release karne layak hai, par production deploy ke liye manual approval chahiye. Continuous deployment: pipeline pass karne wala har change apne aap production mein jaata hai.',
-        ),
-      },
-      {
-        q: bi('How do you deploy a database schema change safely?', 'Database schema change safely kaise deploy karte ho?'),
-        a: bi(
-          'Expand and contract: add new columns or tables first (backward compatible), deploy code that writes to both, backfill, switch reads, and only remove the old columns in a later release.',
-          'Expand and contract: pehle naye columns ya tables jodo (backward compatible), dono mein likhne wala code deploy karo, backfill karo, reads switch karo, aur purane columns sirf agle release mein hatao.',
+          'Continuous delivery: every change is always releasable, but a person approves the production deploy. Continuous deployment: every change that passes the pipeline goes to production automatically.',
+          'Continuous delivery: har change hamesha release karne layak hai, par production deploy ko koi insaan approve karta hai. Continuous deployment: pipeline pass karne wala har change apne aap production mein jaata hai.',
         ),
       },
     ],
@@ -432,119 +405,85 @@ export const devopsQuestions: PrepQuestion[] = [
     kind: 'comparison',
     level: 'beginner',
     tags: ['observability', 'logs', 'metrics', 'traces', 'opentelemetry', 'prometheus'],
-    simple: bi(
-      'They are the three main ways a system tells you what it is doing. Metrics are numbers over time (“500 requests per second, 2% errors”) — great for noticing that something is wrong. Logs are detailed records of individual events (“order 42 failed: card declined”) — great for understanding why. Traces follow one request through all the services it touches, with the time spent at each step — great for finding where the time or the error is.',
-      'Yeh teen mukhya tareeke hain jinse system batata hai ki woh kya kar raha hai. Metrics samay ke saath numbers hain (“500 requests per second, 2% errors”) — kuch gadbad hai yeh pakadne ke liye badhiya. Logs alag-alag events ke detailed record hain (“order 42 fail: card declined”) — kyun hua yeh samajhne ke liye badhiya. Traces ek request ko un sab services mein follow karte hain jinse woh guzarti hai, har step ka time ke saath — time ya error kahan hai yeh dhoondhne ke liye badhiya.',
+    answer: bi(
+      'They are the three pillars of observability. **Metrics** are numbers over time that tell me something is wrong — error rate, latency, throughput. **Logs** are detailed records of individual events that tell me why. **Traces** follow one request across services and tell me where the time or the error is.',
+      'Yeh observability ke teen pillars hain. **Metrics** samay ke saath numbers hain jo batate hain ki kuch gadbad hai — error rate, latency, throughput. **Logs** alag-alag events ke detailed record hain jo batate hain kyun. **Traces** ek request ko services mein follow karte hain aur batate hain ki time ya error kahan hai.',
     ),
-    example: bi(
-      'A hospital patient. Metrics are the vital-signs monitor — heart rate, blood pressure and temperature over time — with an alarm when something drifts. Logs are the nurse’s notes: “10:42 — patient reported pain, medicine given”. A trace is the patient’s journey across departments: reception 5 min → X-ray 40 min (waiting!) → doctor 10 min — showing exactly where the delay was.',
-      'Hospital ka patient. Metrics vital-signs monitor hain — samay ke saath dhadkan, BP aur temperature — kuch bigde to alarm. Logs nurse ke notes hain: “10:42 — patient ne dard bataya, dawa di”. Trace departments mein patient ka safar hai: reception 5 min → X-ray 40 min (wait!) → doctor 10 min — dikhata hai ki der bilkul kahan hui.',
-    ),
-    why: bi(
-      'Each answers a different question during an incident: is something wrong, and how badly? (metrics) where? (traces) why? (logs). Together they make a system observable.',
-      'Incident ke dauraan har ek alag sawaal ka jawab deta hai: kya gadbad hai, aur kitni? (metrics) kahan? (traces) kyun? (logs). Teeno milke system ko observable banate hain.',
-    ),
-    table: {
-      columns: ['', 'Metrics', 'Logs', 'Traces'],
-      rows: [
-        [bi('What it is', 'Kya hai'), bi('Numbers aggregated over time', 'Samay ke saath jode gaye numbers'), bi('Timestamped records of single events', 'Alag events ke timestamp wale record'), bi('The path and timing of one request across services', 'Services mein ek request ka raasta aur timing')],
-        [bi('Answers', 'Jawab deta hai'), bi('Is something wrong? How much?', 'Kya gadbad hai? Kitni?'), bi('What exactly happened, and why?', 'Bilkul kya hua, aur kyun?'), bi('Where is the time or the error?', 'Time ya error kahan hai?')],
-        ['Example', 'p99 latency 1.2 s, errors 3%', '{"level":"error","orderId":42,"msg":"card declined"}', 'gateway 5 ms → orders 20 ms → payments 900 ms'],
-        [bi('Cost and volume', 'Kharcha aur volume'), bi('Cheap and small', 'Sasta aur chhota'), bi('Large; grows with traffic', 'Bada; traffic ke saath badhta hai'), bi('Medium; usually sampled', 'Beech ka; aksar sampled')],
-        [bi('Best for', 'Kiske liye best'), 'Dashboards, alerts, trends, SLOs', 'Debugging details, audits', bi('Latency and dependencies in microservices', 'Microservices mein latency aur dependencies')],
-        ['Tools', 'Prometheus, Datadog, CloudWatch', 'ELK / OpenSearch, Loki, Splunk', 'Jaeger, Zipkin, Tempo, OpenTelemetry'],
-      ],
-    },
-    partsTitle: bi('Using them together', 'Inhe saath mein use karna'),
-    parts: [
-      {
-        title: 'Metrics',
-        text: bi(
-          'Counters (only go up), gauges (go up and down) and histograms (distributions, for percentiles). Use RED for services — Rate, Errors, Duration — and USE for resources — Utilisation, Saturation, Errors. Keep labels low-cardinality: never put user IDs in metric labels.',
-          'Counters (sirf badhte hain), gauges (badhte-ghatte hain) aur histograms (distribution, percentiles ke liye). Services ke liye RED — Rate, Errors, Duration — aur resources ke liye USE — Utilisation, Saturation, Errors. Labels low-cardinality rakho: metric labels mein kabhi user IDs mat daalo.',
+    sections: [
+      section(
+        'Side by side',
+        'Aamne-saamne',
+        table(
+          ['', 'Metrics', 'Logs', 'Traces'],
+          [
+            [bi('What it is', 'Kya hai'), bi('Numbers aggregated over time', 'Samay ke saath jode gaye numbers'), bi('Timestamped records of single events', 'Alag events ke timestamp wale record'), bi('One request’s path and timing across services', 'Services mein ek request ka raasta aur timing')],
+            [bi('Answers', 'Jawab deta hai'), bi('Is something wrong? How much?', 'Kya gadbad hai? Kitni?'), bi('What exactly happened, and why?', 'Bilkul kya hua, aur kyun?'), bi('Where is the time or the error?', 'Time ya error kahan hai?')],
+            [bi('Cost', 'Kharcha'), bi('Cheap, fixed size', 'Sasta, fixed size'), bi('Large; grows with traffic', 'Bada; traffic ke saath badhta hai'), bi('Medium; usually sampled', 'Beech ka; aksar sampled')],
+            [bi('Best for', 'Kiske liye best'), 'Dashboards, alerts, SLOs', 'Debugging details, audits', bi('Latency across microservices', 'Microservices mein latency')],
+            ['Tools', 'Prometheus, Datadog, CloudWatch', 'ELK / OpenSearch, Loki', 'Jaeger, Tempo, OpenTelemetry'],
+          ],
         ),
-      },
-      {
-        title: 'Logs',
-        text: bi(
-          'Structured (JSON) with level, timestamp, service and request/trace ID. Never log passwords, tokens or personal data. Send them to a central system — container logs vanish with the container — and control cost with retention and sampling.',
-          'Structured (JSON), level, timestamp, service aur request/trace ID ke saath. Passwords, tokens ya personal data kabhi log mat karo. Inhe central system mein bhejo — container ke logs container ke saath gayab ho jaate hain — aur retention aur sampling se kharcha control karo.',
+      ),
+      section(
+        'One incident, seen through all three',
+        'Ek incident, teeno ki nazar se',
+        p('**Metric** — the alert fires:', '**Metric** — alert bajta hai:'),
+        code('text', 'checkout p99 latency = 3.2 s (normally 300 ms) · 5xx rate = 4%'),
+        p('**Trace** — shows where the time goes:', '**Trace** — dikhata hai time kahan ja raha hai:'),
+        code(
+          'text',
+          `
+POST /checkout                 3.21 s
+├─ order-service                 40 ms
+└─ payment-service             3.15 s   ← here
+   └─ bank-gateway call        3.10 s`,
         ),
-      },
-      {
-        title: 'Traces',
-        text: bi(
-          'A trace is a tree of spans; each span is one operation with a start time, a duration and attributes. Context propagation passes the trace ID between services in headers (W3C traceparent). Traces are sampled (head-based or tail-based) to control volume.',
-          'Trace spans ka ek tree hai; har span ek operation hai jiske paas start time, duration aur attributes hote hain. Context propagation trace ID ko headers mein services ke beech pahunchata hai (W3C traceparent). Volume control karne ke liye traces sample kiye jaate hain (head-based ya tail-based).',
+        p('**Log** — explains why:', '**Log** — batata hai kyun:'),
+        code(
+          'json',
+          `
+{ "level": "error", "service": "payment-service", "traceId": "4bf92f35", "msg": "bank gateway timeout after 3000 ms", "orderId": "ord_481" }`,
         ),
-      },
-      {
-        title: bi('Correlate them', 'Inhe aapas mein jodo'),
-        text: bi(
-          'Put the trace ID in every log line and attach example trace IDs (exemplars) to metrics. Then you can jump from a latency spike on a dashboard to a slow trace, and from that trace to the exact logs of that request.',
-          'Har log line mein trace ID daalo aur metrics ke saath example trace IDs (exemplars) jodo. Phir dashboard ke latency spike se slow trace tak, aur us trace se us request ke bilkul sahi logs tak kood sakte ho.',
+        p(
+          'Metrics told me something was wrong, the trace showed where, and the log explained why. The shared **trace ID** is what connects them.',
+          'Metrics ne bataya kuch gadbad hai, trace ne dikhaya kahan, aur log ne samjhaya kyun. Shared **trace ID** hi inhe jodta hai.',
         ),
-      },
-      {
-        title: bi('A typical incident', 'Ek typical incident'),
-        text: bi(
-          'An alert fires from metrics (error rate up) → the dashboard narrows it to one service and endpoint → a trace shows the slow or failing span → the logs show the exact error.',
-          'Metrics se alert aata hai (error rate badha) → dashboard ise ek service aur endpoint tak seemit karta hai → trace slow ya fail hota span dikhata hai → logs bilkul sahi error dikhate hain.',
+      ),
+      section(
+        'Good practices',
+        'Acchi practices',
+        ul(
+          ['**Metrics:** counters, gauges and histograms; RED (rate, errors, duration) per service; keep labels low-cardinality — never user IDs.', '**Metrics:** counters, gauges aur histograms; har service ke liye RED (rate, errors, duration); labels low-cardinality rakho — kabhi user IDs nahi.'],
+          ['**Logs:** structured JSON with level, service and trace ID; no passwords or personal data; shipped to one central place.', '**Logs:** level, service aur trace ID ke saath structured JSON; passwords ya personal data nahi; ek central jagah bhejo.'],
+          ['**Traces:** propagate context between services (W3C `traceparent`) and sample to control cost.', '**Traces:** services ke beech context propagate karo (W3C `traceparent`) aur kharcha control karne ke liye sample karo.'],
+          ['**OpenTelemetry** to instrument all three in one consistent way.', 'Teeno ko ek consistent tareeke se instrument karne ke liye **OpenTelemetry**.'],
         ),
-      },
+      ),
     ],
     interview: {
-      opening: bi(
-        'Metrics are aggregated numeric time series that tell you whether something is wrong, logs are detailed event records that tell you why, and traces follow a single request across services to tell you where — together they make a system observable.',
-        'Metrics aggregated numeric time series hain jo batate hain ki kuch gadbad hai ya nahi, logs detailed event records hain jo batate hain kyun, aur traces ek request ko services mein follow karke batate hain kahan — teeno milke system ko observable banate hain.',
-      ),
-      points: [
-        bi('Metrics: counters, gauges and histograms; cheap to store and query; drive dashboards, alerts and SLOs (RED/USE).', 'Metrics: counters, gauges aur histograms; store aur query karna sasta; dashboards, alerts aur SLOs chalate hain (RED/USE).'),
-        bi('Logs: timestamped, ideally structured events with context; high detail and volume; for root cause and audit.', 'Logs: timestamp wale, behtar ho to structured events context ke saath; zyaada detail aur volume; root cause aur audit ke liye.'),
-        bi('Traces: spans with timing and parent-child links across services via context propagation; reveal bottlenecks and failing dependencies.', 'Traces: context propagation se services ke beech timing aur parent-child link wale spans; bottlenecks aur fail hoti dependencies dikhate hain.'),
-        bi('Correlation is key: trace IDs in logs, exemplars linking metrics to traces.', 'Jodna sabse zaroori: logs mein trace IDs, metrics ko traces se jodne wale exemplars.'),
-        bi('Cost trade-offs: low-cardinality metrics, log retention and sampling, sampled traces.', 'Kharche ke trade-offs: low-cardinality metrics, log retention aur sampling, sampled traces.'),
-        bi('Standardise instrumentation with OpenTelemetry.', 'OpenTelemetry se instrumentation standard karo.'),
+      text: [
+        bi(
+          'Metrics are aggregated numeric time series — request rate, error rate, latency percentiles — that are cheap to store and power dashboards, alerts and SLOs; they tell me something is wrong. Logs are detailed, ideally structured records of individual events that tell me why it happened. Traces follow a single request across services as a tree of timed spans and tell me where the time or the failure is.',
+          'Metrics aggregated numeric time series hain — request rate, error rate, latency percentiles — jo store karna sasta hai aur dashboards, alerts aur SLOs chalate hain; yeh batate hain ki kuch gadbad hai. Logs alag events ke detailed, behtar ho to structured record hain jo batate hain kyun hua. Traces ek request ko services mein timed spans ke tree ki tarah follow karte hain aur batate hain ki time ya failure kahan hai.',
+        ),
+        bi(
+          'In an incident I go from a metric alert to a slow or failing trace, and then to the logs for that trace ID. The key is correlation: I put the trace ID in every log line, keep metric labels low-cardinality, sample traces, and instrument everything with OpenTelemetry.',
+          'Incident mein main metric alert se slow ya fail hote trace tak, aur phir us trace ID ke logs tak jaata hoon. Asli baat correlation hai: main har log line mein trace ID daalta hoon, metric labels low-cardinality rakhta hoon, traces sample karta hoon, aur sab kuch OpenTelemetry se instrument karta hoon.',
+        ),
       ],
-      keywords: [
-        'Observability',
-        'Three pillars',
-        'Time series',
-        'Counter / gauge / histogram',
-        'Cardinality',
-        'Structured logging',
-        'Correlation ID',
-        'Span',
-        'Context propagation',
-        'Sampling',
-        'RED / USE method',
-        'OpenTelemetry',
-        'SLI / SLO',
-      ],
+      keywords: ['Observability', 'Three pillars', 'Time series', 'Counter / gauge / histogram', 'Cardinality', 'Structured logging', 'Trace ID / correlation', 'Span', 'Context propagation', 'Sampling', 'RED method', 'OpenTelemetry'],
     },
     listenFor: [
-      bi('Correct definitions and when to use each one.', 'Sahi definitions aur har ek kab use karna.'),
-      bi('How they connect to each other (trace IDs in logs).', 'Yeh aapas mein kaise judte hain (logs mein trace IDs).'),
-      bi('A practical incident flow.', 'Ek practical incident flow.'),
+      bi('Correct definitions and when to use each.', 'Sahi definitions aur har ek kab use karna.'),
+      bi('How they connect (trace IDs in logs) and a practical incident flow.', 'Yeh kaise judte hain (logs mein trace IDs) aur ek practical incident flow.'),
     ],
-    mistakes: [
-      bi('Using logs as metrics (counting errors by searching logs).', 'Logs ko metrics ki tarah use karna (logs search karke errors ginna).'),
-      bi('High-cardinality metric labels such as user IDs.', 'User IDs jaise high-cardinality metric labels.'),
-      bi('Unstructured logs with no trace ID.', 'Bina trace ID ke unstructured logs.'),
-    ],
+    mistakes: [bi('Counting errors by searching logs instead of using metrics.', 'Metrics ki jagah logs search karke errors ginna.'), bi('Putting user IDs in metric labels.', 'Metric labels mein user IDs daalna.')],
     followUps: [
       {
         q: bi('Why not just log everything?', 'Sab kuch log hi kyun na kar dein?'),
         a: bi(
-          'Cost and noise: enormous volume, slow searches and privacy risk. Metrics are far better for trends and alerting.',
-          'Kharcha aur shor: bahut bada volume, slow search aur privacy ka risk. Trends aur alerting ke liye metrics kahin behtar hain.',
-        ),
-      },
-      {
-        q: bi('What is cardinality, and why does it matter for metrics?', 'Cardinality kya hai, aur metrics ke liye kyun zaroori hai?'),
-        a: bi(
-          'The number of unique label combinations. A label like user_id creates millions of separate time series and explodes storage and cost.',
-          'Unique label combinations ki ginti. user_id jaisa label lakhon alag time series bana deta hai aur storage aur kharcha phat jaata hai.',
+          'Cost and noise: huge volume, slow searches and privacy risk. Metrics are far better for trends and alerting; logs are for detail.',
+          'Kharcha aur shor: bahut bada volume, slow search aur privacy ka risk. Trends aur alerting ke liye metrics kahin behtar hain; logs detail ke liye hain.',
         ),
       },
     ],
@@ -558,138 +497,111 @@ export const devopsQuestions: PrepQuestion[] = [
     question: bi('What metrics would you monitor for a production API?', 'Production API ke liye kaun se metrics monitor karoge?'),
     kind: 'concept',
     level: 'intermediate',
-    tags: ['metrics', 'monitoring', 'golden signals', 'latency', 'error rate', 'slo', 'alerting'],
-    simple: bi(
-      'Start with the four “golden signals”: how much traffic you get, how many requests fail, how long requests take (especially the slowest ones), and how full your resources are. Then add metrics for what the API depends on (database, cache, queues, third-party APIs) and for the business itself (orders per minute, successful logins).',
-      'Chaar “golden signals” se shuru karo: kitna traffic aa raha hai, kitni requests fail ho rahi hain, requests kitna time le rahi hain (khaas kar sabse slow wali), aur resources kitne bhare hain. Phir un cheezon ke metrics jodo jin pe API depend karta hai (database, cache, queues, third-party APIs) aur business ke bhi (har minute ke orders, successful logins).',
+    tags: ['metrics', 'monitoring', 'golden signals', 'latency', 'error rate', 'slo', 'prometheus'],
+    answer: bi(
+      'I start with the four golden signals for every endpoint — traffic, errors, latency as percentiles, and saturation — then add the health of dependencies (database, cache, queues, third-party APIs) and a few business metrics such as successful checkouts. I alert on what users feel, not on every CPU blip.',
+      'Main har endpoint ke chaar golden signals se shuru karta hoon — traffic, errors, percentiles mein latency, aur saturation — phir dependencies (database, cache, queues, third-party APIs) ki health aur kuch business metrics jaise successful checkouts jodta hoon. Main users jo mehsoos karte hain uspe alert karta hoon, har CPU blip pe nahi.',
     ),
-    example: bi(
-      'Running a restaurant: customers per hour (traffic), dishes sent back (errors), how long guests wait for food — especially the unluckiest 1% (p99 latency), how busy the kitchen is and how many tables are free (saturation), plus today’s revenue (a business metric). If any of these drift you act before the bad reviews arrive.',
-      'Restaurant chalana: har ghante ke customers (traffic), wapas aayi dishes (errors), guests khaane ka kitna wait karte hain — khaas kar sabse badkismat 1% (p99 latency), kitchen kitni busy hai aur kitni tables khaali hain (saturation), plus aaj ki kamaai (business metric). Inme se kuch bhi bigde to bure reviews aane se pehle action lete ho.',
-    ),
-    why: bi(
-      'You cannot fix what you cannot see. Good metrics catch problems before users report them, prove you meet your SLAs, and guide capacity planning.',
-      'Jo dikhta nahi use theek nahi kar sakte. Acche metrics users ke batane se pehle problem pakadte hain, saabit karte hain ki SLAs poore ho rahe hain, aur capacity planning mein madad karte hain.',
-    ),
-    without: bi(
-      'You learn about outages from customers or social media, slow degradation goes unnoticed for weeks, and you have no data to debug with or to plan scaling.',
-      'Outages ka pata customers ya social media se chalta hai, dheere-dheere bigadna hafton tak pata nahi chalta, aur debug karne ya scaling plan karne ko koi data nahi hota.',
-    ),
-    table: {
-      columns: ['Metric', 'Why it matters', 'Example alert'],
-      rows: [
-        ['Request rate', bi('A sudden drop or spike reveals outages, attacks or broken clients', 'Achanak giravat ya uchhaal outages, attacks ya toote clients dikhata hai'), bi('Traffic 50% below the same time last week', 'Pichhle hafte isi time se traffic 50% kam')],
-        ['Error rate (5xx)', bi('Users are failing', 'Users fail ho rahe hain'), bi('5xx above 1% for 5 minutes', '5 minute tak 5xx 1% se zyaada')],
-        ['Latency p95 / p99', bi('The slow tail hurts real users; averages hide it', 'Slow tail asli users ko chot pahunchata hai; averages ise chhupa dete hain'), bi('p99 above 800 ms for 10 minutes', '10 minute tak p99 800 ms se zyaada')],
-        ['Saturation', bi('Headroom left before things fail', 'Fail hone se pehle kitni gunjaish bachi'), bi('DB connection pool above 90%', 'DB connection pool 90% se zyaada')],
-        ['Dependency health', bi('Most incidents start downstream', 'Zyaadatar incidents neeche ki services se shuru hote hain'), bi('DB p99 above 200 ms, queue lag growing', 'DB p99 200 ms se zyaada, queue lag badh raha')],
-        ['Business KPIs', bi('Catches “200 OK but wrong”', '“200 OK par galat” ko pakadta hai'), bi('Checkout success below 95%', 'Checkout success 95% se kam')],
-      ],
-    },
-    partsTitle: bi('What to monitor, layer by layer', 'Kya monitor karein, layer dar layer'),
-    parts: [
-      {
-        title: bi('1. The golden signals per endpoint', '1. Har endpoint ke golden signals'),
-        text: bi(
-          'Rate (requests per second); errors (5xx rate — and notable 4xx separately, since a spike in 401s or 429s also means trouble); duration as percentiles (p50, p95, p99), never just the average. Track the latency of successful and failed requests separately.',
-          'Rate (requests per second); errors (5xx rate — aur khaas 4xx alag se, kyunki 401 ya 429 ka uchhaal bhi gadbad hai); duration percentiles mein (p50, p95, p99), kabhi sirf average nahi. Successful aur failed requests ki latency alag track karo.',
+    sections: [
+      section(
+        'The four golden signals',
+        'Chaar golden signals',
+        table(
+          ['Signal', bi('What I measure', 'Main kya naapta hoon'), 'Example alert'],
+          [
+            ['Traffic', bi('Requests per second per endpoint', 'Har endpoint ki requests per second'), bi('Traffic 50% below the same time last week', 'Pichhle hafte isi time se traffic 50% kam')],
+            ['Errors', bi('5xx rate, plus notable 4xx (401, 429)', '5xx rate, plus khaas 4xx (401, 429)'), bi('5xx above 1% for 5 minutes', '5 minute tak 5xx 1% se zyaada')],
+            ['Latency', bi('p50, p95, p99 per endpoint', 'Har endpoint ka p50, p95, p99'), bi('p99 above 800 ms for 10 minutes', '10 minute tak p99 800 ms se zyaada')],
+            ['Saturation', bi('CPU, memory, event-loop lag, DB pool usage, queue depth', 'CPU, memory, event-loop lag, DB pool use, queue depth'), bi('DB connection pool above 90%', 'DB connection pool 90% se zyaada')],
+          ],
         ),
-      },
-      {
-        title: bi('2. Saturation and resources', '2. Saturation aur resources'),
-        text: bi(
-          'CPU, memory, garbage-collection pauses, event-loop lag (Node.js), thread-pool and database connection-pool usage, open connections, disk and network — plus container restarts and OOMKills.',
-          'CPU, memory, garbage-collection pauses, event-loop lag (Node.js), thread-pool aur database connection-pool ka use, open connections, disk aur network — plus container restarts aur OOMKills.',
+      ),
+      section(
+        'Why percentiles, not averages',
+        'Averages nahi, percentiles kyun',
+        p(
+          'Out of 100 requests, 95 take 100 ms and 5 take 5 seconds. The **average is 345 ms** — it looks fine. The **p99 is 5 seconds** — the truth. At a million requests a day, that 1% is ten thousand unhappy users.',
+          '100 requests mein se 95 ko 100 ms aur 5 ko 5 second lagte hain. **Average 345 ms** hai — theek lagta hai. **p99 5 second** hai — yahi sach hai. Din ki das lakh requests pe woh 1% das hazaar naraaz users hain.',
         ),
-      },
-      {
-        title: '3. Dependencies',
-        text: bi(
-          'Database query latency, errors, slow queries and replication lag; cache hit ratio and latency; queue depth and consumer lag; third-party API latency and errors; circuit-breaker state.',
-          'Database query latency, errors, slow queries aur replication lag; cache hit ratio aur latency; queue depth aur consumer lag; third-party API latency aur errors; circuit-breaker ki state.',
+      ),
+      section(
+        'Beyond the golden signals',
+        'Golden signals ke aage',
+        ul(
+          ['**Dependencies:** database latency and errors, cache hit ratio, queue consumer lag, third-party API latency, circuit-breaker state.', '**Dependencies:** database latency aur errors, cache hit ratio, queue consumer lag, third-party API latency, circuit-breaker state.'],
+          ['**Runtime:** event-loop lag and GC pauses (Node.js), container restarts and OOMKills.', '**Runtime:** event-loop lag aur GC pauses (Node.js), container restarts aur OOMKills.'],
+          ['**Business:** signups, logins, checkout success — they catch “200 OK but wrong”.', '**Business:** signups, logins, checkout success — yeh “200 OK par galat” pakadte hain.'],
+          ['**Deploy markers** on every dashboard, so a regression lines up with the release that caused it.', 'Har dashboard pe **deploy markers**, taaki regression us release se mil jaaye jisne use paida kiya.'],
         ),
-      },
-      {
-        title: bi('4. Business and user metrics', '4. Business aur user metrics'),
-        text: bi(
-          'Sign-ups, logins, checkout and payment success rates. These catch bugs where the API happily returns 200 but does the wrong thing.',
-          'Sign-ups, logins, checkout aur payment success rates. Yeh woh bugs pakadte hain jahan API khushi se 200 lautata hai par galat kaam karta hai.',
+      ),
+      section(
+        'Instrumenting it in Node.js',
+        'Node.js mein instrument karna',
+        code(
+          'ts',
+          `
+import client from 'prom-client';
+
+const httpDuration = new client.Histogram({
+  name: 'http_request_duration_seconds',
+  help: 'HTTP request duration',
+  labelNames: ['method', 'route', 'status'],
+  buckets: [0.05, 0.1, 0.3, 0.5, 1, 2, 5],
+});
+
+app.use((req, res, next) => {
+  const end = httpDuration.startTimer();
+  res.on('finish', () => end({ method: req.method, route: req.route?.path ?? 'unknown', status: res.statusCode }));
+  next();
+});`,
         ),
-      },
-      {
-        title: bi('5. Availability and SLOs', '5. Availability aur SLOs'),
-        text: bi(
-          'Synthetic checks from outside, service-level indicators (for example “99.9% of requests succeed in under 300 ms”), and how fast the error budget is being burned.',
-          'Bahar se synthetic checks, service-level indicators (jaise “99.9% requests 300 ms se kam mein succeed hon”), aur error budget kitni tezi se khatam ho raha hai.',
+        note(
+          'warning',
+          'Use the **route** (`/orders/:id`) as a label, never the raw URL or a user ID — every unique value creates a new time series and blows up cost.',
+          'Label mein **route** (`/orders/:id`) use karo, kabhi raw URL ya user ID nahi — har unique value ek nayi time series banati hai aur kharcha phat jaata hai.',
         ),
-      },
-      {
-        title: bi('6. Deploy and security signals', '6. Deploy aur security signals'),
-        text: bi(
-          'Deployment markers on every dashboard, authentication failures, rate-limit rejections and unusual traffic patterns.',
-          'Har dashboard pe deployment markers, authentication failures, rate-limit rejections aur ajeeb traffic patterns.',
+        code(
+          'promql',
+          `
+# alert: more than 1% of requests failing over 5 minutes
+sum(rate(http_request_duration_seconds_count{status=~"5.."}[5m]))
+  / sum(rate(http_request_duration_seconds_count[5m])) > 0.01`,
         ),
-      },
-      {
-        title: bi('7. Alert well', '7. Sahi tareeke se alert karo'),
-        text: bi(
-          'Alert on symptoms users feel (error rate, latency, SLO burn rate), not on every CPU blip. Page people only for problems that need action now, link every alert to a runbook, and prune noisy alerts to avoid alert fatigue.',
-          'Users jo mehsoos karte hain un lakshano pe alert karo (error rate, latency, SLO burn rate), har CPU blip pe nahi. Logon ko sirf un problems pe jagao jinpe abhi action chahiye, har alert ko runbook se jodo, aur shor machane wale alerts hatao taaki alert fatigue na ho.',
+      ),
+      section(
+        'Alerting',
+        'Alerting',
+        ul(
+          ['Alert on symptoms users feel — error rate, latency, SLO burn rate.', 'Users jo mehsoos karte hain un lakshano pe alert karo — error rate, latency, SLO burn rate.'],
+          ['Page people only for problems that need action now; link every alert to a runbook.', 'Logon ko sirf un problems pe jagao jinpe abhi action chahiye; har alert ko runbook se jodo.'],
+          ['Remove noisy alerts — alert fatigue makes people ignore the real ones.', 'Shor wale alerts hatao — alert fatigue se log asli alerts bhi ignore karne lagte hain.'],
         ),
-      },
+      ),
     ],
     interview: {
-      opening: bi(
-        'I would monitor the four golden signals — traffic, errors, latency percentiles and saturation — per endpoint, plus dependency health and key business metrics, and alert on user-facing SLO violations rather than on every resource blip.',
-        'Main har endpoint ke chaar golden signals monitor karunga — traffic, errors, latency percentiles aur saturation — plus dependency health aur zaroori business metrics, aur har resource blip ki jagah user-facing SLO violations pe alert karunga.',
-      ),
-      points: [
-        bi('Traffic: requests per second per endpoint and status code.', 'Traffic: har endpoint aur status code ke requests per second.'),
-        bi('Errors: 5xx rate plus notable 4xx (401, 429); error-budget burn.', 'Errors: 5xx rate plus khaas 4xx (401, 429); error-budget burn.'),
-        bi('Latency: p50/p95/p99 from histograms, not averages.', 'Latency: histograms se p50/p95/p99, averages nahi.'),
-        bi('Saturation: CPU, memory, GC or event-loop lag, thread and connection-pool usage, queue depth.', 'Saturation: CPU, memory, GC ya event-loop lag, thread aur connection-pool use, queue depth.'),
-        bi('Dependencies: database latency and errors, cache hit ratio, external API latency, circuit-breaker state.', 'Dependencies: database latency aur errors, cache hit ratio, external API latency, circuit-breaker state.'),
-        bi('Business KPIs such as checkout or login success to catch silent failures.', 'Chupi failures pakadne ke liye checkout ya login success jaise business KPIs.'),
-        bi('SLIs/SLOs with burn-rate alerts, deployment markers and synthetic checks; actionable alerts with runbooks.', 'Burn-rate alerts ke saath SLIs/SLOs, deployment markers aur synthetic checks; runbooks ke saath action layak alerts.'),
+      text: [
+        bi(
+          'I monitor the four golden signals per endpoint: traffic in requests per second, errors as the 5xx rate plus notable 4xx such as 401 and 429, latency as p50, p95 and p99 from histograms rather than averages, and saturation — CPU, memory, event-loop lag, connection-pool usage and queue depth.',
+          'Main har endpoint ke chaar golden signals monitor karta hoon: requests per second mein traffic, 5xx rate plus 401 aur 429 jaise khaas 4xx ke roop mein errors, averages ki jagah histograms se p50, p95 aur p99 latency, aur saturation — CPU, memory, event-loop lag, connection-pool use aur queue depth.',
+        ),
+        bi(
+          'On top of that I track dependency health — database latency, cache hit ratio, consumer lag, third-party latency — and business KPIs like checkout success to catch silent failures. I define SLOs, alert on burn rate and user-facing symptoms with runbooks, add deploy markers to dashboards, and keep metric labels low-cardinality.',
+          'Uske upar main dependency health track karta hoon — database latency, cache hit ratio, consumer lag, third-party latency — aur chupi failures pakadne ke liye checkout success jaise business KPIs. Main SLOs tay karta hoon, runbooks ke saath burn rate aur user-facing lakshano pe alert karta hoon, dashboards pe deploy markers lagata hoon, aur metric labels low-cardinality rakhta hoon.',
+        ),
       ],
-      keywords: [
-        'Four golden signals',
-        'RED method',
-        'USE method',
-        'Latency percentiles (p95 / p99)',
-        'Throughput',
-        'Error rate',
-        'Saturation',
-        'SLI / SLO / SLA',
-        'Error budget',
-        'Burn-rate alerting',
-        'Synthetic monitoring',
-        'Alert fatigue',
-      ],
+      keywords: ['Four golden signals', 'RED method', 'USE method', 'Latency percentiles', 'Error rate', 'Saturation', 'SLI / SLO / SLA', 'Error budget', 'Burn-rate alert', 'Cardinality', 'Alert fatigue'],
     },
     listenFor: [
       bi('Percentiles rather than averages.', 'Averages ki jagah percentiles.'),
-      bi('The golden signals, plus dependencies and business metrics.', 'Golden signals, plus dependencies aur business metrics.'),
-      bi('A sensible alerting philosophy.', 'Alerting ki samajhdaar soch.'),
+      bi('Golden signals plus dependencies and business metrics, and a sensible alerting approach.', 'Golden signals plus dependencies aur business metrics, aur alerting ki samajhdaar soch.'),
     ],
-    mistakes: [
-      bi('Watching only CPU and memory.', 'Sirf CPU aur memory dekhna.'),
-      bi('Using only average latency.', 'Sirf average latency use karna.'),
-      bi('Alerting on everything, so real alerts get ignored.', 'Har cheez pe alert, to asli alerts ignore ho jaate hain.'),
-    ],
+    mistakes: [bi('Watching only CPU and memory.', 'Sirf CPU aur memory dekhna.'), bi('Alerting on everything.', 'Har cheez pe alert.')],
     followUps: [
-      {
-        q: bi('Why p99 instead of the average?', 'Average ki jagah p99 kyun?'),
-        a: bi(
-          'The average hides the slow tail. At scale, 1% of requests is thousands of users — and a page that makes many calls almost always hits the tail somewhere.',
-          'Average slow tail chhupa deta hai. Bade scale pe 1% requests matlab hazaaron users — aur kai calls karne wala page lagbhag hamesha kahin na kahin tail se takraata hai.',
-        ),
-      },
       {
         q: bi('SLI vs SLO vs SLA?', 'SLI, SLO aur SLA mein kya fark hai?'),
         a: bi(
-          'The SLI is the measurement (for example the success rate). The SLO is the internal target (99.9%). The SLA is the contractual promise to customers, with penalties — usually looser than the SLO.',
-          'SLI naap hai (jaise success rate). SLO andar ka target hai (99.9%). SLA customers se kiya contract wala vaada hai, penalty ke saath — aam taur pe SLO se dheela.',
+          'The SLI is the measurement (the success rate). The SLO is the internal target (99.9%). The SLA is the contractual promise to customers, with penalties — usually looser than the SLO.',
+          'SLI naap hai (success rate). SLO andar ka target hai (99.9%). SLA customers se contract wala vaada hai, penalty ke saath — aam taur pe SLO se dheela.',
         ),
       },
     ],
@@ -707,131 +619,93 @@ export const devopsQuestions: PrepQuestion[] = [
     kind: 'scenario',
     level: 'advanced',
     tags: ['latency', 'troubleshooting', 'tracing', 'profiling', 'performance', 'n+1'],
-    scenario: bi(
-      'For example: “open order #101” takes 120 ms, but “open order #205” takes 4 seconds — same endpoint, same code, similar users. Or saving a profile is quick, but saving a profile with a photo is slow. The interviewer is testing your method: do you measure and narrow it down step by step, from the user’s device to the database and back, or do you guess? They want to hear about tracing, comparing the fast and slow cases, and forming and testing hypotheses.',
-      'Jaise: “order #101 kholo” 120 ms leta hai, par “order #205 kholo” 4 second — same endpoint, same code, milte-julte users. Ya profile save karna fast hai, par photo ke saath profile save karna slow. Interviewer aapka tareeka parakh raha hai: kya aap user ke device se database tak aur wapas, step by step naap ke dhoondhte ho, ya andaaza lagate ho? Woh tracing, fast aur slow case ki tulna, aur hypotheses banane aur test karne ki baat sunna chahta hai.',
+    answer: bi(
+      'I do not guess — I break the request into stages and measure each one for both the fast and the slow case. Comparing a fast and a slow distributed trace side by side usually shows which stage grows; then I dig into that stage — query plan, cache hit or miss, external call, code path or the specific server — and confirm the cause by changing one variable at a time.',
+      'Main andaaza nahi lagata — request ko stages mein todta hoon aur fast aur slow dono case ke liye har stage naapta hoon. Ek fast aur ek slow distributed trace ko saath-saath compare karne se aksar dikh jaata hai kaunsa stage bada hai; phir main us stage mein khodta hoon — query plan, cache hit ya miss, external call, code path ya khaas server — aur ek baar mein ek cheez badal ke kaaran confirm karta hoon.',
     ),
-    simple: bi(
-      'Work like a detective. First confirm and measure the difference. Then break the request into stages — network, load balancer, service code, database, cache, external calls — and time each stage for both the fast and the slow case. The stage where the times differ is where the extra latency lives. Then dig into why: different data, a cache miss, a different code branch, a slow dependency or a different server.',
-      'Detective ki tarah kaam karo. Pehle fark ko confirm karo aur naapo. Phir request ko stages mein todo — network, load balancer, service code, database, cache, external calls — aur fast aur slow dono cases ke liye har stage ka time naapo. Jis stage pe time alag hai, extra latency wahin hai. Phir kyun, yeh khodo: alag data, cache miss, alag code branch, slow dependency ya alag server.',
-    ),
-    example: bi(
-      'Two friends order the same pizza from the same shop; one gets it in 20 minutes, the other in 70. To find out why, you check the timestamp of every step: order received, cooking started, out for delivery, delivered. If cooking times match but delivery differs, the problem is the route (a far address, traffic) — not the kitchen.',
-      'Do dost same dukaan se same pizza order karte hain; ek ko 20 minute mein milta hai, doosre ko 70 mein. Kyun, yeh jaanne ke liye har step ka timestamp dekhte ho: order mila, banna shuru, delivery ke liye nikla, pahuncha. Banane ka time same par delivery alag, to problem raasta hai (door ka address, traffic) — kitchen nahi.',
-    ),
-    partsTitle: bi('A systematic approach', 'Ek systematic tareeka'),
-    parts: [
-      {
-        title: bi('1. Define and reproduce', '1. Define karo aur reproduce karo'),
-        text: bi(
-          'Exact actions, inputs, users and times. Is it consistent or intermittent? Measure with real numbers (p50 vs p99), not “it feels slow”. Does it correlate with particular data (large accounts), regions, devices, servers or times of day?',
-          'Bilkul kaunse actions, inputs, users aur time. Hamesha hota hai ya kabhi-kabhi? Asli numbers se naapo (p50 vs p99), “slow lag raha hai” se nahi. Kya iska rishta kisi khaas data (bade accounts), regions, devices, servers ya din ke samay se hai?',
+    sections: [
+      section(
+        'The scenario',
+        'Scenario',
+        p(
+          '`GET /orders/101` takes 120 ms, but `GET /orders/205` takes 4 seconds — same endpoint, same code, similar users. The interviewer is checking your method: measure and narrow down, or guess?',
+          '`GET /orders/101` 120 ms leta hai, par `GET /orders/205` 4 second — same endpoint, same code, milte-julte users. Interviewer aapka tareeka dekh raha hai: naap ke seemit karna, ya andaaza?',
         ),
-      },
-      {
-        title: bi('2. Start at the client', '2. Client se shuru karo'),
-        text: bi(
-          'The browser’s Network waterfall (or mobile tracing) shows whether the time is spent in DNS, TLS and connecting, waiting for the server (time to first byte), downloading a large payload, or rendering on the client.',
-          'Browser ka Network waterfall (ya mobile tracing) dikhata hai ki time DNS, TLS aur connect hone mein, server ka wait karne (time to first byte), bada payload download karne, ya client pe render karne mein ja raha hai.',
+      ),
+      section(
+        'Step by step',
+        'Step by step',
+        steps(
+          ['Define and reproduce', 'Define aur reproduce karo', 'Exact inputs, users and times; consistent or intermittent; p50 vs p99. Does it follow certain data, regions or servers?', 'Bilkul kaunse inputs, users aur time; hamesha ya kabhi-kabhi; p50 vs p99. Kya yeh kisi khaas data, region ya server ke saath hota hai?'],
+          ['Check the client', 'Client check karo', 'The browser’s network waterfall: DNS, TLS, waiting for the server (TTFB), download size, rendering.', 'Browser ka network waterfall: DNS, TLS, server ka wait (TTFB), download size, rendering.'],
+          ['Check the edge', 'Edge check karo', 'Load balancer logs show the upstream time — it separates network and queueing from processing.', 'Load balancer logs upstream time dikhate hain — yeh network aur queueing ko processing se alag karta hai.'],
+          ['Compare traces', 'Traces compare karo', 'Put a fast and a slow trace side by side; find the span that grows.', 'Ek fast aur ek slow trace saath rakho; jo span bada hai woh dhoondho.'],
+          ['Drill into that span', 'Us span mein khodo', 'Query plan, cache hit/miss, external API latency and retries, N+1 queries, payload size, CPU profile.', 'Query plan, cache hit/miss, external API latency aur retries, N+1 queries, payload size, CPU profile.'],
+          ['Test one hypothesis at a time', 'Ek baar mein ek hypothesis test karo', 'Replay the slow request with the fast user’s data, warm the cache, or route to another instance.', 'Slow request ko fast user ke data ke saath dobara chalao, cache garam karo, ya doosre instance pe bhejo.'],
+          ['Fix and prevent', 'Theek karo aur roko', 'Fix the root cause, compare before/after, and add latency percentiles and alerts for that path.', 'Root cause theek karo, pehle/baad compare karo, aur us path pe latency percentiles aur alerts jodo.'],
         ),
-      },
-      {
-        title: bi('3. Timing at the edge', '3. Edge pe timing'),
-        text: bi(
-          'Load balancer or gateway access logs record the upstream response time. Comparing total time with time spent inside the service separates network and queueing from processing.',
-          'Load balancer ya gateway ke access logs upstream response time record karte hain. Total time ko service ke andar ke time se compare karne se network aur queueing ko processing se alag kar sakte ho.',
+      ),
+      section(
+        'Comparing two traces',
+        'Do traces compare karna',
+        code(
+          'text',
+          `
+GET /orders/101    total   120 ms        GET /orders/205    total 4,020 ms
+├─ auth                     8 ms         ├─ auth                     9 ms
+├─ db: load order          12 ms         ├─ db: load order          11 ms
+├─ db: load items          15 ms         ├─ db: load items       3,850 ms   ← here
+└─ serialize JSON          20 ms         └─ serialize JSON          95 ms`,
         ),
-      },
-      {
-        title: bi('4. Compare traces side by side', '4. Traces ko saath-saath compare karo'),
-        text: bi(
-          'With distributed tracing, open a fast trace and a slow trace and compare them span by span — handlers, database queries, cache calls, external APIs, queues. The span that grows is the culprit. Add custom spans where the picture is unclear.',
-          'Distributed tracing se ek fast aur ek slow trace kholo aur span dar span compare karo — handlers, database queries, cache calls, external APIs, queues. Jo span bada hai wahi dosh hai. Jahan tasveer saaf na ho wahan custom spans jodo.',
+        p(
+          'Only **load items** grew. Order 205 has 40,000 items, and that query does a sequential scan because `order_items.order_id` has no index. Adding the index — and paginating items — fixes it.',
+          'Sirf **load items** bada hua. Order 205 mein 40,000 items hain, aur woh query sequential scan karti hai kyunki `order_items.order_id` pe index nahi. Index jodna — aur items paginate karna — ise theek kar deta hai.',
         ),
-      },
-      {
-        title: bi('5. Drill into the slow span', '5. Slow span mein gehraai se jao'),
-        text: bi(
-          'Database: run EXPLAIN with the slow input — more rows, a missing index, lock waits? Cache: hit or miss? External API: their latency, retries, timeouts. Code: a different branch, N+1 queries, serializing a huge object. For CPU-heavy paths, profile with flame graphs.',
-          'Database: slow input ke saath EXPLAIN chalao — zyaada rows, missing index, lock waits? Cache: hit ya miss? External API: unki latency, retries, timeouts. Code: alag branch, N+1 queries, bahut bada object serialize karna. CPU-heavy paths ke liye flame graphs se profile karo.',
+      ),
+      section(
+        'Common culprits',
+        'Aam dosh',
+        table(
+          [bi('Culprit', 'Dosh'), bi('How it shows up', 'Kaise dikhta hai'), bi('How I confirm it', 'Kaise confirm karta hoon')],
+          [
+            [bi('Data-dependent query', 'Data pe depend query'), bi('Slow only for big accounts', 'Sirf bade accounts ke liye slow'), '`EXPLAIN ANALYZE` with that input'],
+            ['Cache miss', bi('First request slow, later fast', 'Pehli request slow, baad wali fast'), bi('Cache hit/miss in logs or spans', 'Logs ya spans mein cache hit/miss')],
+            ['N+1 queries', bi('Hundreds of tiny DB spans', 'Saikdon chhote DB spans'), bi('Span count grows with item count', 'Items ke saath span count badhta hai')],
+            ['Slow dependency', bi('One external span is long, or retried', 'Ek external span lamba, ya retry hua'), bi('Their latency metrics, retries', 'Unki latency metrics, retries')],
+            [bi('One bad instance', 'Ek kharab instance'), bi('Slow only on one pod', 'Sirf ek pod pe slow'), bi('Group latency by host; GC pauses, CPU throttling', 'Host ke hisaab se latency; GC pauses, CPU throttling')],
+          ],
         ),
-      },
-      {
-        title: bi('6. Check the environment', '6. Environment check karo'),
-        text: bi(
-          'One particular instance or pod (a noisy neighbour, garbage-collection pauses, CPU throttling), waiting for a connection from the pool, a blocked event loop, cold starts, or region and availability-zone differences.',
-          'Koi ek khaas instance ya pod (shor machata padosi, garbage-collection pauses, CPU throttling), pool se connection ka wait, block hua event loop, cold starts, ya region aur availability-zone ke fark.',
+        note(
+          'tip',
+          'No tracing yet? Log the duration of each stage with a correlation ID, use load balancer access logs and the database slow-query log — and add tracing as part of the fix.',
+          'Abhi tracing nahi? Har stage ki duration correlation ID ke saath log karo, load balancer access logs aur database slow-query log use karo — aur fix ke saath tracing jodo.',
         ),
-      },
-      {
-        title: bi('7. Change one variable at a time', '7. Ek baar mein ek hi cheez badlo'),
-        text: bi(
-          'Form a hypothesis and test it: replay the slow request with the fast user’s data, warm the cache, or route it to another instance. If the latency moves, you have found the cause.',
-          'Ek hypothesis banao aur test karo: slow request ko fast user ke data ke saath dobara chalao, cache garam karo, ya kisi doosre instance pe bhejo. Latency badli, to kaaran mil gaya.',
-        ),
-      },
-      {
-        title: bi('8. Fix, verify, prevent', '8. Theek karo, verify karo, roko'),
-        text: bi(
-          'Fix the root cause, compare before and after with metrics, and add per-endpoint latency percentiles, alerts and tracing on that path so it is caught early next time.',
-          'Root cause theek karo, metrics se pehle aur baad compare karo, aur us raaste pe har endpoint ke latency percentiles, alerts aur tracing jodo taaki agli baar jaldi pakda jaaye.',
-        ),
-      },
+      ),
     ],
     interview: {
-      opening: bi(
-        'I would measure both requests end to end and break the latency down hop by hop — client, network, edge, each service and each dependency — ideally by comparing distributed traces of a fast and a slow request side by side, then drill into the span that differs and test hypotheses one variable at a time.',
-        'Main dono requests ko shuru se aakhir tak naapunga aur latency ko hop dar hop todunga — client, network, edge, har service aur har dependency — behtar ho to ek fast aur ek slow request ke distributed traces saath-saath compare karke, phir jo span alag hai usme gehraai se jaunga aur ek baar mein ek cheez badal ke hypotheses test karunga.',
-      ),
-      points: [
-        bi('Quantify and reproduce: percentiles; which inputs, users, regions or instances are slow; consistent or intermittent.', 'Naapo aur reproduce karo: percentiles; kaunse inputs, users, regions ya instances slow; hamesha ya kabhi-kabhi.'),
-        bi('Client side: the network waterfall — DNS, TLS, TTFB, payload size, rendering.', 'Client side: network waterfall — DNS, TLS, TTFB, payload size, rendering.'),
-        bi('Edge: load balancer and gateway logs with upstream timings separate network/queueing from processing.', 'Edge: upstream timings wale load balancer aur gateway logs network/queueing ko processing se alag karte hain.'),
-        bi('Distributed tracing: diff the span breakdown of a fast and a slow trace.', 'Distributed tracing: fast aur slow trace ke span breakdown ka fark nikaalo.'),
-        bi('Drill down: EXPLAIN for queries, cache hit vs miss, external API latency and retries, N+1 queries, payload serialization, CPU profiling.', 'Gehraai mein: queries ke liye EXPLAIN, cache hit vs miss, external API latency aur retries, N+1 queries, payload serialization, CPU profiling.'),
-        bi('Environment: specific hosts, GC pauses, CPU throttling, connection-pool waits, event-loop blocking, cold starts.', 'Environment: khaas hosts, GC pauses, CPU throttling, connection-pool waits, event-loop blocking, cold starts.'),
-        bi('Confirm by changing one variable at a time; fix, verify with metrics, add alerts.', 'Ek baar mein ek cheez badal ke confirm karo; theek karo, metrics se verify karo, alerts jodo.'),
+      text: [
+        bi(
+          'I would measure both requests end to end and break the latency down hop by hop — client, network, edge, each service and each dependency. First I make sure I can reproduce it and see whether it follows particular inputs, users or servers. Then I check the client waterfall and the load balancer’s upstream timings to separate network and queueing from processing.',
+          'Main dono requests ko shuru se aakhir tak naapunga aur latency ko hop dar hop todunga — client, network, edge, har service aur har dependency. Pehle pakka karta hoon ki reproduce kar sakun aur dekhta hoon ki yeh khaas inputs, users ya servers ke saath hota hai ya nahi. Phir client waterfall aur load balancer ki upstream timings dekh ke network aur queueing ko processing se alag karta hoon.',
+        ),
+        bi(
+          'The most effective step is comparing a fast and a slow distributed trace side by side to find the span that grows, then drilling into it: EXPLAIN for data-dependent queries, cache hit versus miss, external API latency and retries, N+1 queries, payload size, or a specific instance with GC pauses or CPU throttling. I confirm by changing one variable at a time, fix the root cause, and add latency percentiles and alerts so it is caught early next time.',
+          'Sabse asardaar step hai ek fast aur ek slow distributed trace ko saath-saath compare karke bada hota span dhoondhna, phir usme khodna: data pe depend queries ke liye EXPLAIN, cache hit vs miss, external API latency aur retries, N+1 queries, payload size, ya GC pauses ya CPU throttling wala khaas instance. Main ek baar mein ek cheez badal ke confirm karta hoon, root cause theek karta hoon, aur latency percentiles aur alerts jodta hoon taaki agli baar jaldi pakda jaaye.',
+        ),
       ],
-      keywords: [
-        'End-to-end latency',
-        'Latency breakdown',
-        'Distributed tracing',
-        'Span',
-        'Critical path',
-        'TTFB',
-        'p50 / p99',
-        'Cache hit vs miss',
-        'N+1 queries',
-        'Lock contention',
-        'Connection-pool wait',
-        'GC pause',
-        'Flame graph / profiling',
-        'Hypothesis-driven debugging',
-      ],
+      keywords: ['End-to-end latency', 'Latency breakdown', 'Distributed tracing', 'Span', 'Critical path', 'TTFB', 'p50 / p99', 'Cache hit vs miss', 'N+1 queries', 'EXPLAIN ANALYZE', 'GC pause', 'Hypothesis-driven debugging'],
     },
     listenFor: [
       bi('A systematic, data-driven method rather than guessing.', 'Andaaze ki jagah systematic, data pe chalne wala tareeka.'),
-      bi('Using tracing and comparing the fast and slow cases.', 'Tracing use karna aur fast aur slow cases compare karna.'),
-      bi('Considering data-dependent causes and the environment.', 'Data pe depend kaaranon aur environment pe sochna.'),
+      bi('Comparing the fast and slow cases with tracing, and considering data-dependent causes.', 'Tracing se fast aur slow cases compare karna, aur data pe depend kaaranon pe sochna.'),
     ],
-    mistakes: [
-      bi('Guessing — “it’s probably the database”.', 'Andaaza lagana — “shayad database hai”.'),
-      bi('Optimising code without measuring first.', 'Pehle naape bina code optimise karna.'),
-      bi('Ignoring the client and network, or looking only at averages.', 'Client aur network ko ignore karna, ya sirf averages dekhna.'),
-    ],
+    mistakes: [bi('Guessing — “it’s probably the database”.', 'Andaaza lagana — “shayad database hai”.'), bi('Looking only at averages.', 'Sirf averages dekhna.')],
     followUps: [
-      {
-        q: bi('There is no tracing. What then?', 'Tracing hai hi nahi. Tab kya?'),
-        a: bi(
-          'Add timing logs with a correlation ID at every boundary, use load balancer access logs, database slow-query logs and an APM agent — and add tracing as part of the fix.',
-          'Har boundary pe correlation ID ke saath timing logs jodo, load balancer access logs, database slow-query logs aur APM agent use karo — aur fix ke hisse ke roop mein tracing jodo.',
-        ),
-      },
       {
         q: bi('What is an N+1 query problem?', 'N+1 query problem kya hai?'),
         a: bi(
-          'Loading a list with one query and then running one extra query per item — fine for 5 items, terrible for 500. Fix it with a join, a batched “WHERE id IN (…)” query, or eager loading.',
-          'Ek query se list laana aur phir har item ke liye ek extra query — 5 items pe theek, 500 pe bahut bura. Join, batched “WHERE id IN (…)” query, ya eager loading se theek karo.',
+          'Loading a list with one query, then running one extra query per item — fine for 5 items, terrible for 500. Fix it with a join, a batched `WHERE id IN (…)`, or eager loading in the ORM.',
+          'Ek query se list laana, phir har item ke liye ek extra query — 5 items pe theek, 500 pe bahut bura. Join, batched `WHERE id IN (…)`, ya ORM mein eager loading se theek karo.',
         ),
       },
     ],
@@ -842,114 +716,93 @@ export const devopsQuestions: PrepQuestion[] = [
     id: 'how-do-you-know-your-release-has-a-problem',
     category: 'devops',
     topic: 'observability',
-    question: bi(
-      "You've just released some code to production. When and how do you find out if there's an issue with that code?",
-      'Aapne abhi production mein code release kiya. Kab aur kaise pata chalega ki us code mein koi problem hai?',
-    ),
+    question: bi("You've just released some code to production. When and how do you find out if there's an issue with that code?", 'Aapne abhi production mein code release kiya. Kab aur kaise pata chalega ki us code mein koi problem hai?'),
     kind: 'behavioral',
     level: 'intermediate',
     tags: ['ownership', 'monitoring', 'alerting', 'release', 'canary', 'feature flags', 'error tracking'],
-    scenario: bi(
-      'This question is about ownership. Do you wait for a bug ticket or a customer complaint, or do you actively watch your change in production and have automated alerts that tell you within minutes? Describe what you do right after the release, what tells you about problems, and how you limit the damage when something is wrong.',
-      'Yeh sawaal ownership ke baare mein hai. Kya aap bug ticket ya customer ki shikayat ka wait karte ho, ya production mein apne change ko khud dekhte ho aur aise automated alerts rakhte ho jo minutes mein bata dein? Batao release ke turant baad kya karte ho, problems ke baare mein aapko kya batata hai, aur kuch galat ho to nuksaan kaise seemit karte ho.',
+    answer: bi(
+      'I find out within minutes, not from a bug ticket. I release gradually, watch the service’s dashboards, error tracking and logs right after the deploy, and rely on automated alerts — error rate, latency and business metrics — that page us if anything regresses. If something looks wrong, I roll back or switch off the feature flag first and investigate after.',
+      'Mujhe minutes mein pata chalta hai, bug ticket se nahi. Main dheere-dheere release karta hoon, deploy ke turant baad service ke dashboards, error tracking aur logs dekhta hoon, aur automated alerts pe bharosa karta hoon — error rate, latency aur business metrics — jo kuch bigadne pe humein page karte hain. Kuch galat dikhe to pehle roll back ya feature flag off karta hoon aur jaanch baad mein.',
     ),
-    simple: bi(
-      'Ideally I find out within minutes, before users do. I watch dashboards and logs for my change right after deploying, automated alerts fire if error rates or latency cross their thresholds, and risky changes go out gradually (canary or feature flag) so problems show up on a small slice of traffic first.',
-      'Behtar hai ki mujhe minutes mein, users se pehle pata chale. Deploy ke turant baad main apne change ke dashboards aur logs dekhta hoon, error rate ya latency threshold paar kare to automated alerts aate hain, aur risky changes dheere-dheere jaate hain (canary ya feature flag) taaki problems pehle traffic ke chhote hisse pe dikhein.',
-    ),
-    example: bi(
-      'A chef adds a new dish. A careless chef waits for angry reviews next week. A good chef tastes it before serving, serves it to a few tables first, watches how many plates come back unfinished, asks the waiters to report complaints immediately — and keeps the old dish ready to switch back.',
-      'Chef menu mein nayi dish jodta hai. Laparwah chef agle hafte gusse wale reviews ka wait karta hai. Accha chef serve karne se pehle chakhta hai, pehle kuch tables ko deta hai, dekhta hai kitni plates adhoori wapas aati hain, waiters se kehta hai shikayat turant batao — aur purani dish wapas laane ko taiyaar rakhta hai.',
-    ),
-    partsTitle: bi('What a strong answer covers', 'Ek mazboot jawab mein kya ho'),
-    parts: [
-      {
-        title: bi('Before the release', 'Release se pehle'),
-        text: bi(
-          'Know what “healthy” looks like: the metrics, logs or events that prove the change works, added as part of the work. Plan the rollback.',
-          'Jaano ki “healthy” kaisa dikhta hai: woh metrics, logs ya events jo saabit karein ki change kaam kar raha hai, kaam ke hisse ke roop mein jode hue. Rollback ka plan rakho.',
+    sections: [
+      section(
+        'Before the release',
+        'Release se pehle',
+        ul(
+          ['I know what “healthy” looks like: which metric, log or event proves the change works — and I add it as part of the task.', 'Main jaanta hoon “healthy” kaisa dikhta hai: kaunsa metric, log ya event saabit karta hai ki change kaam kar raha hai — aur use task ke hisse ke roop mein jodta hoon.'],
+          ['Risky changes go behind a feature flag.', 'Risky changes feature flag ke peeche jaate hain.'],
+          ['I deploy during working hours — never just before leaving.', 'Main kaam ke ghanton mein deploy karta hoon — nikalne se theek pehle kabhi nahi.'],
         ),
-      },
-      {
-        title: bi('Release safely', 'Safely release karo'),
-        text: bi(
-          'Canary or percentage rollout behind a feature flag, deployed during working hours — not just before leaving for the weekend.',
-          'Feature flag ke peeche canary ya percentage rollout, kaam ke ghanton mein deploy — weekend ke liye nikalne se theek pehle nahi.',
+      ),
+      section(
+        'Right after deploying',
+        'Deploy ke turant baad',
+        ul(
+          ['Compare error rate, p95/p99 latency and saturation before and after the **deploy marker**.', '**Deploy marker** se pehle aur baad error rate, p95/p99 latency aur saturation compare karo.'],
+          ['Check error tracking (such as Sentry) for **new** exception types.', 'Error tracking (jaise Sentry) mein **naye** exception types dekho.'],
+          ['Run a quick smoke test of the feature in production.', 'Production mein feature ka chhota smoke test karo.'],
         ),
-      },
-      {
-        title: bi('Immediately after', 'Turant baad'),
-        text: bi(
-          'Compare error rate, p95/p99 latency and saturation before and after the deployment marker; check error tracking (such as Sentry) for new exception types; run a quick smoke test of the feature in production.',
-          'Deployment marker se pehle aur baad error rate, p95/p99 latency aur saturation compare karo; naye exception types ke liye error tracking (jaise Sentry) dekho; production mein feature ka chhota smoke test karo.',
+      ),
+      section(
+        'Automated detection',
+        'Automated detection',
+        table(
+          ['Signal', 'Example'],
+          [
+            ['Error-rate / SLO burn alert', bi('5xx above 1% for 5 minutes pages on-call', '5 minute tak 5xx 1% se zyaada pe on-call ko page')],
+            ['Error tracking', bi('A new exception type after the release', 'Release ke baad naya exception type')],
+            ['Synthetic checks', bi('A script logs in and checks out every minute', 'Ek script har minute login aur checkout karti hai')],
+            ['Canary analysis', bi('Rollout halts automatically if the canary’s errors rise', 'Canary ke errors badhein to rollout apne aap ruk jaata hai')],
+            ['Business metrics', bi('Checkout success drops below 95%', 'Checkout success 95% se neeche')],
+          ],
         ),
-      },
-      {
-        title: 'Automated detection',
-        text: bi(
-          'SLO burn-rate alerts, error-spike alerts, synthetic checks, automated canary analysis that halts the rollout, and alerts on business metrics such as checkout success.',
-          'SLO burn-rate alerts, error-spike alerts, synthetic checks, automated canary analysis jo rollout rok de, aur checkout success jaise business metrics pe alerts.',
+      ),
+      section(
+        'Releasing gradually',
+        'Dheere-dheere release',
+        code(
+          'ts',
+          `
+if (await flags.isEnabled('new-checkout', { userId })) {
+  return newCheckout(cart);     // 5% of users first, then more
+}
+return legacyCheckout(cart);`,
         ),
-      },
-      {
-        title: bi('Over the next hours and days', 'Agle ghanton aur dinon mein'),
-        text: bi(
-          'Watch for slow-burn problems — memory leaks, growing queue backlogs, data issues — and keep an eye on support channels and user feedback.',
-          'Dheere sulagne wali problems pe nazar rakho — memory leaks, badhte queue backlogs, data issues — aur support channels aur user feedback pe bhi.',
+        p(
+          'If the new path misbehaves, switching the flag off takes seconds — no redeploy.',
+          'Naya path gadbad kare to flag off karne mein seconds lagte hain — dobara deploy nahi.',
         ),
-      },
-      {
-        title: bi('If something is wrong', 'Agar kuch galat ho'),
-        text: bi(
-          'Roll back or switch the flag off first, communicate, then investigate — and add the monitoring that would have caught it sooner.',
-          'Pehle roll back ya flag off karo, sabko batao, phir jaanch karo — aur woh monitoring jodo jo ise jaldi pakad leti.',
+      ),
+      section(
+        'If something is wrong',
+        'Agar kuch galat ho',
+        steps(
+          ['Mitigate', 'Mitigate karo', 'Roll back or switch the flag off.', 'Roll back ya flag off.'],
+          ['Communicate', 'Batao', 'Tell the team and support what is happening.', 'Team aur support ko batao kya ho raha hai.'],
+          ['Investigate', 'Jaanch karo', 'Logs, traces and the diff — then fix forward.', 'Logs, traces aur diff — phir fix forward.'],
+          ['Close the gap', 'Kami bharo', 'Add the alert or test that would have caught it sooner.', 'Woh alert ya test jodo jo ise jaldi pakad leta.'],
         ),
-      },
+      ),
     ],
     interview: {
-      opening: bi(
-        'I do not wait for a bug ticket: I own the change through release — I roll it out progressively, watch the service’s dashboards, error tracking and logs right after deploying, and rely on automated alerts on error rate, latency and business metrics to tell me within minutes if something regressed.',
-        'Main bug ticket ka wait nahi karta: release tak change ki zimmedari leta hoon — use dheere-dheere roll out karta hoon, deploy ke turant baad service ke dashboards, error tracking aur logs dekhta hoon, aur error rate, latency aur business metrics pe automated alerts pe bharosa karta hoon jo minutes mein bata dein ki kuch bigda hai.',
-      ),
-      points: [
-        bi('Define success signals before release: metrics, logs or events that prove the feature works.', 'Release se pehle success signals tay karo: metrics, logs ya events jo saabit karein ki feature kaam kar raha hai.'),
-        bi('Progressive delivery: canary or percentage rollout behind a feature flag, during working hours.', 'Progressive delivery: kaam ke ghanton mein, feature flag ke peeche canary ya percentage rollout.'),
-        bi('Post-deploy verification against the deployment marker; error tracking for new exception types; a production smoke test.', 'Deployment marker ke against post-deploy verification; naye exception types ke liye error tracking; production smoke test.'),
-        bi('Automated alerting: SLO burn rate, error spikes, synthetic checks, automated canary analysis.', 'Automated alerting: SLO burn rate, error spikes, synthetic checks aur automated canary analysis se.'),
-        bi('Business metrics catch silent failures where requests succeed but outcomes are wrong.', 'Business metrics woh chupi failures pakadte hain jahan requests succeed hoti hain par nateeja galat.'),
-        bi('If it degrades: roll back or disable the flag first, communicate, then investigate and add the missing alert.', 'Bigde to: pehle roll back ya flag off, batao, phir jaanch karo aur missing alert jodo.'),
+      text: [
+        bi(
+          'I do not wait for a bug ticket — I own the change through the release. Before releasing I know which metrics or events prove it works, and risky changes go behind a feature flag or out as a canary, during working hours.',
+          'Main bug ticket ka wait nahi karta — release tak change ki zimmedari leta hoon. Release se pehle jaanta hoon kaunse metrics ya events saabit karte hain ki yeh kaam kar raha hai, aur risky changes feature flag ke peeche ya canary ki tarah, kaam ke ghanton mein jaate hain.',
+        ),
+        bi(
+          'Right after the deploy I compare error rate, latency percentiles and saturation against the deploy marker, check error tracking for new exceptions, and smoke-test the feature. Automated alerts on error rate, SLO burn, synthetic checks and business metrics tell us within minutes if something regresses. If it does, I roll back or turn the flag off first, then investigate and add the alert or test that would have caught it earlier.',
+          'Deploy ke turant baad main error rate, latency percentiles aur saturation ko deploy marker se compare karta hoon, naye exceptions ke liye error tracking dekhta hoon, aur feature ka smoke test karta hoon. Error rate, SLO burn, synthetic checks aur business metrics pe automated alerts minutes mein bata dete hain agar kuch bigde. Aisa ho to main pehle roll back ya flag off karta hoon, phir jaanch karta hoon aur woh alert ya test jodta hoon jo ise pehle pakad leta.',
+        ),
       ],
-      keywords: [
-        'Ownership — you build it, you run it',
-        'Deployment markers',
-        'Canary release',
-        'Feature flags',
-        'Progressive delivery',
-        'Error tracking',
-        'SLO burn-rate alert',
-        'Synthetic monitoring',
-        'Smoke test',
-        'Rollback',
-        'Mean time to detect (MTTD)',
-      ],
+      keywords: ['Ownership', 'Deploy marker', 'Canary release', 'Feature flags', 'Progressive delivery', 'Error tracking', 'SLO burn-rate alert', 'Synthetic monitoring', 'Smoke test', 'Rollback', 'MTTD'],
     },
     listenFor: [
       bi('How involved are they in “owning” their code?', 'Woh apne code ki “ownership” mein kitne shaamil hain?'),
-      bi('Do they wait for a bug ticket, or are they alerted by automated alerts?', 'Kya woh bug ticket ka wait karte hain, ya automated alerts se pata chalta hai?'),
+      bi('Do they wait for a bug ticket, or are they alerted via automated alerts?', 'Kya woh bug ticket ka wait karte hain, ya automated alerts se pata chalta hai?'),
     ],
-    mistakes: [
-      bi('“QA will catch it” or “users will report it”.', '“QA pakad lega” ya “users bata denge”.'),
-      bi('Deploying and leaving for the day.', 'Deploy karke ghar chale jaana.'),
-      bi('No rollback plan and no metrics for the new feature.', 'Na rollback plan, na naye feature ke metrics.'),
-    ],
+    mistakes: [bi('“QA will catch it” or “users will report it”.', '“QA pakad lega” ya “users bata denge”.'), bi('Deploying and leaving for the day.', 'Deploy karke ghar chale jaana.')],
     followUps: [
-      {
-        q: bi('How do you know an alert threshold is right?', 'Kaise pata ki alert threshold sahi hai?'),
-        a: bi(
-          'Base it on SLOs and historical baselines, review alerts after every incident, and remove alerts that fire without needing action.',
-          'Ise SLOs aur purane baselines pe rakho, har incident ke baad alerts review karo, aur jo alerts bina action ki zaroorat ke bajte hain unhe hatao.',
-        ),
-      },
       {
         q: bi('What are MTTD and MTTR?', 'MTTD aur MTTR kya hain?'),
         a: bi(
@@ -970,122 +823,83 @@ export const devopsQuestions: PrepQuestion[] = [
     kind: 'scenario',
     level: 'intermediate',
     tags: ['incident', 'rollback', 'deployment', 'mitigation', 'on-call', 'post-mortem'],
-    scenario: bi(
-      'Minutes after a deploy, the dashboard shows 5xx errors jumping from 0.1% to 8%. Users are affected right now. The interviewer wants to see your priorities under pressure: do you start reading code to find the bug, or do you stop the bleeding first? The expected answer is: mitigate first (roll back), investigate afterwards.',
-      'Deploy ke kuch minute baad dashboard dikhata hai ki 5xx errors 0.1% se 8% ho gaye. Users pe abhi asar ho raha hai. Interviewer dabaav mein aapki priorities dekhna chahta hai: kya aap bug dhoondhne ke liye code padhna shuru karte ho, ya pehle khoon behna rokte ho? Ummeed wala jawab: pehle mitigate (roll back), jaanch baad mein.',
+    answer: bi(
+      'My first action is to stop the damage, not to debug. If the spike lines up with the deploy, I roll back to the last known good version (or turn the feature flag off) immediately, tell the team, and confirm the error rate recovers. Root-cause analysis comes after users are safe.',
+      'Mera pehla action nuksaan rokna hai, debug karna nahi. Agar spike deploy se milta hai, to main turant aakhri sahi version pe roll back karta hoon (ya feature flag off), team ko batata hoon, aur confirm karta hoon ki error rate wapas aa gaya. Root-cause analysis users safe hone ke baad.',
     ),
-    simple: bi(
-      'Stop the damage first: roll back to the previous version (or switch off the feature flag) immediately — the deploy is the most likely cause, and rolling back is fast and safe. Tell the team what is happening. Only once users are fine do you calmly investigate why the new version failed.',
-      'Pehle nuksaan roko: turant pichhle version pe roll back karo (ya feature flag off karo) — deploy hi sabse sambhavit kaaran hai, aur roll back fast aur safe hai. Team ko batao kya ho raha hai. Users theek ho jaayein, tabhi aaram se jaancho ki naya version fail kyun hua.',
-    ),
-    example: bi(
-      'You change a recipe in your restaurant and customers immediately start sending plates back. You do not experiment in the kitchen while the dining room fills with angry people — you switch back to the old recipe straight away, and work out what went wrong after service.',
-      'Aap restaurant mein recipe badalte ho aur customers turant plates wapas bhejne lagte hain. Dining hall gusse wale logon se bhar raha ho tab kitchen mein experiment nahi karte — turant purani recipe pe wapas jaate ho, aur kya galat hua yeh service ke baad sochte ho.',
-    ),
-    partsTitle: bi('What to do, in order', 'Kya karein, order mein'),
-    parts: [
-      {
-        title: bi('1. Confirm quickly (a minute or two)', '1. Jaldi confirm karo (ek-do minute)'),
-        text: bi(
-          'Is the spike real, and does it line up with the deploy (the deployment marker)? Which service and endpoints? Only pods running the new version (canary)? Do not spend long here.',
-          'Kya spike asli hai, aur deploy (deployment marker) se milta hai? Kaunsi service aur endpoints? Sirf naye version wale pods (canary)? Yahan zyaada time mat lagao.',
+    sections: [
+      section(
+        'The first ten minutes',
+        'Pehle das minute',
+        steps(
+          ['Confirm (1–2 minutes)', 'Confirm karo (1–2 minute)', 'Does the spike line up with the deploy marker? Which endpoints? Only the new pods?', 'Kya spike deploy marker se milta hai? Kaunse endpoints? Sirf naye pods?'],
+          ['Mitigate', 'Mitigate karo', 'Roll back, switch the flag off, or halt the canary.', 'Roll back, flag off, ya canary roko.'],
+          ['Communicate', 'Batao', 'Declare an incident, name an incident commander, update the status page if customers are affected.', 'Incident declare karo, incident commander tay karo, customers pe asar ho to status page update karo.'],
+          ['Verify', 'Verify karo', 'Error rate and latency back to normal? Any failed jobs or bad data to clean up?', 'Error rate aur latency normal pe? Koi fail jobs ya galat data saaf karna hai?'],
         ),
-      },
-      {
-        title: bi('2. Mitigate', '2. Mitigate karo'),
-        text: bi(
-          'Roll back to the last known good version (kubectl rollout undo, or redeploy the previous artifact), switch the feature flag off, or halt the canary. When the cause is not obvious, rolling back beats fixing forward.',
-          'Aakhri sahi version pe roll back karo (kubectl rollout undo, ya pichhla artifact dobara deploy), feature flag off karo, ya canary rok do. Jab kaaran saaf na ho, roll back fix forward se behtar hai.',
+        code(
+          'bash',
+          `
+$ kubectl rollout undo deployment/expense-api
+$ kubectl rollout status deployment/expense-api
+deployment "expense-api" successfully rolled out`,
         ),
-      },
-      {
-        title: bi('3. Communicate', '3. Batao'),
-        text: bi(
-          'Declare an incident in the team channel, assign roles (an incident commander, someone handling communication), and update the status page if customers can see the problem.',
-          'Team channel mein incident declare karo, roles do (incident commander, communication sambhalne wala), aur customers ko problem dikh rahi ho to status page update karo.',
+      ),
+      section(
+        'Why roll back first',
+        'Pehle roll back kyun',
+        p(
+          'The deploy is the most likely cause, and a rollback is fast and well tested. Debugging in production while users keep failing makes the incident longer. **Restore service first, find the bug second.**',
+          'Deploy hi sabse sambhavit kaaran hai, aur roll back fast aur achhe se tested hai. Users fail hote rahein aur hum production mein debug karein, to incident lamba hota hai. **Pehle service wapas laao, bug baad mein dhoondho.**',
         ),
-      },
-      {
-        title: bi('4. Verify recovery', '4. Recovery verify karo'),
-        text: bi(
-          'Error rate and latency back to normal? Then check for side effects: failed jobs, bad data written by the faulty version, messages that need replaying.',
-          'Error rate aur latency normal pe wapas? Phir side effects dekho: fail hue jobs, kharab version ka likha galat data, replay karne wale messages.',
+      ),
+      section(
+        'When a rollback is not simple',
+        'Jab roll back aasaan na ho',
+        p(
+          'If the new version ran a database migration that the old code cannot handle, rolling back the code can break things further. That is why I write migrations as **expand and contract**, so the previous version always works. If a rollback is unsafe, I fix forward carefully — or disable the feature with a flag.',
+          'Agar naye version ne aisi database migration chalayi jo purana code sambhaal nahi sakta, to code roll back karne se cheezein aur toot sakti hain. Isliye main migrations **expand and contract** ki tarah likhta hoon, taaki pichhla version hamesha chale. Roll back unsafe ho to dhyaan se fix forward karta hoon — ya flag se feature band karta hoon.',
         ),
-      },
-      {
-        title: bi('5. Beware rollbacks that are not simple', '5. Mushkil rollbacks se savdhaan'),
-        text: bi(
-          'If the new version ran a database migration that is not backward compatible, rolling back the code can break things. That is why migrations follow expand-and-contract. In that case fix forward carefully, or reverse the migration.',
-          'Agar naye version ne aisi database migration chalayi jo backward compatible nahi, to code roll back karne se cheezein toot sakti hain. Isliye migrations expand-and-contract follow karti hain. Aise case mein dhyaan se fix forward karo, ya migration ulti karo.',
+      ),
+      section(
+        'Learn from it',
+        'Isse seekho',
+        p('A short, blameless post-mortem:', 'Ek chhota, blameless post-mortem:'),
+        code(
+          'text',
+          `
+Impact        8% of checkout requests failed for 14 minutes
+Detection     error-rate alert, 3 minutes after the deploy
+Mitigation    rollback at 10:42, recovered by 10:46
+Root cause    new coupon client had no timeout; coupon service was overloaded
+Actions       timeout + circuit breaker · canary analysis with auto-rollback · load test for sale traffic`,
         ),
-      },
-      {
-        title: bi('6. Investigate', '6. Jaanch karo'),
-        text: bi(
-          'Logs and traces from the bad version, the code diff, configuration and dependency changes; reproduce it in staging.',
-          'Kharab version ke logs aur traces, code diff, configuration aur dependency changes; staging mein reproduce karo.',
-        ),
-      },
-      {
-        title: bi('7. Learn from it', '7. Isse seekho'),
-        text: bi(
-          'A blameless post-mortem: the root cause, why tests and the canary did not catch it, and action items — better tests, automated canary analysis and rollback, new alerts.',
-          'Blameless post-mortem: root cause, tests aur canary ne kyun nahi pakda, aur action items — behtar tests, automated canary analysis aur rollback, naye alerts.',
-        ),
-      },
+      ),
     ],
     interview: {
-      opening: bi(
-        'My first action is to mitigate, not debug: confirm that the spike lines up with the deploy and roll back to the last known good version (or disable the feature flag), then communicate and verify recovery before doing root-cause analysis.',
-        'Mera pehla action mitigate karna hai, debug nahi: confirm karna ki spike deploy se milta hai aur aakhri sahi version pe roll back karna (ya feature flag off karna), phir sabko batana aur root-cause analysis se pehle recovery verify karna.',
-      ),
-      points: [
-        bi('Correlate quickly: deployment marker vs error spike, affected services and endpoints, only new-version pods?', 'Jaldi milao: deployment marker vs error spike, kaunsi services aur endpoints, sirf naye version wale pods?'),
-        bi('Mitigate fast: roll back, switch the flag off or halt the rollout — restoring service beats finding the bug.', 'Jaldi mitigate karo: roll back, flag off ya rollout roko — service wapas laana bug dhoondhne se zyaada zaroori.'),
-        bi('Communicate: declare an incident, an incident commander, stakeholder and status-page updates.', 'Batao: incident declare, incident commander, stakeholders aur status page updates.'),
-        bi('Verify recovery and clean up side effects (failed jobs, bad writes, messages to replay).', 'Recovery verify karo aur side effects saaf karo (fail jobs, galat writes, replay wale messages).'),
-        bi('Use expand-and-contract migrations so rollback is always safe.', 'Expand-and-contract migrations use karo taaki roll back hamesha safe ho.'),
-        bi('Then root-cause analysis with logs, traces and the diff; reproduce in staging.', 'Phir logs, traces aur diff se root-cause analysis; staging mein reproduce.'),
-        bi('A blameless post-mortem with action items: tests, canary analysis, automatic rollback, alerts.', 'Action items ke saath blameless post-mortem: tests, canary analysis, automatic rollback, alerts.'),
+      text: [
+        bi(
+          'My first action is to mitigate, not debug. I spend a minute or two confirming that the spike lines up with the deploy marker and which endpoints are affected, then roll back to the last known good version, switch the feature flag off, or halt the canary.',
+          'Mera pehla action mitigate karna hai, debug nahi. Ek-do minute mein confirm karta hoon ki spike deploy marker se milta hai aur kaunse endpoints affected hain, phir aakhri sahi version pe roll back karta hoon, feature flag off karta hoon, ya canary rokta hoon.',
+        ),
+        bi(
+          'At the same time I declare an incident and keep stakeholders updated, then verify that errors and latency recover and clean up side effects like failed jobs. Because rollbacks must be safe, I keep migrations backward compatible with expand and contract. Only then do I do root-cause analysis with logs, traces and the diff, followed by a blameless post-mortem with action items such as better tests, automated canary analysis and new alerts.',
+          'Saath hi incident declare karta hoon aur stakeholders ko update deta rehta hoon, phir verify karta hoon ki errors aur latency wapas aayi aur fail jobs jaise side effects saaf karta hoon. Kyunki roll back safe hona chahiye, main expand and contract se migrations backward compatible rakhta hoon. Iske baad hi logs, traces aur diff se root-cause analysis karta hoon, phir behtar tests, automated canary analysis aur naye alerts jaise action items ke saath blameless post-mortem.',
+        ),
       ],
-      keywords: [
-        'Mitigate before root cause',
-        'Rollback',
-        'Last known good version',
-        'Feature flag kill switch',
-        'Deployment marker',
-        'Incident commander',
-        'MTTR',
-        'Blast radius',
-        'Canary analysis',
-        'Expand-and-contract migration',
-        'Blameless post-mortem',
-        'Fix forward vs roll back',
-      ],
+      keywords: ['Mitigate before root cause', 'Rollback', 'Last known good version', 'Feature flag kill switch', 'Deploy marker', 'Incident commander', 'Blast radius', 'Expand and contract', 'Fix forward', 'Blameless post-mortem', 'MTTR'],
     },
     listenFor: [
-      bi('Restoring service first.', 'Pehle service wapas laana.'),
-      bi('Communicating clearly during the incident.', 'Incident ke dauraan saaf communication.'),
-      bi('Knowing when a rollback is not safe, and following up with a post-mortem.', 'Yeh jaanna ki roll back kab safe nahi, aur post-mortem se follow up.'),
+      bi('Restoring service first and communicating clearly.', 'Pehle service wapas laana aur saaf communication.'),
+      bi('Knowing when a rollback is unsafe, and following up with a post-mortem.', 'Yeh jaanna ki roll back kab unsafe hai, aur post-mortem se follow up.'),
     ],
-    mistakes: [
-      bi('Debugging in production while users suffer.', 'Users pareshaan hon tab production mein debug karna.'),
-      bi('Rushing out a hotfix without understanding the problem.', 'Problem samjhe bina jaldi mein hotfix bhejna.'),
-      bi('Not telling anyone, or blaming individuals.', 'Kisi ko na batana, ya logon ko dosh dena.'),
-    ],
+    mistakes: [bi('Debugging in production while users suffer.', 'Users pareshaan hon tab production mein debug karna.'), bi('Rushing out a hotfix without understanding the problem.', 'Problem samjhe bina jaldi mein hotfix bhejna.')],
     followUps: [
       {
         q: bi('When would you fix forward instead of rolling back?', 'Roll back ki jagah fix forward kab karoge?'),
         a: bi(
-          'When rolling back is unsafe (an irreversible migration, a changed data format) or when the fix is trivial, well understood and faster than a rollback.',
-          'Jab roll back safe na ho (ulti na hone wali migration, badla hua data format) ya jab fix bahut chhota, achhe se samjha hua aur roll back se fast ho.',
-        ),
-      },
-      {
-        q: bi('How do you reduce the blast radius next time?', 'Agli baar blast radius kaise kam karoge?'),
-        a: bi(
-          'Canary releases with automated analysis and rollback, feature flags, smaller deployments, and isolating customers into cells so one bad deploy affects only a few.',
-          'Automated analysis aur rollback ke saath canary releases, feature flags, chhote deployments, aur customers ko cells mein alag rakhna taaki ek kharab deploy kuch hi logon pe asar kare.',
+          'When rolling back is unsafe (an irreversible migration or data-format change) or the fix is tiny, well understood and faster than a rollback.',
+          'Jab roll back unsafe ho (ulti na hone wali migration ya data-format change) ya fix bahut chhota, achhe se samjha hua aur roll back se fast ho.',
         ),
       },
     ],
@@ -1100,117 +914,85 @@ export const devopsQuestions: PrepQuestion[] = [
     kind: 'behavioral',
     level: 'intermediate',
     tags: ['incident', 'behavioral', 'post-mortem', 'star', 'ownership', 'on-call'],
-    scenario: bi(
-      'This is a behavioral question — there is no single correct technical answer. The interviewer wants a real story and is judging how you behave under pressure: what you did personally, how you found and fixed the problem, how you communicated and — most importantly — what you changed afterwards so it does not happen again. Prepare one or two stories in advance.',
-      'Yeh behavioral sawaal hai — iska ek sahi technical jawab nahi hota. Interviewer ek asli kahani chahta hai aur dekhta hai ki dabaav mein aap kaise behave karte ho: aapne khud kya kiya, problem kaise dhoondhi aur theek ki, kaise communicate kiya aur — sabse zaroori — baad mein kya badla taaki dobara na ho. Ek-do kahaniyaan pehle se taiyaar rakho.',
+    answer: bi(
+      'I answer with one real incident in the STAR format — the situation and its impact, my role, what I did to detect, mitigate and fix it, and the result — and I spend real time on what we changed afterwards so it could not happen again. Interviewers care most about ownership, calm handling and prevention.',
+      'Main ek asli incident STAR format mein sunata hoon — situation aur uska asar, mera role, detect, mitigate aur fix karne ke liye maine kya kiya, aur result — aur baad mein kya badla taaki dobara na ho, uspe achha time deta hoon. Interviewers ko sabse zyaada ownership, shaant handling aur roktham ki parwaah hoti hai.',
     ),
-    simple: bi(
-      'Tell a short, structured story: what happened and how big the impact was, what your role was, how you found and fixed the problem step by step, and what you did afterwards to prevent it from happening again. Be honest and specific — numbers, tools, decisions — and focus on your actions and what you learned, not on blame.',
-      'Ek chhoti, structured kahani sunao: kya hua aur asar kitna bada tha, aapka role kya tha, aapne step by step problem kaise dhoondhi aur theek ki, aur baad mein use dobara hone se rokne ke liye kya kiya. Imaandaar aur specific raho — numbers, tools, decisions — aur dosh ki jagah apne actions aur seekh pe dhyaan do.',
-    ),
-    example: bi(
-      'Like a pilot’s debrief after an emergency landing: what the situation was, what each person did, which checklist they followed, and what changed in training or in the aircraft afterwards.',
-      'Emergency landing ke baad pilot ke debrief jaisa: situation kya thi, har insaan ne kya kiya, kaunsi checklist follow ki, aur baad mein training ya aircraft mein kya badla.',
-    ),
-    partsTitle: bi('How to structure your story (STAR + learnings)', 'Apni kahani kaise structure karein (STAR + seekh)'),
-    parts: [
-      {
-        title: 'Situation',
-        text: bi(
-          'The system, the time and the impact in numbers — for example “checkout errors for 20% of users for 35 minutes during a sale”.',
-          'System, samay aur numbers mein asar — jaise “sale ke dauraan 35 minute tak 20% users ko checkout errors”.',
+    sections: [
+      section(
+        'How I structure it',
+        'Main ise kaise structure karta hoon',
+        table(
+          [bi('Part', 'Hissa'), bi('What to say', 'Kya bolna hai'), 'Time'],
+          [
+            ['Situation', bi('The system and the impact in numbers', 'System aur numbers mein asar'), '15 s'],
+            ['Task', bi('Your role: on-call, incident commander, the author of the change', 'Aapka role: on-call, incident commander, change ka author'), '10 s'],
+            ['Action', 'Detect → mitigate → diagnose → communicate', '60 s'],
+            ['Result', bi('Recovery time and contained impact', 'Recovery time aur seemit asar'), '15 s'],
+            [bi('Learnings', 'Seekh'), bi('Root cause and the actions **you** drove to prevent it', 'Root cause aur roktham ke liye **aapke** chalaye actions'), '45 s'],
+          ],
         ),
-      },
-      {
-        title: 'Task',
-        text: bi(
-          'Your role: the on-call engineer, the incident commander, the person who shipped the change, or someone helping.',
-          'Aapka role: on-call engineer, incident commander, jisne change bheja, ya madad karne wala.',
+      ),
+      section(
+        'What makes it strong',
+        'Ise mazboot kya banata hai',
+        ul(
+          ['**Numbers:** “12% of checkouts failed for 14 minutes”, not “some errors”.', '**Numbers:** “14 minute tak 12% checkouts fail”, “kuch errors” nahi.'],
+          ['**“I”, not only “we”** — make your own actions clear.', '**“Main”, sirf “hum” nahi** — apne actions saaf batao.'],
+          ['**Mitigation before root cause** — you rolled back first.', '**Root cause se pehle mitigation** — aapne pehle roll back kiya.'],
+          ['**Prevention** — the alerts, tests and design changes that followed, and how they paid off.', '**Roktham** — baad mein aaye alerts, tests aur design changes, aur unka faayda kaise hua.'],
+          ['**No blame** — talk about systems and process, not people.', '**Dosh nahi** — systems aur process ki baat, logon ki nahi.'],
         ),
-      },
-      {
-        title: 'Action',
-        text: bi(
-          'How it was detected (an alert, or a customer?), how you narrowed it down (dashboards, logs, traces), how you mitigated it (rollback, scaling, a feature flag), how you communicated (updates every 15 minutes) and who you worked with.',
-          'Kaise pata chala (alert, ya customer?), kaise seemit kiya (dashboards, logs, traces), kaise mitigate kiya (roll back, scaling, feature flag), kaise communicate kiya (har 15 minute updates) aur kiske saath kaam kiya.',
+      ),
+      section(
+        'Prepare your own story',
+        'Apni kahani taiyaar karo',
+        p(
+          'Fill in this template once for one or two real incidents, then practise saying it in about two and a half minutes:',
+          'Ek-do asli incidents ke liye yeh template ek baar bhar lo, phir ise lagbhag dhaai minute mein bolne ki practice karo:',
         ),
-      },
-      {
-        title: 'Result',
-        text: bi('How quickly service was restored, how the impact was contained, and how users were informed.', 'Service kitni jaldi wapas aayi, asar kaise seemit hua, aur users ko kaise bataya gaya.'),
-      },
-      {
-        title: bi('Learnings and prevention — the most important part', 'Seekh aur roktham — sabse zaroori hissa'),
-        text: bi(
-          'The blameless post-mortem, the root cause (ask “why?” five times), the concrete action items you drove — tests, alerts, runbooks, canary releases, rate limits, design changes — and how you checked that they worked.',
-          'Blameless post-mortem, root cause (paanch baar “kyun?” poochho), aapke chalaye thos action items — tests, alerts, runbooks, canary releases, rate limits, design changes — aur aapne kaise check kiya ki woh kaam kar rahe hain.',
+        code(
+          'text',
+          `
+Situation   Which system? When? Impact in numbers (users, minutes, revenue)?
+Task        What was my role — on-call, incident commander, author of the change?
+Action      How was it detected? What did I do first to stop the damage?
+            How did I find the cause (dashboards, traces, logs)? Who did I keep updated?
+Result      How long until recovery? How was the impact contained?
+Learnings   Root cause? What did I change so it cannot happen again — and did it work later?`,
+          'STAR notes',
         ),
-      },
-      {
-        title: bi('A sample answer (adapt it to your own experience)', 'Ek sample jawab (apne experience ke hisaab se badlo)'),
-        text: bi(
-          '“During a festive sale our checkout error rate jumped to 12% shortly after a release. I was on call, and our error-rate alert paged me within three minutes. The deploy marker lined up with the spike, so I rolled back first, which brought errors down within eight minutes, and I posted updates in the incident channel. The traces then showed the new version called the coupon service without a timeout; that service was overloaded by sale traffic, so checkout threads piled up. In the post-mortem we added timeouts and a circuit breaker with a fallback that skips coupons, a load test for sale traffic, and automated canary analysis that rolls back when errors rise. A month later the coupon service slowed down again, and checkout degraded gracefully instead of failing.”',
-          '“Ek festive sale ke dauraan release ke kuch der baad hamara checkout error rate 12% ho gaya. Main on-call tha, aur error-rate alert ne teen minute mein mujhe page kiya. Deploy marker spike se mil raha tha, isliye maine pehle roll back kiya, jisse aath minute mein errors kam ho gaye, aur main incident channel mein updates deta raha. Phir traces se pata chala ki naya version coupon service ko bina timeout ke call kar raha tha; sale ke traffic se woh service overload thi, to checkout threads jamaa ho gaye. Post-mortem mein humne timeouts aur ek circuit breaker jodha jiska fallback coupons skip kar deta hai, sale traffic ka load test, aur automated canary analysis jo errors badhne pe roll back kar de. Ek mahine baad coupon service phir slow hui, aur checkout fail hone ki jagah aaram se degrade hua.”',
+        note(
+          'tip',
+          'No production experience yet? Use an incident from a project, an internship or an open-source issue — or say honestly how you would handle one, step by step. Honesty beats an invented story.',
+          'Abhi production experience nahi? Kisi project, internship ya open-source issue ka incident use karo — ya imaandaari se batao ki aap step by step kaise sambhaalte. Banaayi kahani se imaandaari behtar hai.',
         ),
-      },
-      {
-        title: bi('No production experience yet?', 'Abhi production experience nahi?'),
-        text: bi(
-          'Use an incident from a project, an internship, a college system or an open-source issue — or explain honestly how you would act, step by step. Honesty beats an invented story.',
-          'Kisi project, internship, college system ya open-source issue ka incident use karo — ya imaandaari se batao ki aap step by step kya karte. Banaayi hui kahani se imaandaari behtar hai.',
-        ),
-      },
+      ),
     ],
     interview: {
-      opening: bi(
-        'Use STAR: a sentence or two of situation and impact, your specific role, the actions you took to detect, mitigate and diagnose, the result with numbers, and — most importantly — the preventive actions you drove afterwards.',
-        'STAR use karo: situation aur asar ke ek-do sentence, aapka khaas role, detect, mitigate aur diagnose karne ke liye aapke actions, numbers ke saath result, aur — sabse zaroori — baad mein aapke chalaye roktham ke actions.',
-      ),
-      points: [
-        bi('Situation: quantify the impact — users affected, duration, revenue or SLO impact.', 'Situation: asar naapo — kitne users, kitni der, revenue ya SLO pe asar.'),
-        bi('Task: be clear about your personal role and responsibility.', 'Task: apna personal role aur zimmedari saaf batao.'),
-        bi('Action: detection, mitigation first (rollback, flag, scaling), diagnosis with metrics, logs and traces, regular communication.', 'Action: detection, pehle mitigation (roll back, flag, scaling), metrics, logs aur traces se diagnosis, regular communication.'),
-        bi('Result: time to recover and how the impact was contained.', 'Result: recover hone ka time aur asar kaise seemit hua.'),
-        bi('Learnings: blameless post-mortem, root cause, action items you owned, and how they paid off later.', 'Seekh: blameless post-mortem, root cause, aapke action items, aur baad mein unka faayda kaise hua.'),
-        bi('Tone: honest, specific, ownership without blame.', 'Lehja: imaandaar, specific, bina dosh ke ownership.'),
+      text: [
+        bi(
+          'During a festive sale, our checkout error rate jumped to 12% shortly after a release. I was on call, and our error-rate alert paged me within three minutes. The deploy marker lined up with the spike, so I rolled back first, which brought errors down within eight minutes, and I posted updates in the incident channel every few minutes.',
+          'Ek festive sale ke dauraan release ke kuch der baad hamara checkout error rate 12% ho gaya. Main on-call tha, aur error-rate alert ne teen minute mein mujhe page kiya. Deploy marker spike se mil raha tha, isliye maine pehle roll back kiya, jisse aath minute mein errors kam ho gaye, aur main har kuch minute incident channel mein updates deta raha.',
+        ),
+        bi(
+          'The traces then showed the new version called the coupon service without a timeout; that service was overloaded by sale traffic, so checkout requests piled up. In the post-mortem I drove three changes: timeouts and a circuit breaker with a fallback that skips coupons, a load test that simulates sale traffic, and automated canary analysis that rolls back when errors rise. A month later the coupon service slowed down again, and checkout degraded gracefully instead of failing.',
+          'Phir traces se pata chala ki naya version coupon service ko bina timeout ke call kar raha tha; sale ke traffic se woh service overload thi, to checkout requests jamaa ho gayi. Post-mortem mein maine teen changes chalaye: timeouts aur ek circuit breaker jiska fallback coupons skip kar deta hai, sale traffic simulate karne wala load test, aur automated canary analysis jo errors badhne pe roll back kare. Ek mahine baad coupon service phir slow hui, aur checkout fail hone ki jagah aaram se degrade hua.',
+        ),
       ],
-      keywords: [
-        'STAR method',
-        'Impact / blast radius',
-        'On-call',
-        'Detection (MTTD)',
-        'Mitigation (MTTR)',
-        'Root cause analysis / 5 whys',
-        'Blameless post-mortem',
-        'Action items',
-        'Runbook',
-        'Prevention',
-      ],
+      keywords: ['STAR method', 'Impact', 'On-call', 'Detection (MTTD)', 'Mitigation (MTTR)', 'Rollback', 'Root cause analysis', 'Blameless post-mortem', 'Action items', 'Circuit breaker', 'Prevention'],
     },
     listenFor: [
       bi('Detail about how they responded to the incident and what their own involvement was.', 'Incident pe unhone kaise response diya aur unka apna kya hissa tha, iski detail.'),
-      bi('Do they talk about post-incident actions, rather than just the initial fix?', 'Kya woh sirf shuruaati fix nahi, balki incident ke baad ke actions ki baat karte hain?'),
-      bi('Did they take actions to prevent it from happening again?', 'Kya unhone dobara na ho, iske liye kadam uthaye?'),
+      bi('Post-incident actions, not just the initial fix — did they take steps to prevent it happening again?', 'Sirf shuruaati fix nahi, incident ke baad ke actions — kya unhone dobara na ho iske kadam uthaye?'),
     ],
-    mistakes: [
-      bi('A vague story with no numbers.', 'Bina numbers ki dhundhli kahani.'),
-      bi('Saying “we” all the time, so your own role is unclear.', 'Har baar “hum” kehna, to aapka apna role saaf nahi hota.'),
-      bi('Blaming others.', 'Doosron ko dosh dena.'),
-      bi('Ending at the fix, with no prevention.', 'Fix pe kahani khatam, roktham ka zikr nahi.'),
-    ],
+    mistakes: [bi('A vague story with no numbers.', 'Bina numbers ki dhundhli kahani.'), bi('Ending at the fix, with no prevention.', 'Fix pe kahani khatam, roktham ka zikr nahi.')],
     followUps: [
       {
         q: bi('What would you do differently?', 'Aap kya alag karte?'),
         a: bi(
-          'Have a thoughtful answer ready — for example escalating earlier, having had a better alert, or rolling back sooner instead of trying a quick fix.',
-          'Ek soch-samajh ke jawab taiyaar rakho — jaise jaldi escalate karna, behtar alert hona, ya quick fix ki koshish ki jagah jaldi roll back karna.',
-        ),
-      },
-      {
-        q: bi('How did you communicate with non-technical stakeholders?', 'Non-technical stakeholders se kaise baat ki?'),
-        a: bi(
-          'In plain words: what users are experiencing, what we are doing, when the next update will come — without jargon or guesses about the cause.',
-          'Seedhe shabdon mein: users ko kya ho raha hai, hum kya kar rahe hain, agla update kab aayega — bina jargon ya kaaran ke andaazon ke.',
+          'Have a thoughtful answer ready — for example adding the load test before the sale rather than after, or setting timeouts on every outbound call by default.',
+          'Ek soch-samajh ke jawab taiyaar rakho — jaise sale ke baad nahi, pehle load test karna, ya har outbound call pe default se timeouts lagana.',
         ),
       },
     ],

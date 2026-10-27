@@ -1,4 +1,5 @@
-import { a, bi, c, scene } from '@/features/learn/dsl';
+import { a, c, scene } from '@/features/learn/dsl';
+import { bi, code, figure, note, p, section, steps, table, ul } from '../dsl';
 import type { PrepQuestion } from '../types';
 
 export const serverQuestions: PrepQuestion[] = [
@@ -10,148 +11,121 @@ export const serverQuestions: PrepQuestion[] = [
     kind: 'concept',
     level: 'beginner',
     tags: ['load balancer', 'scalability', 'availability', 'health checks', 'l4', 'l7', 'nginx', 'alb'],
-    simple: bi(
-      'A load balancer sits in front of several copies of your server and spreads incoming requests across them. Thanks to it you can add more servers when traffic grows (scalability), and if one server dies, users are quietly sent to the healthy ones (availability). Clients only ever need to know one address.',
-      'Load balancer aapke server ki kai copies ke aage baithta hai aur aane wali requests unme baant-ta hai. Iski wajah se traffic badhne pe aur servers jod sakte ho (scalability), aur ek server mar jaaye to users chupchaap healthy servers pe bhej diye jaate hain (availability). Clients ko hamesha ek hi address jaanna padta hai.',
+    answer: bi(
+      'A load balancer distributes incoming requests across several servers. It lets us scale horizontally by adding servers, keeps the system available when one server fails (it stops sending traffic to unhealthy servers), and gives clients one stable address. It also enables zero-downtime deployments and can terminate TLS in one place.',
+      'Load balancer aane wali requests ko kai servers mein baant-ta hai. Isse hum servers jod ke horizontally scale kar sakte hain, ek server fail hone pe bhi system available rehta hai (yeh unhealthy servers ko traffic bhejna band kar deta hai), aur clients ko ek stable address milta hai. Isse zero-downtime deployments bhi hote hain aur TLS ek jagah terminate ho sakta hai.',
     ),
-    example: bi(
-      'A bank with many counters and a guard at the entrance who sends each customer to a free counter. If a counter closes, the guard stops sending people there. Customers do not need to know which clerk is free — they just walk in through one door.',
-      'Kai counters wala bank aur entrance pe guard jo har customer ko khaali counter pe bhejta hai. Koi counter band ho jaaye to guard wahan bhejna band kar deta hai. Customers ko yeh jaanne ki zaroorat nahi ki kaunsa clerk free hai — bas ek darwaze se andar aate hain.',
-    ),
-    why: bi(
-      'One server has limits (CPU, memory, connections) and is a single point of failure. A load balancer enables horizontal scaling, high availability, zero-downtime deployments (update one server at a time) and a central place to terminate TLS.',
-      'Ek server ki seemayein hain (CPU, memory, connections) aur woh single point of failure hai. Load balancer se horizontal scaling, high availability, zero-downtime deployments (ek-ek server update karo) aur TLS terminate karne ki ek central jagah milti hai.',
-    ),
-    without: bi(
-      'Every user hits one server: it overloads at peak time and crashes, every deploy or crash means downtime, and clients would need to know every server’s address and pick one themselves.',
-      'Har user ek hi server pe aata hai: peak time pe overload hoke crash, har deploy ya crash matlab downtime, aur clients ko har server ka address jaan ke khud chunna padta.',
-    ),
-    scene: scene(
-      [
-        [a('users', 'Users', 'Users')],
-        [c('load-balancer', { state: 'focus' })],
-        [c('app-server', { id: 's1' }), c('app-server', { id: 's2' }), c('app-server', { id: 's3', state: 'bad', note: bi('failed health check', 'health check fail') })],
-      ],
-      ['users>load-balancer', 'load-balancer>s1', 'load-balancer>s2', 'load-balancer.>s3'],
-      bi(
-        'Users only know the load balancer. It spreads requests across healthy servers and stops sending traffic to one that fails its health check.',
-        'Users sirf load balancer ko jaante hain. Woh requests healthy servers mein baant-ta hai aur health check fail karne wale server ko traffic bhejna band kar deta hai.',
+    sections: [
+      section(
+        'The problem it solves',
+        'Yeh kaunsi problem solve karta hai',
+        p(
+          'One server has limits — CPU, memory, connections — and if it crashes or is redeployed, the whole site is down. With a load balancer in front, we run several identical servers and clients never need to know which one answers:',
+          'Ek server ki seemayein hain — CPU, memory, connections — aur woh crash ya redeploy ho to poori site band. Aage load balancer ho to hum kai ek jaise servers chalate hain aur clients ko kabhi jaanna nahi padta ki kaunsa jawab de raha hai:',
+        ),
+        figure(
+          scene(
+            [
+              [a('users', 'Users', 'Users')],
+              [c('load-balancer', { state: 'focus' })],
+              [c('app-server', { id: 's1' }), c('app-server', { id: 's2' }), c('app-server', { id: 's3', state: 'bad', note: bi('health check failed', 'health check fail') })],
+            ],
+            ['users>load-balancer', 'load-balancer>s1', 'load-balancer>s2', 'load-balancer.>s3'],
+            bi('Traffic is spread across healthy servers; the failed one gets no requests until it recovers.', 'Traffic healthy servers mein baanta jaata hai; fail hua server theek hone tak requests nahi paata.'),
+          ),
+        ),
       ),
-    ),
-    partsTitle: bi('What a load balancer does for you', 'Load balancer aapke liye kya karta hai'),
-    parts: [
-      {
-        title: bi('Distributes traffic', 'Traffic baant-ta hai'),
-        text: bi(
-          'Using an algorithm: round robin (each server in turn), least connections (the least busy server), weighted (bigger servers get more), or IP hash / consistent hashing (the same client or key goes to the same server).',
-          'Ek algorithm se: round robin (baari-baari), least connections (sabse kam busy server), weighted (bade servers ko zyaada), ya IP hash / consistent hashing (same client ya key same server pe).',
+      section(
+        'What it gives us',
+        'Isse kya milta hai',
+        ul(
+          ['**Horizontal scaling** — add servers (or let autoscaling add them) instead of buying one bigger machine.', '**Horizontal scaling** — ek bada machine khareedne ki jagah servers jodo (ya autoscaling ko jodne do).'],
+          ['**High availability** — health checks remove unhealthy servers automatically.', '**High availability** — health checks unhealthy servers ko apne aap hata dete hain.'],
+          ['**Zero-downtime deploys** — update servers one at a time; connection draining lets in-flight requests finish.', '**Zero-downtime deploys** — servers ek-ek karke update karo; connection draining chal rahi requests ko poora hone deta hai.'],
+          ['**One entry point** — TLS termination, compression and basic rate limiting in one place.', '**Ek entry point** — TLS termination, compression aur basic rate limiting ek jagah.'],
         ),
-      },
-      {
-        title: 'Health checks',
-        text: bi(
-          'It probes every server regularly (for example GET /health), removes unhealthy ones from rotation, and adds them back when they recover.',
-          'Yeh har server ko regular check karta hai (jaise GET /health), unhealthy ko rotation se hatata hai, aur theek hone pe wapas jodta hai.',
-        ),
-      },
-      {
-        title: bi('Horizontal scaling and autoscaling', 'Horizontal scaling aur autoscaling'),
-        text: bi(
-          'New instances register behind the load balancer, so capacity grows by adding machines instead of buying one ever-bigger machine.',
-          'Naye instances load balancer ke peeche register hote hain, to capacity ek aur bada machine khareedne ki jagah machines jodne se badhti hai.',
-        ),
-      },
-      {
-        title: 'Zero-downtime deployments',
-        text: bi(
-          'Rolling, blue-green and canary releases work by shifting traffic between servers; connection draining lets in-flight requests finish before a server is removed.',
-          'Rolling, blue-green aur canary releases servers ke beech traffic shift karke kaam karte hain; connection draining server hatane se pehle chal rahi requests ko poora hone deta hai.',
-        ),
-      },
-      {
-        title: 'Layer 4 vs Layer 7',
-        text: bi(
-          'An L4 load balancer forwards TCP/UDP connections without reading them — very fast and works for any protocol. An L7 load balancer understands HTTP, so it can route by path, host or header, terminate TLS, and use cookies for sticky sessions.',
-          'L4 load balancer TCP/UDP connections ko bina padhe aage bhejta hai — bahut fast aur har protocol ke liye. L7 load balancer HTTP samajhta hai, isliye path, host ya header se route kar sakta hai, TLS terminate kar sakta hai, aur sticky sessions ke liye cookies use kar sakta hai.',
-        ),
-      },
-      {
-        title: 'Extras',
-        text: bi(
-          'TLS termination, basic rate limiting and DDoS protection, compression, and hiding the internal servers’ addresses.',
-          'TLS termination, basic rate limiting aur DDoS protection, compression, aur andar ke servers ke address chhupana.',
-        ),
-      },
-      {
-        title: bi('It must not become the new single point of failure', 'Yeh khud naya single point of failure na bane'),
-        text: bi(
-          'Managed cloud load balancers (AWS ALB/NLB, Google Cloud Load Balancing) are redundant by design. Self-hosted ones run as an active-passive pair with a floating IP. Across regions, DNS or global load balancing picks the region.',
-          'Managed cloud load balancers (AWS ALB/NLB, Google Cloud Load Balancing) design se hi redundant hote hain. Self-hosted ko floating IP ke saath active-passive pair mein chalaate hain. Regions ke beech DNS ya global load balancing region chunta hai.',
-        ),
-      },
-    ],
-    table: {
-      columns: ['', 'Layer 4 (transport)', 'Layer 7 (application)'],
-      rows: [
-        [bi('Sees', 'Kya dekhta hai'), bi('IP addresses and ports', 'IP addresses aur ports'), bi('The full HTTP request', 'Poori HTTP request')],
-        [bi('Routes by', 'Kis basis pe route'), 'Connection', 'Path, host, headers, cookies'],
-        ['Speed', bi('Very fast', 'Bahut fast'), bi('A little more work per request', 'Har request pe thoda zyaada kaam')],
-        ['Examples', 'AWS NLB, HAProxy (TCP mode)', 'AWS ALB, Nginx, Envoy'],
-      ],
-    },
-    interview: {
-      opening: bi(
-        'A load balancer distributes incoming traffic across multiple server instances so the system can scale horizontally and stay available when an instance fails, while giving clients a single stable endpoint.',
-        'Load balancer aane wale traffic ko kai server instances mein baant-ta hai taaki system horizontally scale ho sake aur ek instance fail hone pe bhi available rahe, aur clients ko ek stable endpoint mile.',
       ),
-      points: [
-        bi('Horizontal scalability: add instances instead of scaling one machine vertically.', 'Horizontal scalability: ek machine ko vertically badhane ki jagah instances jodo.'),
-        bi('High availability: health checks remove unhealthy instances automatically, so no single server is a SPOF.', 'High availability: health checks unhealthy instances ko apne aap hatate hain, to koi ek server SPOF nahi.'),
-        bi('Algorithms: round robin, least connections, weighted, IP hash or consistent hashing for affinity.', 'Algorithms: round robin, least connections, weighted, affinity ke liye IP hash ya consistent hashing.'),
-        bi('Zero-downtime deployments: rolling, blue-green and canary releases with connection draining.', 'Zero-downtime deployments: connection draining ke saath rolling, blue-green aur canary releases.'),
-        bi('L4 balances TCP connections; L7 understands HTTP and can route by path or host, terminate TLS and do sticky sessions.', 'L4 TCP connections balance karta hai; L7 HTTP samajhta hai aur path ya host se route, TLS terminate aur sticky sessions kar sakta hai.'),
-        bi('Offloads TLS and can add rate limiting and basic DDoS protection.', 'TLS ka bojh uthata hai aur rate limiting aur basic DDoS protection jod sakta hai.'),
-        bi('The load balancer itself must be redundant — managed, or an active-passive pair; DNS/global LB for multi-region.', 'Load balancer khud redundant hona chahiye — managed, ya active-passive pair; multi-region ke liye DNS/global LB.'),
-      ],
-      keywords: [
-        'Horizontal scaling',
-        'High availability',
-        'Single point of failure',
-        'Health checks',
-        'Round robin',
-        'Least connections',
-        'Consistent hashing',
-        'Sticky sessions',
+      section(
+        'Balancing algorithms',
+        'Balancing algorithms',
+        table(
+          ['Algorithm', bi('How it picks a server', 'Server kaise chunta hai'), bi('Good for', 'Kiske liye accha')],
+          [
+            ['Round robin', bi('Each server in turn', 'Baari-baari'), bi('Requests of similar cost', 'Ek jaisi requests')],
+            ['Least connections', bi('The server with the fewest active requests', 'Sabse kam active requests wala server'), bi('Uneven or long requests, WebSockets', 'Alag-alag ya lambi requests, WebSockets')],
+            ['Weighted', bi('Bigger servers get a bigger share', 'Bade servers ko zyaada hissa'), bi('Mixed server sizes, canary releases', 'Alag size ke servers, canary releases')],
+            ['IP hash / consistent hashing', bi('Same client or key → same server', 'Same client ya key → same server'), 'Caches, chat rooms, sticky sessions'],
+          ],
+        ),
+      ),
+      section(
         'Layer 4 vs Layer 7',
-        'TLS termination',
-        'Connection draining',
-        'Blue-green / canary',
+        'Layer 4 vs Layer 7',
+        table(
+          ['', 'Layer 4 (transport)', 'Layer 7 (application)'],
+          [
+            [bi('Sees', 'Kya dekhta hai'), bi('IP addresses and ports', 'IP addresses aur ports'), bi('The full HTTP request', 'Poori HTTP request')],
+            [bi('Can route by', 'Kis basis pe route'), bi('Connection only', 'Sirf connection'), 'Path, host, headers, cookies'],
+            [bi('Typical use', 'Aam use'), bi('Any TCP/UDP protocol, extreme throughput', 'Koi bhi TCP/UDP protocol, bahut zyaada throughput'), bi('Web apps and APIs', 'Web apps aur APIs')],
+            ['Examples', 'AWS NLB, HAProxy (TCP)', 'AWS ALB, Nginx, Envoy'],
+          ],
+        ),
+      ),
+      section(
+        'What it looks like in practice',
+        'Practically yeh kaisa dikhta hai',
+        code(
+          'nginx',
+          `
+upstream api {
+    least_conn;
+    server 10.0.1.11:3000 max_fails=3 fail_timeout=10s;
+    server 10.0.1.12:3000 max_fails=3 fail_timeout=10s;
+    server 10.0.1.13:3000 max_fails=3 fail_timeout=10s;
+}
+
+server {
+    listen 443 ssl;                      # TLS terminates here
+    location / { proxy_pass http://api; }
+}`,
+        ),
+        p('Each server exposes a cheap health endpoint that the load balancer probes:', 'Har server ek sasta health endpoint deta hai jise load balancer check karta hai:'),
+        code('ts', "app.get('/health', (_req, res) => res.status(200).json({ status: 'ok' }));"),
+      ),
+      section(
+        'Things I keep in mind',
+        'Main kin baaton ka dhyaan rakhta hoon',
+        ul(
+          ['The load balancer must not become the new single point of failure — use a managed one (ALB, Cloud Load Balancing) or an active-passive pair.', 'Load balancer khud naya single point of failure na bane — managed (ALB, Cloud Load Balancing) ya active-passive pair use karo.'],
+          ['Keep servers **stateless** (sessions in Redis or a JWT) so any server can handle any request; sticky sessions are a fallback, not a goal.', 'Servers **stateless** rakho (sessions Redis ya JWT mein) taaki koi bhi server koi bhi request sambhaal sake; sticky sessions majboori hain, lakshya nahi.'],
+          ['For several regions, add DNS or global load balancing in front.', 'Kai regions ke liye aage DNS ya global load balancing jodo.'],
+        ),
+      ),
+    ],
+    interview: {
+      text: [
+        bi(
+          'A load balancer distributes incoming traffic across multiple server instances. It gives us horizontal scalability — we add instances instead of growing one machine — and high availability, because health checks automatically remove unhealthy instances. Clients see one stable endpoint.',
+          'Load balancer aane wale traffic ko kai server instances mein baant-ta hai. Isse horizontal scalability milti hai — ek machine badhane ki jagah instances jodte hain — aur high availability, kyunki health checks unhealthy instances ko apne aap hata dete hain. Clients ko ek stable endpoint dikhta hai.',
+        ),
+        bi(
+          'It also enables zero-downtime rolling, blue-green and canary deployments with connection draining, and centralizes TLS termination. I choose the algorithm by workload — round robin, least connections, or consistent hashing for affinity — use L7 for HTTP routing and L4 for raw TCP, keep servers stateless, and make sure the load balancer itself is redundant.',
+          'Isse connection draining ke saath zero-downtime rolling, blue-green aur canary deployments bhi hote hain, aur TLS termination ek jagah hota hai. Main workload ke hisaab se algorithm chunta hoon — round robin, least connections, ya affinity ke liye consistent hashing — HTTP routing ke liye L7 aur raw TCP ke liye L4 use karta hoon, servers stateless rakhta hoon, aur pakka karta hoon ki load balancer khud redundant ho.',
+        ),
       ],
+      keywords: ['Horizontal scaling', 'High availability', 'Single point of failure', 'Health checks', 'Round robin', 'Least connections', 'Consistent hashing', 'Layer 4 vs Layer 7', 'TLS termination', 'Connection draining', 'Stateless servers'],
     },
     listenFor: [
-      bi('Both reasons: scalability and availability.', 'Dono kaaran: scalability aur availability.'),
-      bi('Health checks, and L4 vs L7.', 'Health checks, aur L4 vs L7.'),
-      bi('Knowing the load balancer itself must be redundant, and that servers should be stateless.', 'Yeh jaanna ki load balancer khud redundant hona chahiye, aur servers stateless hone chahiye.'),
+      bi('Both reasons: scalability and availability, plus health checks.', 'Dono kaaran: scalability aur availability, saath mein health checks.'),
+      bi('Knowing the load balancer itself must be redundant and that servers should be stateless.', 'Yeh jaanna ki load balancer khud redundant ho aur servers stateless hon.'),
     ],
-    mistakes: [
-      bi('Only saying “to distribute load”.', 'Sirf yeh kehna ki “load baantne ke liye”.'),
-      bi('Forgetting health checks.', 'Health checks bhool jaana.'),
-      bi('Making the load balancer a new single point of failure.', 'Load balancer ko naya single point of failure bana dena.'),
-      bi('Relying on sticky sessions instead of stateless servers.', 'Stateless servers ki jagah sticky sessions pe nirbhar rehna.'),
-    ],
+    mistakes: [bi('Only saying “to distribute load”.', 'Sirf yeh kehna ki “load baantne ke liye”.'), bi('Making the load balancer a new single point of failure.', 'Load balancer ko naya single point of failure bana dena.')],
     followUps: [
       {
         q: bi('Load balancer vs reverse proxy vs API gateway?', 'Load balancer, reverse proxy aur API gateway mein kya fark hai?'),
         a: bi(
-          'A load balancer spreads traffic over identical instances. A reverse proxy sits in front of servers to handle TLS, caching and compression — often the same software. An API gateway adds API concerns: authentication, per-client rate limits, routing to different services and request transformation.',
-          'Load balancer ek jaise instances pe traffic baant-ta hai. Reverse proxy servers ke aage TLS, caching aur compression sambhalta hai — aksar same software. API gateway API wali cheezein jodta hai: authentication, har client ki rate limits, alag services tak routing aur request transformation.',
-        ),
-      },
-      {
-        q: bi('What happens to user sessions behind a load balancer?', 'Load balancer ke peeche user sessions ka kya hota hai?'),
-        a: bi(
-          'Prefer stateless servers with sessions in a shared store (Redis) or in tokens (JWT). Sticky sessions work, but they unbalance the load and lose sessions when a server dies.',
-          'Stateless servers behtar hain jinke sessions shared store (Redis) ya tokens (JWT) mein hon. Sticky sessions chalte hain, par load bigaadte hain aur server marne pe sessions kho jaate hain.',
+          'A load balancer spreads traffic over identical instances. A reverse proxy sits in front of servers for TLS, caching and compression — often the same software (Nginx). An API gateway adds API concerns: authentication, per-client rate limits, routing to different services and request transformation.',
+          'Load balancer ek jaise instances pe traffic baant-ta hai. Reverse proxy servers ke aage TLS, caching aur compression ke liye hota hai — aksar same software (Nginx). API gateway API wali cheezein jodta hai: authentication, har client ki rate limits, alag services tak routing aur request transformation.',
         ),
       },
     ],
@@ -164,172 +138,152 @@ export const securityQuestions: PrepQuestion[] = [
     id: 'sso-authentication-and-jwt',
     category: 'security',
     topic: 'auth',
-    question: bi(
-      'In an SSO system, how can authentication be implemented, and where does JWT fit into it?',
-      'SSO system mein authentication kaise implement kar sakte hain, aur JWT isme kahan fit hota hai?',
-    ),
+    question: bi('In an SSO system, how can authentication be implemented, and where does JWT fit into it?', 'SSO system mein authentication kaise implement kar sakte hain, aur JWT isme kahan fit hota hai?'),
     kind: 'concept',
     level: 'advanced',
-    tags: ['sso', 'jwt', 'oidc', 'oauth2', 'saml', 'identity provider', 'tokens', 'pkce'],
-    simple: bi(
-      'Single sign-on means you log in once at one trusted login service — the identity provider (IdP), such as Google, Okta or Azure AD — and every connected app then accepts you without asking for your password again. The apps never see your password; the identity provider hands them a signed “proof of who you are”. A JWT is the most common format for that proof: a small signed token that an app can check on its own.',
-      'Single sign-on ka matlab hai aap ek bharosemand login service — identity provider (IdP), jaise Google, Okta ya Azure AD — pe ek baar login karte ho, aur phir har judi hui app bina password maange aapko maan leti hai. Apps aapka password kabhi nahi dekhtin; identity provider unhe ek signed “aap kaun ho iska saboot” deta hai. JWT us saboot ka sabse common format hai: ek chhota signed token jise app khud check kar sakti hai.',
+    tags: ['sso', 'jwt', 'oidc', 'oauth2', 'saml', 'identity provider', 'pkce', 'tokens'],
+    answer: bi(
+      'In SSO, applications do not handle passwords themselves. They redirect the user to a central identity provider (IdP) — Okta, Azure AD, Keycloak, Google — which authenticates the user once and issues signed tokens, usually through OpenID Connect. JWT is the format of those tokens: the ID token tells the app who the user is, and the access token (often also a JWT) is what APIs verify on every request.',
+      'SSO mein applications khud passwords handle nahi karti. Woh user ko ek central identity provider (IdP) — Okta, Azure AD, Keycloak, Google — pe redirect karti hain, jo user ko ek baar authenticate karke signed tokens deta hai, aam taur pe OpenID Connect se. JWT un tokens ka format hai: ID token app ko batata hai user kaun hai, aur access token (aksar yeh bhi JWT) woh hai jise APIs har request pe verify karti hain.',
     ),
-    example: bi(
-      'An office campus with many buildings. You show your ID once at the main security office (the identity provider); they give you a stamped badge with your name, photo and expiry time (the JWT). Each building’s guard (an app) just checks the stamp and the expiry — they do not phone the main office every time. A fake or expired badge is refused.',
-      'Kai buildings wala office campus. Aap main security office (identity provider) pe ek baar ID dikhate ho; woh aapko naam, photo aur expiry time wala stamp laga badge dete hain (JWT). Har building ka guard (app) bas stamp aur expiry check karta hai — har baar main office ko phone nahi karta. Nakli ya expire hua badge mana kar diya jaata hai.',
-    ),
-    why: bi(
-      'Users remember one password; companies manage access in one place (onboarding, offboarding and MFA once); and individual apps do not store passwords, which means less risk.',
-      'Users ko ek hi password yaad rakhna padta hai; companies access ek jagah se sambhaalti hain (onboarding, offboarding aur MFA ek baar); aur alag-alag apps passwords store nahi karti, to risk kam.',
-    ),
-    without: bi(
-      'Every app has its own login and password database; users reuse weak passwords; removing a leaving employee means disabling twenty accounts; and every app that stores passwords is another place to be breached.',
-      'Har app ka apna login aur password database; users kamzor passwords dohraate hain; company chhodne wale employee ko hatane ke liye bees accounts band karne padte hain; aur passwords store karne wali har app hack hone ki ek aur jagah hai.',
-    ),
-    scene: scene(
-      [
-        [a('user', 'User', 'User')],
-        [c('app-server', { label: bi('Your app', 'Aapka app') })],
-        [c('identity-provider', { state: 'focus' })],
-      ],
-      [
-        ['user>app-server', bi('1. open', '1. kholo')],
-        ['app-server<>identity-provider', '2. login → JWT'],
-      ],
-      bi(
-        '1. The user opens the app. 2. The app sends them to the identity provider to log in and gets back signed tokens (a JWT). Other apps reuse the same login without asking for the password again.',
-        '1. User app kholta hai. 2. App use login ke liye identity provider pe bhejta hai aur signed tokens (JWT) wapas paata hai. Doosre apps bina dobara password maange wahi login use karte hain.',
+    sections: [
+      section(
+        'The players',
+        'Kaun-kaun shaamil hai',
+        table(
+          ['Role', 'Example', bi('Job', 'Kaam')],
+          [
+            ['User / browser', '—', bi('Wants to use the app', 'App use karna chahta hai')],
+            [bi('Relying party (your app)', 'Relying party (aapka app)'), 'Expense app, HR portal', bi('Trusts the IdP, never sees the password', 'IdP pe bharosa karta hai, password kabhi nahi dekhta')],
+            ['Identity provider', 'Okta, Azure AD, Keycloak, Google', bi('Logs the user in (with MFA) and issues tokens', 'User ko login (MFA ke saath) karta hai aur tokens deta hai')],
+            ['Protocol', 'OpenID Connect · SAML 2.0', bi('The standard way they talk', 'Inke baat karne ka standard tareeka')],
+          ],
+        ),
       ),
-    ),
-    partsTitle: bi('How SSO works, step by step (OpenID Connect)', 'SSO kaise kaam karta hai, step by step (OpenID Connect)'),
-    parts: [
-      {
-        title: bi('The players and the protocols', 'Khiladi aur protocols'),
-        text: bi(
-          'The user’s browser; the app (called the relying party or service provider); and the identity provider (Okta, Auth0, Keycloak, Azure AD, Google). The standard protocols are OpenID Connect (OIDC, built on OAuth 2.0, uses JWTs) and SAML 2.0 (XML assertions, common in older enterprise setups).',
-          'User ka browser; app (jise relying party ya service provider kehte hain); aur identity provider (Okta, Auth0, Keycloak, Azure AD, Google). Standard protocols hain OpenID Connect (OIDC, OAuth 2.0 pe bana, JWTs use karta hai) aur SAML 2.0 (XML assertions, purane enterprise setups mein common).',
+      section(
+        'The login flow (OIDC authorization code + PKCE)',
+        'Login flow (OIDC authorization code + PKCE)',
+        steps(
+          ['The app redirects to the IdP', 'App IdP pe redirect karta hai', 'The user has no session, so the app sends the browser to the IdP’s authorize endpoint.', 'User ka session nahi hai, to app browser ko IdP ke authorize endpoint pe bhejta hai.'],
+          ['The user logs in once', 'User ek baar login karta hai', 'Password plus MFA at the IdP. If they already have an IdP session from another app, this step is skipped — that is the “single” in SSO.', 'IdP pe password plus MFA. Agar kisi doosri app se IdP session pehle se hai, to yeh step skip — yahi SSO ka “single” hai.'],
+          ['The IdP returns a code', 'IdP code lautata hai', 'The browser comes back to the app’s callback URL with a short-lived authorization code.', 'Browser ek thodi der wale authorization code ke saath app ke callback URL pe wapas aata hai.'],
+          ['The backend exchanges the code for tokens', 'Backend code ke badle tokens leta hai', 'Server-to-server, with the PKCE verifier: it receives an ID token, an access token and a refresh token.', 'Server-to-server, PKCE verifier ke saath: ID token, access token aur refresh token milte hain.'],
+          ['The app verifies and creates a session', 'App verify karke session banata hai', 'It checks the ID token, then sets its own secure HttpOnly cookie or calls APIs with the access token.', 'Woh ID token check karta hai, phir apni secure HttpOnly cookie set karta hai ya access token se APIs call karta hai.'],
         ),
-      },
-      {
-        title: bi('Step 1 — redirect to the identity provider', 'Step 1 — identity provider pe redirect'),
-        text: bi(
-          'The user opens the app, which has no session for them, so it redirects the browser to the IdP’s authorize endpoint with its client ID, redirect URI, scope=openid, a random state value and a PKCE code challenge.',
-          'User app kholta hai, uske paas user ka session nahi, to woh browser ko IdP ke authorize endpoint pe bhejta hai — apne client ID, redirect URI, scope=openid, random state value aur PKCE code challenge ke saath.',
+        code(
+          'http',
+          `
+GET https://idp.example.com/authorize
+    ?response_type=code
+    &client_id=expense-web
+    &redirect_uri=https://app.example.com/callback
+    &scope=openid%20profile%20email
+    &state=af0ifjsldkj
+    &code_challenge=E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM
+    &code_challenge_method=S256`,
+          'Step 1 — the redirect',
         ),
-      },
-      {
-        title: bi('Step 2 — the user logs in (once)', 'Step 2 — user login karta hai (ek baar)'),
-        text: bi(
-          'The user signs in at the IdP with password and MFA. If they already have an IdP session from another app, this step is skipped — that is what makes it single sign-on.',
-          'User IdP pe password aur MFA se sign in karta hai. Agar kisi doosri app se IdP session pehle se hai, to yeh step skip ho jaata hai — yahi isse single sign-on banata hai.',
+      ),
+      section(
+        'Where JWT fits',
+        'JWT kahan fit hota hai',
+        p(
+          'A JWT has three base64url parts — `header.payload.signature`. The payload carries claims about the user, and the signature proves the IdP issued it:',
+          'JWT ke teen base64url hisse hote hain — `header.payload.signature`. Payload mein user ke baare mein claims hote hain, aur signature saabit karta hai ki IdP ne ise diya:',
         ),
-      },
-      {
-        title: bi('Step 3 — code exchanged for tokens', 'Step 3 — code ke badle tokens'),
-        text: bi(
-          'The IdP redirects back to the app with a short-lived authorization code. The app’s backend exchanges it (with the PKCE verifier or client secret) at the token endpoint for an ID token (a JWT that says who the user is), an access token (often a JWT that says what may be called) and a refresh token.',
-          'IdP thodi der wala authorization code ke saath app pe wapas redirect karta hai. App ka backend use (PKCE verifier ya client secret ke saath) token endpoint pe badalta hai: ID token (JWT jo batata hai user kaun hai), access token (aksar JWT jo batata hai kya call kar sakte ho) aur refresh token.',
+        code(
+          'json',
+          `
+{
+  "iss": "https://idp.example.com",
+  "sub": "user_8f3a",
+  "aud": "expense-api",
+  "exp": 1767225600,
+  "iat": 1767224700,
+  "email": "abhi@example.com",
+  "roles": ["employee"]
+}`,
+          'Decoded access token payload',
         ),
-      },
-      {
-        title: bi('Step 4 — verify, then create a session', 'Step 4 — verify karo, phir session banao'),
-        text: bi(
-          'The app verifies the ID token: the signature against the IdP’s public keys (JWKS), the issuer (iss), the audience (aud), the expiry (exp) and the nonce. Then it creates its own session (a secure HttpOnly cookie) or uses the access token to call APIs.',
-          'App ID token verify karta hai: IdP ki public keys (JWKS) se signature, issuer (iss), audience (aud), expiry (exp) aur nonce. Phir apna session banata hai (secure HttpOnly cookie) ya access token se APIs call karta hai.',
+        note(
+          'important',
+          'A JWT is **signed, not encrypted** — anyone can read the payload. Never put secrets in it.',
+          'JWT **signed hai, encrypted nahi** — payload koi bhi padh sakta hai. Isme kabhi secrets mat daalo.',
         ),
-      },
-      {
-        title: bi('Where JWT fits', 'JWT kahan fit hota hai'),
-        text: bi(
-          'A JWT is header.payload.signature, base64url-encoded and signed (RS256 or ES256) — signed, not encrypted, so anyone can read the payload. It carries claims such as sub, iss, aud, exp, iat, email, roles or scopes. APIs validate access-token JWTs locally with the public key — no database lookup per request — which scales well across microservices.',
-          'JWT header.payload.signature hota hai, base64url-encoded aur signed (RS256 ya ES256) — signed hai, encrypted nahi, isliye payload koi bhi padh sakta hai. Isme sub, iss, aud, exp, iat, email, roles ya scopes jaise claims hote hain. APIs access-token JWTs ko public key se local validate karti hain — har request pe database lookup nahi — jo microservices mein accha scale karta hai.',
+        p(
+          'Every API verifies the token locally with the IdP’s public keys — no database lookup per request, which scales well across microservices:',
+          'Har API token ko IdP ki public keys se local verify karti hai — har request pe database lookup nahi, jo microservices mein accha scale karta hai:',
         ),
-      },
-      {
-        title: bi('JWT trade-offs and safety', 'JWT ke trade-offs aur safety'),
-        text: bi(
-          'A JWT cannot easily be revoked before it expires, so keep access tokens short-lived (5–15 minutes), rotate refresh tokens, and keep a denylist for emergencies. Never put secrets in the payload. Prefer HttpOnly, Secure, SameSite cookies (or keep tokens on the server — the “backend for frontend” pattern) over localStorage, which is exposed to XSS. Always verify the algorithm and signature; reject “alg: none”.',
-          'JWT ko expiry se pehle aasaani se revoke nahi kar sakte, isliye access tokens chhote rakho (5–15 minute), refresh tokens rotate karo, aur emergency ke liye denylist rakho. Payload mein kabhi secrets mat daalo. localStorage (jo XSS ke saamne khula hai) ki jagah HttpOnly, Secure, SameSite cookies (ya tokens server pe — “backend for frontend” pattern) behtar hain. Algorithm aur signature hamesha verify karo; “alg: none” mana karo.',
+        code(
+          'ts',
+          `
+import { createRemoteJWKSet, jwtVerify } from 'jose';
+
+const jwks = createRemoteJWKSet(new URL('https://idp.example.com/.well-known/jwks.json'));
+
+export async function authenticate(token: string) {
+  const { payload } = await jwtVerify(token, jwks, {
+    issuer: 'https://idp.example.com',   // who issued it
+    audience: 'expense-api',             // it was meant for this API
+    algorithms: ['RS256'],               // never accept "none"
+  });
+  return payload;                        // sub, roles… (expiry is checked too)
+}`,
         ),
-      },
-      {
-        title: bi('Logging out', 'Logout karna'),
-        text: bi(
-          'Local logout clears the app’s session. Single logout also ends the IdP session and notifies the other apps (back-channel logout). Refresh tokens are revoked at the IdP’s revocation endpoint.',
-          'Local logout app ka session saaf karta hai. Single logout IdP session bhi khatam karta hai aur doosre apps ko batata hai (back-channel logout). Refresh tokens IdP ke revocation endpoint pe revoke hote hain.',
+      ),
+      section(
+        'Trade-offs and security',
+        'Trade-offs aur security',
+        table(
+          ['Concern', bi('What I do', 'Main kya karta hoon')],
+          [
+            [bi('A JWT cannot be revoked before it expires', 'JWT ko expiry se pehle revoke nahi kar sakte'), bi('Short-lived access tokens (5–15 min), rotating refresh tokens, a denylist for emergencies', 'Chhote access tokens (5–15 min), rotate hone wale refresh tokens, emergency ke liye denylist')],
+            [bi('Token theft through XSS', 'XSS se token chori'), bi('HttpOnly, Secure, SameSite cookies — or keep tokens on the server (BFF pattern) — not localStorage', 'HttpOnly, Secure, SameSite cookies — ya tokens server pe (BFF pattern) — localStorage nahi')],
+            [bi('Forged or misused tokens', 'Nakli ya galat use hue tokens'), bi('Verify signature, `iss`, `aud`, `exp`; fixed algorithm list', 'Signature, `iss`, `aud`, `exp` verify karo; algorithm ki fixed list')],
+            [bi('Logging out everywhere', 'Har jagah se logout'), bi('Single logout at the IdP plus refresh-token revocation', 'IdP pe single logout plus refresh-token revocation')],
+          ],
         ),
-      },
+        table(
+          ['', 'OpenID Connect', 'SAML 2.0', 'OAuth 2.0'],
+          [
+            [bi('Purpose', 'Maqsad'), bi('Authentication — who you are', 'Authentication — aap kaun ho'), bi('Authentication for enterprise SSO', 'Enterprise SSO ke liye authentication'), bi('Authorization — what an app may access', 'Authorization — app kya access kar sakti hai')],
+            ['Token', 'ID token (JWT)', 'XML assertion', bi('Access token (opaque or JWT)', 'Access token (opaque ya JWT)')],
+            [bi('Typical use', 'Aam use'), bi('Modern web and mobile apps', 'Modern web aur mobile apps'), bi('Older corporate applications', 'Purani corporate applications'), bi('Letting an app call an API for the user', 'App ko user ki taraf se API call karne dena')],
+          ],
+        ),
+      ),
     ],
-    table: {
-      columns: ['', 'OpenID Connect', 'SAML 2.0', 'OAuth 2.0'],
-      rows: [
-        [bi('Purpose', 'Maqsad'), bi('Authentication: who you are', 'Authentication: aap kaun ho'), bi('Authentication for enterprise SSO', 'Enterprise SSO ke liye authentication'), bi('Authorization: what an app may access', 'Authorization: app kya access kar sakti hai')],
-        ['Token', 'ID token (JWT)', 'XML assertion', bi('Access token (opaque or JWT)', 'Access token (opaque ya JWT)')],
-        [bi('Typical use', 'Aam use'), bi('Modern web and mobile, “Sign in with Google”', 'Modern web aur mobile, “Sign in with Google”'), bi('Corporate apps, older enterprise systems', 'Corporate apps, purane enterprise systems'), bi('Letting an app call an API for the user', 'App ko user ki taraf se API call karne dena')],
-      ],
-    },
     interview: {
-      opening: bi(
-        'SSO delegates authentication to a central identity provider through a federation protocol — typically OpenID Connect over OAuth 2.0 with the authorization code flow and PKCE, or SAML in older enterprise setups — and JWT is the signed token format the IdP issues (the ID token, and often the access token) so apps and APIs can verify identity and claims statelessly.',
-        'SSO authentication ko ek central identity provider ko federation protocol se saunpta hai — aam taur pe authorization code flow aur PKCE ke saath OAuth 2.0 pe OpenID Connect, ya purane enterprise setups mein SAML — aur JWT woh signed token format hai jo IdP deta hai (ID token, aur aksar access token bhi) taaki apps aur APIs pehchaan aur claims ko statelessly verify kar sakein.',
-      ),
-      points: [
-        bi('Roles: user agent, relying party (the app) and identity provider; trust comes from client registration and the IdP’s signing keys.', 'Roles: user agent, relying party (app) aur identity provider; bharosa client registration aur IdP ki signing keys se aata hai.'),
-        bi('Flow: redirect to IdP → authenticate (with MFA) → authorization code → back-channel token exchange → ID, access and refresh tokens.', 'Flow: IdP pe redirect → authenticate (MFA ke saath) → authorization code → back-channel token exchange → ID, access aur refresh tokens.'),
-        bi('“Single” sign-on comes from the IdP session: the next app gets tokens without a new login.', '“Single” sign-on IdP session se aata hai: agli app ko bina naye login ke tokens mil jaate hain.'),
-        bi('JWT = header.payload.signature, signed with RS256/ES256, with claims such as iss, sub, aud, exp, scope and roles.', 'JWT = header.payload.signature, RS256/ES256 se signed, iss, sub, aud, exp, scope aur roles jaise claims ke saath.'),
-        bi('Validate the signature via JWKS plus iss, aud, exp and nonce; never accept alg none.', 'JWKS se signature plus iss, aud, exp aur nonce validate karo; alg none kabhi mat maano.'),
-        bi('Stateless verification scales across services, but revocation is hard → short-lived access tokens, rotating refresh tokens, a denylist.', 'Stateless verification services mein scale hota hai, par revocation mushkil → chhote access tokens, rotate hone wale refresh tokens, denylist.'),
-        bi('Store tokens in HttpOnly, Secure, SameSite cookies or server-side (BFF) to limit XSS exposure; support single logout.', 'XSS se bachne ke liye tokens HttpOnly, Secure, SameSite cookies mein ya server-side (BFF) rakho; single logout support karo.'),
+      text: [
+        bi(
+          'In SSO, authentication is delegated to a central identity provider using a federation protocol — typically OpenID Connect on top of OAuth 2.0 with the authorization code flow and PKCE, or SAML in older enterprise setups. The app redirects to the IdP, the user authenticates once with MFA, the app exchanges an authorization code for tokens, and other apps reuse the IdP session without asking for the password again.',
+          'SSO mein authentication ek central identity provider ko federation protocol se saunpa jaata hai — aam taur pe authorization code flow aur PKCE ke saath OAuth 2.0 pe OpenID Connect, ya purane enterprise setups mein SAML. App IdP pe redirect karta hai, user MFA ke saath ek baar authenticate karta hai, app authorization code ke badle tokens leta hai, aur doosre apps bina dobara password maange IdP session use karte hain.',
+        ),
+        bi(
+          'JWT is the signed token format: the ID token identifies the user, and access-token JWTs are validated statelessly by APIs using the IdP’s public keys — checking signature, issuer, audience and expiry. Because JWTs are hard to revoke, I keep access tokens short-lived with rotating refresh tokens, store them in HttpOnly cookies or server-side, and support single logout.',
+          'JWT signed token format hai: ID token user ki pehchaan batata hai, aur access-token JWTs ko APIs IdP ki public keys se statelessly validate karti hain — signature, issuer, audience aur expiry check karke. Kyunki JWTs revoke karna mushkil hai, main access tokens chhote rakhta hoon, refresh tokens rotate karta hoon, unhe HttpOnly cookies ya server-side rakhta hoon, aur single logout support karta hoon.',
+        ),
       ],
-      keywords: [
-        'Identity Provider (IdP)',
-        'Relying party / Service provider',
-        'OpenID Connect',
-        'OAuth 2.0',
-        'SAML 2.0',
-        'Authorization code flow + PKCE',
-        'ID token vs access token',
-        'Refresh token rotation',
-        'JWT claims (iss, sub, aud, exp)',
-        'JWKS / signature verification',
-        'Stateless authentication',
-        'Single logout',
-        'Backend for frontend (BFF)',
-      ],
+      keywords: ['Identity provider (IdP)', 'Relying party', 'OpenID Connect', 'OAuth 2.0', 'SAML 2.0', 'Authorization code + PKCE', 'ID token vs access token', 'Refresh token rotation', 'JWT claims (iss, sub, aud, exp)', 'JWKS', 'Stateless authentication', 'Single logout'],
     },
     listenFor: [
       bi('Knowing authentication vs authorization, and ID token vs access token.', 'Authentication vs authorization, aur ID token vs access token ki samajh.'),
-      bi('Describing the redirect and authorization-code flow.', 'Redirect aur authorization-code flow samjhana.'),
-      bi('How a JWT is validated, the revocation trade-off, and where tokens are stored safely.', 'JWT kaise validate hota hai, revocation ka trade-off, aur tokens safely kahan rakhein.'),
+      bi('Describing the redirect and code flow, how a JWT is validated, and the revocation trade-off.', 'Redirect aur code flow samjhana, JWT kaise validate hota hai, aur revocation ka trade-off.'),
     ],
-    mistakes: [
-      bi('Saying “a JWT is encrypted” — it is signed, and anyone can read it.', '“JWT encrypted hai” kehna — woh signed hai, aur use koi bhi padh sakta hai.'),
-      bi('Using plain OAuth 2.0 access tokens as proof of login.', 'Login ke saboot ke roop mein sirf OAuth 2.0 access tokens use karna.'),
-      bi('Long-lived JWTs with no way to revoke them.', 'Lambe chalne wale JWTs jinhe revoke karne ka koi tareeka nahi.'),
-      bi('Not checking the audience and issuer.', 'Audience aur issuer check na karna.'),
-    ],
+    mistakes: [bi('Saying “a JWT is encrypted”.', '“JWT encrypted hai” kehna.'), bi('Long-lived JWTs with no way to revoke them.', 'Lambe chalne wale JWTs jinhe revoke karne ka koi tareeka nahi.')],
     followUps: [
-      {
-        q: bi('Authentication vs authorization?', 'Authentication aur authorization mein kya fark hai?'),
-        a: bi(
-          'Authentication proves who you are (logging in). Authorization decides what you are allowed to do (roles, scopes, permissions).',
-          'Authentication saabit karta hai ki aap kaun ho (login). Authorization tay karta hai ki aap kya kar sakte ho (roles, scopes, permissions).',
-        ),
-      },
       {
         q: bi('Why use PKCE?', 'PKCE kyun use karte hain?'),
         a: bi(
-          'It ties the authorization code to the client that started the login, so a stolen code cannot be exchanged by an attacker. It is required for browser apps and mobile apps that cannot keep a secret.',
-          'Yeh authorization code ko us client se baandh deta hai jisne login shuru kiya, to chori hua code attacker badal nahi sakta. Browser apps aur mobile apps jo secret nahi rakh sakti, unke liye zaroori hai.',
+          'It ties the authorization code to the client that started the login, so a stolen code cannot be exchanged by an attacker. It is required for browser and mobile apps, which cannot keep a client secret.',
+          'Yeh authorization code ko us client se baandh deta hai jisne login shuru kiya, to chori hua code attacker badal nahi sakta. Browser aur mobile apps ke liye zaroori hai, jo client secret nahi rakh sakti.',
         ),
       },
       {
-        q: bi('How do you revoke a JWT?', 'JWT ko revoke kaise karte ho?'),
+        q: bi('Session cookie or JWT?', 'Session cookie ya JWT?'),
         a: bi(
-          'You cannot change an issued token, so keep it short-lived, revoke the refresh token, and for emergencies check a denylist of token IDs (jti) or bump a per-user token version.',
-          'Diye hue token ko badal nahi sakte, isliye use chhota rakho, refresh token revoke karo, aur emergency ke liye token IDs (jti) ki denylist check karo ya har user ka token version badha do.',
+          'A session cookie points to server-side state: easy to revoke, but needs a lookup. A JWT carries the state: no lookup, but hard to revoke. Many apps use the IdP’s tokens only at login, then their own session cookie.',
+          'Session cookie server-side state ki taraf point karti hai: revoke karna aasaan, par lookup chahiye. JWT state khud rakhta hai: lookup nahi, par revoke mushkil. Kai apps IdP ke tokens sirf login pe use karti hain, phir apni session cookie.',
         ),
       },
     ],

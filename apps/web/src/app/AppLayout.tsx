@@ -5,6 +5,7 @@ import { Link, Outlet, ScrollRestoration } from 'react-router';
 import { PageSpinner } from '@/components/ui/Spinner';
 import { useOnlineStatus } from '@/lib/pwa';
 import { Header } from './Header';
+import { FloatingLanguageBar } from '@/components/FloatingLanguageBar';
 
 export function OfflineBanner() {
   const online = useOnlineStatus();
@@ -87,6 +88,7 @@ export function AppLayout() {
           </nav>
         </div>
       </footer>
+      <FloatingLanguageBar />
       <ScrollRestoration />
     </div>
   );
