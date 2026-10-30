@@ -2,7 +2,8 @@ import { useId, useSyncExternalStore } from 'react';
 import { useExplanation } from '@/components/LanguageToggle';
 import { cn } from '@/lib/cn';
 import { learnIcon } from './icons';
-import type { Scene, SceneAccent, SceneEdge, SceneNode, Text } from './types';
+import { SCENE_ACCENT } from './sceneStyles';
+import type { Scene, SceneEdge, SceneGroup, SceneNode, Text } from './types';
 
 /**
  * Renders a learning illustration as an SVG: nodes in columns, arrows between them and,
@@ -15,26 +16,18 @@ const ROW = 80;
 const BOX = 44;
 const R = BOX / 2;
 
-// Literal class strings so Tailwind can see them.
-const ACCENT: Record<SceneAccent, { icon: string; stroke: string; fill: string }> = {
-  sky: { icon: 'text-sky-600 dark:text-sky-400', stroke: 'stroke-sky-300 dark:stroke-sky-700', fill: 'fill-sky-50 dark:fill-sky-950' },
-  violet: { icon: 'text-violet-600 dark:text-violet-400', stroke: 'stroke-violet-300 dark:stroke-violet-700', fill: 'fill-violet-50 dark:fill-violet-950' },
-  emerald: { icon: 'text-emerald-600 dark:text-emerald-400', stroke: 'stroke-emerald-300 dark:stroke-emerald-700', fill: 'fill-emerald-50 dark:fill-emerald-950' },
-  amber: { icon: 'text-amber-600 dark:text-amber-400', stroke: 'stroke-amber-300 dark:stroke-amber-700', fill: 'fill-amber-50 dark:fill-amber-950' },
-  rose: { icon: 'text-rose-600 dark:text-rose-400', stroke: 'stroke-rose-300 dark:stroke-rose-700', fill: 'fill-rose-50 dark:fill-rose-950' },
-  slate: { icon: 'text-slate-600 dark:text-slate-300', stroke: 'stroke-slate-300 dark:stroke-slate-600', fill: 'fill-white dark:fill-slate-900' },
-  cyan: { icon: 'text-cyan-600 dark:text-cyan-400', stroke: 'stroke-cyan-300 dark:stroke-cyan-700', fill: 'fill-cyan-50 dark:fill-cyan-950' },
-  orange: { icon: 'text-orange-600 dark:text-orange-400', stroke: 'stroke-orange-300 dark:stroke-orange-700', fill: 'fill-orange-50 dark:fill-orange-950' },
-  fuchsia: { icon: 'text-fuchsia-600 dark:text-fuchsia-400', stroke: 'stroke-fuchsia-300 dark:stroke-fuchsia-700', fill: 'fill-fuchsia-50 dark:fill-fuchsia-950' },
-  lime: { icon: 'text-lime-600 dark:text-lime-400', stroke: 'stroke-lime-300 dark:stroke-lime-700', fill: 'fill-lime-50 dark:fill-lime-950' },
-  indigo: { icon: 'text-indigo-600 dark:text-indigo-400', stroke: 'stroke-indigo-300 dark:stroke-indigo-700', fill: 'fill-indigo-50 dark:fill-indigo-950' },
-};
 
 const EDGE: Record<SceneEdge['kind'], { line: string; head: string; dot: string; dash?: string; dur: number }> = {
   flow: { line: 'stroke-indigo-400 dark:stroke-indigo-500', head: 'fill-indigo-400 dark:fill-indigo-500', dot: 'fill-indigo-500 dark:fill-indigo-300', dur: 1.8 },
   async: { line: 'stroke-amber-400 dark:stroke-amber-500', head: 'fill-amber-400 dark:fill-amber-500', dot: 'fill-amber-500 dark:fill-amber-300', dash: '5 4', dur: 2.8 },
   bad: { line: 'stroke-rose-400 dark:stroke-rose-500', head: 'fill-rose-400 dark:fill-rose-500', dot: 'fill-rose-500', dash: '4 4', dur: 0 },
   muted: { line: 'stroke-slate-300 dark:stroke-slate-600', head: 'fill-slate-300 dark:fill-slate-600', dot: 'fill-slate-400', dash: '2 4', dur: 0 },
+};
+
+const GROUP: Record<SceneGroup['tone'], { box: string; text: string }> = {
+  good: { box: 'fill-emerald-400/10 stroke-emerald-400 dark:fill-emerald-400/10 dark:stroke-emerald-600', text: 'fill-emerald-700 dark:fill-emerald-300' },
+  bad: { box: 'fill-rose-400/10 stroke-rose-400 dark:fill-rose-400/10 dark:stroke-rose-600', text: 'fill-rose-700 dark:fill-rose-300' },
+  info: { box: 'fill-indigo-400/10 stroke-indigo-400 dark:fill-indigo-400/10 dark:stroke-indigo-500', text: 'fill-indigo-700 dark:fill-indigo-300' },
 };
 
 function subscribeMotion(cb: () => void) {
@@ -81,14 +74,17 @@ function layout(scene: Scene): { placed: Map<string, Placed>; height: number } {
   const colOf = new Map(scene.cols.flatMap((col, i) => col.map((n) => [n.id, i] as const)));
   const vertical = scene.edges.some((e) => colOf.get(e.from) !== undefined && colOf.get(e.from) === colOf.get(e.to));
   const rowGap = vertical ? ROW + 34 : ROW;
-  const height = Math.max(150, rows * rowGap + 40);
+  // Room above the nodes for a group's label.
+  const top = scene.groups?.length ? 22 : 0;
+  const base = Math.max(150, rows * rowGap + 40);
+  const height = base + top;
   const n = scene.cols.length;
   const pad = n <= 1 ? W / 2 : n === 2 ? 80 : n === 3 ? 56 : 44;
   const placed = new Map<string, Placed>();
   scene.cols.forEach((col, i) => {
     const x = n <= 1 ? W / 2 : pad + (i * (W - 2 * pad)) / (n - 1);
     col.forEach((node, j) => {
-      const y = height / 2 - 10 + (j - (col.length - 1) / 2) * rowGap;
+      const y = top + base / 2 - 10 + (j - (col.length - 1) / 2) * rowGap;
       placed.set(node.id, { node, x, y });
     });
   });
@@ -130,6 +126,42 @@ export function SceneView({ scene, variant = 'neutral', className }: { scene: Sc
             </marker>
           ))}
         </defs>
+
+        {scene.groups?.map((g, i) => {
+          const members = g.ids.map((id) => placed.get(id)).filter((p): p is Placed => !!p);
+          if (!members.length) return null;
+          // Wide enough for each member's label, tall enough for its label and note.
+          const half = (p: Placed) => Math.max(R, (Math.max(...wrap(txt(p.node.label)).map((l) => l.length)) * 6.2) / 2) + 8;
+          const label = txt(g.label).toUpperCase();
+          let x1 = Math.min(...members.map((p) => p.x - half(p)));
+          let x2 = Math.max(...members.map((p) => p.x + half(p)));
+          // Also wide enough for the group's own label, shifted back inside the picture if needed.
+          const need = label.length * 6.3 + 18;
+          if (x2 - x1 < need) {
+            const mid = (x1 + x2) / 2;
+            x1 = mid - need / 2;
+            x2 = mid + need / 2;
+          }
+          if (x2 > W - 2) {
+            x1 -= x2 - (W - 2);
+            x2 = W - 2;
+          }
+          if (x1 < 2) {
+            x2 = Math.min(W - 2, x2 + 2 - x1);
+            x1 = 2;
+          }
+          const y1 = Math.min(...members.map((p) => p.y)) - R - 22;
+          const y2 = Math.max(...members.map((p) => p.y + labelDepth(p.node.id)));
+          const tone = GROUP[g.tone];
+          return (
+            <g key={`g${i}`}>
+              <rect x={x1} y={y1} width={x2 - x1} height={y2 - y1} rx={14} className={tone.box} strokeWidth={1.4} strokeDasharray="5 4" />
+              <text x={(x1 + x2) / 2} y={y1 + 11} textAnchor="middle" fontSize={8.5} fontWeight={700} letterSpacing={0.4} className={tone.text}>
+                {label}
+              </text>
+            </g>
+          );
+        })}
 
         {scene.edges.map((e, i) => {
           const from = placed.get(e.from);
@@ -201,7 +233,7 @@ export function SceneView({ scene, variant = 'neutral', className }: { scene: Sc
         })}
 
         {[...placed.values()].map(({ node, x, y }) => {
-          const accent = ACCENT[node.accent];
+          const accent = SCENE_ACCENT[node.accent];
           const Icon = learnIcon(node.icon);
           const lines = wrap(txt(node.label));
           const note = node.note ? txt(node.note) : null;

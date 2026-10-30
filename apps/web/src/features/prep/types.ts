@@ -1,4 +1,4 @@
-import type { Bi, Scene, Text } from '@/features/learn/types';
+import type { Bi, Scene, SceneAccent, Text } from '@/features/learn/types';
 
 export type { Bi, Text };
 
@@ -27,7 +27,39 @@ export type PrepBlock =
   | { type: 'steps'; items: { title: Text; text: Bi }[] }
   /** Alternatives side by side (e.g. three versioning styles), optionally with a badge and code. */
   | { type: 'options'; items: { title: string; badge?: Bi; text: Bi; code?: string; lang?: string }[] }
-  | { type: 'scene'; scene: Scene };
+  /** An illustration; `before` is tinted red (the problem), `after` green (the fix). */
+  | { type: 'scene'; scene: Scene; variant?: 'before' | 'after' }
+  /** A timeline: who talks to whom, in order, with a step-by-step walkthrough. */
+  | { type: 'sequence'; sequence: Sequence };
+
+/** A participant in a sequence diagram (drawn as a column with a lifeline). */
+export interface SeqActor {
+  id: string;
+  /** Lucide icon name (see learn/icons.ts). */
+  icon: string;
+  label: Text;
+  accent: SceneAccent;
+}
+
+/** flow: a call · reply: a response · async: a message sent for later · bad: a call that failed. */
+export type SeqMsgKind = 'flow' | 'reply' | 'async' | 'bad';
+
+export type SeqStep = (
+  | { type: 'msg'; from: string; to: string; label: Text; kind: SeqMsgKind }
+  /** Something that happens over one or two actors (a crash, a wait, a state change). */
+  | { type: 'note'; over: string[]; text: Text; tone: 'info' | 'good' | 'bad' | 'wait' }
+) & {
+  /** Plain-language explanation shown when walking through the steps. */
+  explain?: Bi;
+};
+
+export interface Sequence {
+  actors: SeqActor[];
+  steps: SeqStep[];
+  /** Boxes around consecutive steps (indexes into `steps`, inclusive), e.g. one transaction. */
+  groups?: { from: number; to: number; label: Text; tone: 'good' | 'bad' | 'info' }[];
+  caption: Bi;
+}
 
 export interface PrepSection {
   /** A plain string is the same in both languages. */

@@ -6,6 +6,7 @@ import { cn } from '@/lib/cn';
 import type { PrepBlock } from './types';
 import { useText } from './useText';
 import { InlineText } from '@/features/glossary/InlineText';
+import { SequenceView } from './SequenceView';
 
 /** Renders **bold**, `inline code` and linked glossary terms inside answer text. */
 export function RichText({ text }: { text: string }) {
@@ -149,7 +150,9 @@ export function Block({ block }: { block: PrepBlock }) {
         </ul>
       );
     case 'scene':
-      return <SceneView scene={block.scene} />;
+      return <SceneView scene={block.scene} variant={block.variant} />;
+    case 'sequence':
+      return <SequenceView sequence={block.sequence} />;
   }
 }
 

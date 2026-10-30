@@ -55,6 +55,8 @@ describe('interview prep: questions', () => {
       ['when/how do you find out', 'devops', 'observability'],
       ['completed a task on your machine', 'devops', 'cicd'],
       ['How do you ensure your work is of good quality', 'practices', 'quality'],
+      ['Transactional Outbox pattern', 'system-design', 'messaging'],
+      ['Idempotent Consumer pattern', 'system-design', 'messaging'],
     ];
     const missing: string[] = [];
     for (const [text, category, topic] of expected) {
@@ -119,10 +121,23 @@ describe('interview prep: questions', () => {
     const problems: string[] = [];
     for (const q of PREP_QUESTIONS) {
       for (const b of q.sections.flatMap((s) => s.blocks)) {
-        if (b.type !== 'scene') continue;
-        const ids = new Set(b.scene.cols.flat().map((n) => n.id));
-        for (const n of b.scene.cols.flat()) if (!hasLearnIcon(n.icon)) problems.push(`${q.id}: unknown icon ${n.icon}`);
-        for (const e of b.scene.edges) if (!ids.has(e.from) || !ids.has(e.to)) problems.push(`${q.id}: edge ${e.from} → ${e.to}`);
+        if (b.type === 'scene') {
+          const ids = new Set(b.scene.cols.flat().map((n) => n.id));
+          for (const n of b.scene.cols.flat()) if (!hasLearnIcon(n.icon)) problems.push(`${q.id}: unknown icon ${n.icon}`);
+          for (const e of b.scene.edges) if (!ids.has(e.from) || !ids.has(e.to)) problems.push(`${q.id}: edge ${e.from} → ${e.to}`);
+          for (const g of b.scene.groups ?? []) for (const id of g.ids) if (!ids.has(id)) problems.push(`${q.id}: group member ${id}`);
+        }
+        if (b.type === 'sequence') {
+          const { actors, steps, groups } = b.sequence;
+          const ids = new Set(actors.map((a) => a.id));
+          if (ids.size !== actors.length) problems.push(`${q.id}: duplicate actor ids`);
+          for (const a of actors) if (!hasLearnIcon(a.icon)) problems.push(`${q.id}: unknown icon ${a.icon}`);
+          for (const [i, st] of steps.entries()) {
+            for (const id of st.type === 'msg' ? [st.from, st.to] : st.over) if (!ids.has(id)) problems.push(`${q.id}: step ${i + 1} uses unknown actor ${id}`);
+            if (!st.explain) problems.push(`${q.id}: step ${i + 1} needs a plain-language explanation for the walkthrough`);
+          }
+          for (const g of groups ?? []) if (g.from > g.to || g.to >= steps.length) problems.push(`${q.id}: group ${g.from}–${g.to} is out of range`);
+        }
       }
     }
     expect(problems).toEqual([]);
