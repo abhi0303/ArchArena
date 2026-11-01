@@ -107,6 +107,7 @@ const SERVICE_PROPS: PropertyKey[] = [
   'retryStrategy',
   'circuitBreaker',
   'idempotency',
+  'eventPublishing',
   'deployment',
 ];
 
@@ -245,7 +246,7 @@ export const COMPONENTS = define([
     description: 'Processes jobs asynchronously, outside the request path.',
     details: 'Workers pick up jobs from a queue and do slow work (emails, thumbnails, reports) without making users wait.',
     tags: ['worker', 'compute', 'consumer'],
-    properties: ['role', 'instances', 'idempotency', 'retryStrategy', 'circuitBreaker', 'consumerGroup', 'deployment'],
+    properties: ['role', 'instances', 'idempotency', 'eventPublishing', 'retryStrategy', 'circuitBreaker', 'consumerGroup', 'deployment'],
     accent: 'violet',
   },
   {
@@ -280,7 +281,7 @@ export const COMPONENTS = define([
     description: 'Relational database with transactions and joins.',
     details: 'Stores structured data with ACID transactions — great for money, bookings and anything that needs strong consistency.',
     tags: ['db', 'sql', 'persistent', 'store'],
-    properties: ['role', 'replication', 'consistency', 'access', 'concurrencyControl', 'backups', 'deployment'],
+    properties: ['role', 'replication', 'consistency', 'access', 'concurrencyControl', 'uniqueConstraints', 'backups', 'deployment'],
     accent: 'emerald',
   },
   {
@@ -291,7 +292,7 @@ export const COMPONENTS = define([
     description: 'Horizontally scalable non-relational database.',
     details: 'Key-value, document or wide-column stores scale writes across many nodes and suit huge, simple access patterns.',
     tags: ['db', 'nosql', 'persistent', 'store'],
-    properties: ['role', 'dataModel', 'partitionKey', 'replicationFactor', 'consistency', 'concurrencyControl', 'deployment'],
+    properties: ['role', 'dataModel', 'partitionKey', 'replicationFactor', 'consistency', 'concurrencyControl', 'uniqueConstraints', 'deployment'],
     accent: 'emerald',
   },
   {
@@ -313,7 +314,7 @@ export const COMPONENTS = define([
     description: 'Database split across shards by a shard key.',
     details: 'Sharding partitions data across many database servers so writes and storage scale beyond one machine.',
     tags: ['db', 'sharded', 'persistent', 'store'],
-    properties: ['role', 'shardingStrategy', 'partitionKey', 'shardCount', 'replication', 'consistency', 'concurrencyControl', 'backups', 'deployment'],
+    properties: ['role', 'shardingStrategy', 'partitionKey', 'shardCount', 'replication', 'consistency', 'concurrencyControl', 'uniqueConstraints', 'backups', 'deployment'],
     accent: 'emerald',
   },
   {
@@ -416,7 +417,7 @@ export const COMPONENTS = define([
     description: 'Reads events from a queue or stream and reacts to them.',
     details: 'Consumes events and performs side effects such as updating a read model or sending a notification.',
     tags: ['consumer', 'compute', 'worker'],
-    properties: ['role', 'instances', 'idempotency', 'retryStrategy', 'consumerGroup', 'deployment'],
+    properties: ['role', 'instances', 'idempotency', 'eventPublishing', 'retryStrategy', 'consumerGroup', 'deployment'],
     accent: 'orange',
   },
   {

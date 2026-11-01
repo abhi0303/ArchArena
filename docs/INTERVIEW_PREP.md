@@ -51,13 +51,40 @@ Blocks, written with the helpers in `dsl.ts`:
 | `note(tone, en, hi)` | `important`, `tip`, `warning` or `example` callouts |
 | `steps(...)` | A sequence: a migration, a debugging order, a deploy |
 | `options(...)` | Alternatives side by side, optionally with a badge such as “My default” |
-| `figure(scene)` | A diagram, using the Learn helpers (`scene`, `c`, `a`). Keep labels to a couple of words |
+| `figure(scene, variant?)` | A diagram, using the Learn helpers (`scene`, `c`, `a`). Keep labels to a couple of words. `'before'` tints it red (the problem), `'after'` green (the fix). Pass `[group(ids, label, tone)]` as the fourth argument of `scene` to draw a dashed box around nodes, e.g. two tables written in one transaction |
+| `timeline(actors, steps, caption)` | A sequence diagram: who talks to whom, in order, with a “Walk through it step by step” mode. Use it when timing matters (a crash between two writes, a retry) |
+
+A timeline is built from:
+
+| Helper | Use it for |
+| --- | --- |
+| `actorC(type, { id?, label? })`, `actor(id, icon, label)` | The participants (columns): a catalog component, or anything else |
+| `msg('a>b', label, explain(en, hi))` | A message: `a>b` call, `a.>b` reply, `a~>b` async message, `a!>b` failed call |
+| `mark([ids], text, tone, explain(en, hi))` | Something that happens over one or two actors: a crash (`bad`), a wait (`wait`), a recovery (`good`) |
+| `inTxn(label, tone, ...steps)` | A box around steps that belong together, e.g. one database transaction |
+
+Every timeline step needs an `explain(en, hi)` — it is what the reader sees under the picture while walking through it. Keep labels short (a few words); the explanation carries the detail.
+
+```ts
+timeline(
+  [actor('user', 'User', 'User'), actorC('app-server', { id: 'api', label: 'Expense API' }), actorC('sql-db', { id: 'db', label: 'Database' })],
+  [
+    msg('user>api', 'POST /expenses', explain('The user taps Save.', 'User ne Save dabaya.')),
+    inTxn(bi('one transaction', 'ek transaction'), 'good',
+      msg('api>db', 'INSERT expense', explain('Row #1: the expense.', 'Row #1: expense.')),
+      msg('api>db', 'COMMIT ✓', explain('Both rows saved together.', 'Dono rows ek saath save.')),
+    ),
+    msg('api.>user', '201 · saved', explain('The user is done.', 'User ka kaam ho gaya.')),
+  ],
+  bi('caption', 'caption in Hinglish'),
+)
+```
 
 The tests require at least two concrete blocks (code, table, steps, options or a diagram) per answer, and a table for every comparison question.
 
 ### Glossary terms
 
-Technical terms in answers are underlined automatically when they appear in the glossary (`apps/web/src/features/glossary/terms-*.ts`). If a new answer uses jargon that is not underlined, add a term there: a title, the aliases to match, a simple meaning in English and Hinglish and, when it helps, a real-life example. Terms that appear in the question itself are not underlined in its answer.
+Technical terms in answers are underlined automatically when they appear in the glossary (`apps/web/src/features/glossary/terms-*.ts`; `terms-3.ts` holds messaging and data-consistency terms such as dual write, message relay, CDC tools and deduplication). If a new answer uses jargon that is not underlined, add a term there: a title, the aliases to match, a simple meaning in English and Hinglish and, when it helps, a real-life example. Terms that appear in the question itself are not underlined in its answer.
 
 ### Writing style
 

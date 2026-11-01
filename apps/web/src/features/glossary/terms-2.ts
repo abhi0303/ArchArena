@@ -4,6 +4,7 @@ import type { GlossaryTerm } from './types';
 const PREP = {
   cache: '/prep/system-design/when-to-use-a-cache',
   queue: '/prep/system-design/queue-vs-synchronous-api-call',
+  consumer: '/prep/system-design/idempotent-consumer-pattern',
   lb: '/prep/servers/why-use-a-load-balancer',
   sso: '/prep/security/sso-authentication-and-jwt',
   pod: '/prep/devops/kubernetes-pod-keeps-restarting',
@@ -200,11 +201,11 @@ export const TERMS_2: GlossaryTerm[] = [
     'Delivery guarantees',
     ['at-least-once', 'at least once', 'at-most-once', 'at most once', 'exactly once', 'exactly-once', 'at-least-once delivery'],
     [
-      '**At-most-once:** a message arrives once or never (may be lost). **At-least-once:** it is never lost but may arrive twice — so consumers must handle duplicates. **Exactly-once:** its effect happens exactly once, using extra machinery such as transactions or de-duplication.',
-      '**At-most-once:** message ek baar aata hai ya kabhi nahi (kho sakta hai). **At-least-once:** kabhi nahi khota par do baar aa sakta hai — isliye consumers ko duplicates sambhaalne padte hain. **Exactly-once:** asar bilkul ek baar, transactions ya de-duplication jaisi extra machinery se.',
+      '**At-most-once:** a message arrives once or never (may be lost). **At-least-once:** it is never lost but may arrive twice — so consumers must handle duplicates. **Exactly-once:** its effect happens exactly once. Across a network this really means at-least-once delivery plus an **idempotent consumer** that safely ignores the duplicates.',
+      '**At-most-once:** message ek baar aata hai ya kabhi nahi (kho sakta hai). **At-least-once:** kabhi nahi khota par do baar aa sakta hai — isliye consumers ko duplicates sambhaalne padte hain. **Exactly-once:** asar bilkul ek baar. Network pe iska asli matlab hai at-least-once delivery plus ek **idempotent consumer** jo duplicates ko safely ignore kare.',
     ],
     ['A courier who keeps coming until you sign is at-least-once — if your signature is lost, you might get the parcel twice.', 'Courier jo sign hone tak aata rehta hai woh at-least-once hai — sign kho jaaye to parcel do baar bhi aa sakta hai.'],
-    { related: ['idempotency', 'message-queue'] },
+    { related: ['idempotent-consumer', 'idempotency', 'message-queue'], more: PREP.consumer },
   ),
   g(
     'consumer-lag',
@@ -687,8 +688,8 @@ export const TERMS_2: GlossaryTerm[] = [
     'Rollback',
     ['rollback', 'roll back', 'rolled back', 'rolling back', 'rollbacks'],
     [
-      'Going back to the previous working version of an app after a bad release — the fastest way to stop user-facing damage.',
-      'Kharab release ke baad app ke pichhle chalte version pe wapas jaana — users ka nuksaan rokne ka sabse fast tareeka.',
+      'Undoing a change to get back to the last good state. **After a bad release:** going back to the previous working version — the fastest way to stop user-facing damage. **In a database transaction:** `ROLLBACK` cancels every write in the transaction, as if none of them happened.',
+      'Change ko undo karke pichhli sahi state pe wapas jaana. **Kharab release ke baad:** app ke pichhle chalte version pe wapas jaana — users ka nuksaan rokne ka sabse fast tareeka. **Database transaction mein:** `ROLLBACK` transaction ke saare writes cancel kar deta hai, jaise kuch hua hi nahi.',
     ],
     ['Switching back to the old recipe the moment customers start sending plates back.', 'Customers plates lautane lagein to turant purani recipe pe wapas jaana.'],
     { related: ['canary', 'feature-flag'], more: PREP.spike },

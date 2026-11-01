@@ -61,3 +61,48 @@ test('interview prep: categories, search, a full answer, practice mode and progr
   await page.getByTestId('prep-practice-mode').uncheck();
   await expect(page.getByTestId('prep-interview-answer')).toBeVisible();
 });
+
+test('a timeline diagram can be walked through step by step, in English or Hinglish', async ({ page }) => {
+  await page.goto('/prep/system-design/transactional-outbox-pattern');
+  await expect(page.getByTestId('prep-question-title')).toContainText('Transactional Outbox');
+
+  // The queue-full timeline: start the walkthrough and step forward.
+  const timeline = page.getByTestId('prep-sequence').first();
+  await timeline.scrollIntoViewIfNeeded();
+  await timeline.getByTestId('sequence-start').click();
+  await expect(timeline.getByTestId('sequence-position')).toHaveText('Step 1 of 13');
+  await expect(timeline.getByTestId('sequence-step-title')).toContainText('POST /expenses');
+  for (let i = 0; i < 6; i++) await timeline.getByTestId('sequence-next').click();
+  await expect(timeline.getByTestId('sequence-position')).toHaveText('Step 7 of 13');
+  await expect(timeline.getByTestId('sequence-step-explain')).toContainText('Nothing is lost');
+
+  // The explanation follows the floating language switch.
+  const floating = page.getByTestId('floating-language');
+  await floating.getByRole('button', { name: 'Hinglish' }).click();
+  await expect(timeline.getByTestId('sequence-step-explain')).toContainText('Kuch nahi khoya');
+  await floating.getByRole('button', { name: 'English' }).click();
+
+  await timeline.getByTestId('sequence-prev').click();
+  await expect(timeline.getByTestId('sequence-position')).toHaveText('Step 6 of 13');
+  await timeline.getByTestId('sequence-all').click();
+  await expect(timeline.getByTestId('sequence-start')).toBeVisible();
+
+  // New jargon is explained in place.
+  await page.getByTestId('prep-short-answer').getByRole('button', { name: 'dual-write problem' }).click();
+  await expect(page.getByRole('dialog', { name: 'Dual-write problem' }).getByTestId('glossary-meaning')).toContainText('ghost event');
+});
+
+test('the idempotent consumer answer explains duplicates with diagrams and new terms', async ({ page }) => {
+  await page.goto('/prep/system-design/idempotent-consumer-pattern');
+  await expect(page.getByTestId('prep-question-title')).toContainText('Idempotent Consumer');
+  // Three timelines: crash before ack, two consumers racing, a payment with an idempotency key.
+  await expect(page.getByTestId('prep-sequence')).toHaveCount(3);
+  const race = page.getByTestId('prep-sequence').nth(1);
+  await race.scrollIntoViewIfNeeded();
+  await race.getByTestId('sequence-start').click();
+  for (let i = 0; i < 4; i++) await race.getByTestId('sequence-next').click();
+  await expect(race.getByTestId('sequence-step-explain')).toContainText('its insert did nothing');
+
+  await page.getByTestId('prep-short-answer').getByRole('button', { name: 'ack' }).click();
+  await expect(page.getByRole('dialog', { name: 'Acknowledgement (ack)' }).getByTestId('glossary-meaning')).toContainText('ack only');
+});

@@ -3,6 +3,7 @@ import { QUESTIONS } from '@arch-arena/shared/questions';
 import { describe, expect, it } from 'vitest';
 import { COMPONENT_SETTING_GUIDES, CONNECTION_SETTING_GUIDES, getSettingGuide } from '@/features/learn/content/settings';
 import { settingKeysForCheck } from '@/features/learn/related';
+import { PREP_QUESTIONS } from '@/features/prep/content';
 import { CONNECTION_FIELDS, COMPONENT_SETTING_KEYS, SETTING_FIELDS, SETTING_GROUPS, getSettingField, groupScope, settingAnchor, type SettingField } from '@/features/learn/settingsCatalog';
 import type { Bi, SettingGuide } from '@/features/learn/types';
 
@@ -99,5 +100,25 @@ describe('configuration guide: links from evaluation feedback', () => {
     }
     expect([...missing]).toEqual([]);
     expect(linked).toBeGreaterThan(100);
+  });
+});
+
+describe('configuration guide: deep dives', () => {
+  it('links only to interview prep answers that exist, named after their question', () => {
+    const pages = new Map(PREP_QUESTIONS.map((q) => [`/prep/${q.category}/${q.id}`, q]));
+    const links = COMPONENT_SETTING_GUIDES.flatMap((g) => (g.deepDive ?? []).map((d) => ({ key: g.key, ...d })));
+    expect(links.length).toBeGreaterThanOrEqual(4);
+    for (const l of links) {
+      const q = pages.get(l.to);
+      expect(q, `${l.key} → ${l.to}`).toBeDefined();
+      expect(q!.question.en, l.key).toContain(l.title);
+    }
+  });
+
+  it('explains the data-safety settings and points to the patterns behind them', () => {
+    expect(getSettingGuide('eventPublishing')?.deepDive?.map((d) => d.title)).toContain('Transactional Outbox pattern');
+    expect(getSettingGuide('uniqueConstraints')?.deepDive?.map((d) => d.title)).toContain('Idempotent Consumer pattern');
+    expect(getSettingField('uniqueConstraints')?.usedBy).toEqual(expect.arrayContaining(['sql-db', 'nosql-db', 'sharded-db']));
+    expect(getSettingField('eventPublishing')?.usedBy).toEqual(expect.arrayContaining(['app-server', 'microservice', 'background-worker', 'event-consumer']));
   });
 });

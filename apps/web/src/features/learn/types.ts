@@ -34,11 +34,19 @@ export interface SceneEdge {
   both?: boolean;
 }
 
+/** A dashed box around some nodes, e.g. two tables written in one transaction. */
+export interface SceneGroup {
+  ids: string[];
+  label: Text;
+  tone: 'good' | 'bad' | 'info';
+}
+
 /** A small illustration: nodes arranged in columns (left → right), connected by edges. */
 export interface Scene {
   cols: SceneNode[][];
   edges: SceneEdge[];
   caption: Bi;
+  groups?: SceneGroup[];
 }
 
 export interface ComponentGuide {
@@ -106,4 +114,6 @@ export interface SettingGuide {
   goodValues?: Bi;
   /** Practical advice for challenges (what the evaluator rewards). */
   inChallenges: Bi;
+  /** Interview prep answers that explain the idea in depth. */
+  deepDive?: { title: string; to: string }[];
 }

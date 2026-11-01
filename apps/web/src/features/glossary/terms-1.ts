@@ -19,6 +19,8 @@ const PREP = {
   distributed: '/prep/system-design/why-distributed-systems-are-hard-to-debug',
   cache: '/prep/system-design/when-to-use-a-cache',
   queue: '/prep/system-design/queue-vs-synchronous-api-call',
+  outbox: '/prep/system-design/transactional-outbox-pattern',
+  consumer: '/prep/system-design/idempotent-consumer-pattern',
 };
 
 /** APIs, reliability, databases and architecture. */
@@ -52,7 +54,7 @@ export const TERMS_1: GlossaryTerm[] = [
   g(
     'idempotency',
     'Idempotency',
-    ['idempotent', 'idempotency', 'non-idempotent', 'non-idempotent request', 'non-idempotent requests', 'non-idempotent operation', 'idempotency key', 'Idempotency-Key', 'idempotent consumer'],
+    ['idempotent', 'idempotency', 'non-idempotent', 'non-idempotent request', 'non-idempotent requests', 'non-idempotent operation', 'idempotency key', 'Idempotency-Key'],
     [
       'An operation is **idempotent** if doing it twice has the same effect as doing it once. A **non-idempotent** request (like “pay ₹500”) does the work again every time it is repeated, so retrying it blindly can charge twice. An idempotency key lets the server spot a repeat and return the first result instead.',
       'Koi operation **idempotent** hai agar use do baar karne ka asar ek baar karne jitna hi ho. **Non-idempotent** request (jaise “₹500 pay karo”) har repeat pe kaam dobara karti hai, isliye use aankh band karke retry karne se do baar paise kat sakte hain. Idempotency key se server repeat pehchaan ke pehla result lauta deta hai.',
@@ -61,7 +63,7 @@ export const TERMS_1: GlossaryTerm[] = [
       'A lift button is idempotent — press it five times, one lift comes. A vending machine is not — press “buy” twice and you pay twice.',
       'Lift ka button idempotent hai — paanch baar dabao, ek hi lift aati hai. Vending machine nahi — “buy” do baar dabao to do baar paise katenge.',
     ],
-    { related: ['transient', 'exponential-backoff', 'at-least-once'], more: PREP.retry },
+    { related: ['transient', 'exponential-backoff', 'at-least-once', 'idempotent-consumer'], more: PREP.retry },
   ),
   g(
     'pagination',
@@ -787,12 +789,13 @@ export const TERMS_1: GlossaryTerm[] = [
   g(
     'cdc',
     'Change data capture (CDC)',
-    ['CDC', 'change data capture'],
+    ['CDC', 'change data capture', 'transaction log tailing', 'log tailing', 'change stream', 'change streams', 'DynamoDB Streams'],
     [
       'Reading every change from a database’s log and streaming it to other systems — to update a search index, a cache or a warehouse without changing app code.',
       'Database ke log se har change padh ke doosre systems tak stream karna — search index, cache ya warehouse update karne ke liye, app code badle bina.',
     ],
     ['A newspaper’s “corrections” feed that other papers subscribe to.', 'Akhbaar ki “sudhaar” feed jise doosre akhbaar subscribe karte hain.'],
+    { related: ['transaction-log', 'debezium', 'outbox'], more: PREP.outbox },
   ),
   g(
     'strong-consistency',
@@ -877,8 +880,11 @@ export const TERMS_1: GlossaryTerm[] = [
       'Saving a business change and the event to publish in the same database transaction (in an “outbox” table), then publishing from that table — so you never save without publishing, or publish without saving.',
       'Business change aur publish karne wala event same database transaction mein save karna (“outbox” table mein), phir us table se publish karna — taaki na bina publish ke save ho, na bina save ke publish.',
     ],
-    ['Writing a letter and its “send” entry in the same register; the post boy later sends everything in the register.', 'Chitthi aur uski “bhejo” entry ek hi register mein likhna; daakiya baad mein register ki har cheez bhej deta hai.'],
-    { related: ['saga', 'message-queue'], more: PREP.queue },
+    [
+      'Your email app’s Outbox: press Send in a metro tunnel with no network — the mail waits in the Outbox and goes out by itself when the network returns. Nothing lost, and you did not wait.',
+      'Aapke email app ka Outbox: metro tunnel mein bina network ke Send dabao — mail Outbox mein wait karta hai aur network aate hi khud chala jaata hai. Kuch nahi khoya, aur aapko wait bhi nahi karna pada.',
+    ],
+    { related: ['dual-write', 'message-relay', 'at-least-once', 'saga'], more: PREP.outbox },
   ),
   g(
     'eventual-consistency',

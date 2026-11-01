@@ -46,7 +46,7 @@ test('interview prep pages fit a phone screen', async ({ page }) => {
   await expect(page).toHaveURL(/\/prep$/);
   await expectNoHorizontalScroll(page);
   // Every question page, including the wide comparison tables, fits without sideways scrolling.
-  for (const path of ['/prep/devops', '/prep/backend/rest-api-design-and-versioning', '/prep/devops/logs-vs-metrics-vs-traces', '/prep/system-design/monolith-vs-microservices', '/prep/database/database-connection-pool-exhausted']) {
+  for (const path of ['/prep/devops', '/prep/backend/rest-api-design-and-versioning', '/prep/devops/logs-vs-metrics-vs-traces', '/prep/system-design/monolith-vs-microservices', '/prep/database/database-connection-pool-exhausted', '/prep/system-design/transactional-outbox-pattern', '/prep/system-design/idempotent-consumer-pattern']) {
     await page.goto(path);
     await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
     await expectNoHorizontalScroll(page);

@@ -19,7 +19,7 @@ import {
   type Suggestion,
 } from './types';
 
-export const ENGINE_VERSION = '1.0.0';
+export const ENGINE_VERSION = '1.1.0';
 export const DEFAULT_CRITICAL_CAP = 50;
 
 const round1 = (n: number) => Math.round(n * 10) / 10;
@@ -113,6 +113,7 @@ function emptyReport(input: EvaluationInput): EvaluationReport {
     bottlenecks: [],
     unnecessaryComplexity: [],
     securityConcerns: [],
+    dataSafety: [],
     strengths: [],
     weaknesses: ['The canvas has no components yet.'],
     suggestions: [
@@ -249,7 +250,15 @@ export function evaluateDesign(diagram: DiagramSnapshot, input: EvaluationInput)
   const fromIssues = (bucket: string) =>
     issues
       .filter((i) => i.bucket === bucket)
-      .map<Finding>((i) => ({ title: i.title, detail: i.message, fix: i.fix, severity: i.severity, nodeIds: i.nodeIds, edgeIds: i.edgeIds }));
+      .map<Finding>((i) => ({
+        title: i.title,
+        detail: i.message,
+        fix: i.fix,
+        severity: i.severity,
+        nodeIds: i.nodeIds,
+        edgeIds: i.edgeIds,
+        ...(i.settings ? { settings: i.settings } : {}),
+      }));
   const invalidConnections = [...fromIssues('invalid-connection'), ...fromIssues('disconnected')];
   const bottlenecks = [
     ...failing.filter((o) => ruleById.get(o.id)!.concern === 'bottleneck').map(toFinding),
@@ -324,6 +333,7 @@ export function evaluateDesign(diagram: DiagramSnapshot, input: EvaluationInput)
     bottlenecks,
     unnecessaryComplexity,
     securityConcerns,
+    dataSafety: fromIssues('data-safety'),
     strengths: strengths.slice(0, 10),
     weaknesses: weaknesses.slice(0, 10),
     suggestions: suggestions.slice(0, 10),

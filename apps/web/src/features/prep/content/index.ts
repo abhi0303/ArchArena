@@ -3,6 +3,7 @@ import type { PrepQuestion } from '../types';
 import { backendQuestions } from './backend';
 import { databaseQuestions } from './database';
 import { devopsQuestions } from './devops';
+import { messagingQuestions } from './messaging';
 import { practicesQuestions } from './practices';
 import { securityQuestions, serverQuestions } from './servers-security';
 import { systemDesignQuestions } from './system-design';
@@ -11,6 +12,7 @@ const ALL: PrepQuestion[] = [
   ...backendQuestions,
   ...databaseQuestions,
   ...systemDesignQuestions,
+  ...messagingQuestions,
   ...serverQuestions,
   ...securityQuestions,
   ...devopsQuestions,

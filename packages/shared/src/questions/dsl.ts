@@ -302,10 +302,42 @@ export const T = {
         cat: 'reliability',
         pts: 2,
         title: 'Retries are safe (idempotency)',
-        rule: R.prop(sel, 'idempotency', ['idempotency-keys', 'dedupe-store']),
+        rule: R.prop(sel, 'idempotency', ['idempotency-keys', 'dedupe-store', 'idempotent-writes']),
         pass: 'Processing is idempotent, so retries and duplicate deliveries cannot apply the same change twice.',
         fail: 'Nothing prevents a retried request or a redelivered message from being applied twice.',
         fix: 'Set Idempotency to “Idempotency keys” or a de-duplication store on the component that applies the change, so duplicates are detected and ignored.',
+      },
+      o,
+    ),
+  /** Bonus only: events are published through a transactional outbox, so a crash after a save cannot lose them. */
+  outbox: (sel: Selector, o?: Overrides) =>
+    tpl(
+      {
+        id: 'outbox',
+        cat: 'reliability',
+        pts: 1,
+        optional: true,
+        title: 'Events are never lost after a save (transactional outbox)',
+        rule: R.prop(sel, 'eventPublishing', ['outbox-polling', 'outbox-cdc']),
+        pass: 'Events are saved in an outbox table in the same transaction as the data and published by a relay, so a crash or broker outage cannot lose them.',
+        fail: 'Data is saved and the event is published as two separate steps, so a crash or broker outage in between loses the event.',
+        fix: 'Set “Publishing events” to a transactional outbox on the service that saves the data and publishes events. A polling or CDC relay then delivers every saved event at least once.',
+      },
+      o,
+    ),
+  /** Bonus only: the database rejects duplicates with unique constraints. */
+  uniqueKeys: (sel: Selector, o?: Overrides) =>
+    tpl(
+      {
+        id: 'unique-keys',
+        cat: 'data',
+        pts: 1,
+        optional: true,
+        title: 'The database rejects duplicates (unique constraints)',
+        rule: R.prop(sel, 'uniqueConstraints', ['business-keys', 'request-ids', 'both']),
+        pass: 'Unique constraints make the database itself reject a second copy, even when two requests race.',
+        fail: 'Nothing in the database stops a duplicate row when two requests or messages race past the application checks.',
+        fix: 'Set “Unique constraints” on the database: business keys (one booking per seat, one account per email) and request / message ids for idempotency.',
       },
       o,
     ),

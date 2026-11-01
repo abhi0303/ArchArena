@@ -78,9 +78,21 @@ Independent of the rubric, the engine looks for problems in the diagram's struct
 | `discouraged-component` | Simplicity | 0.30 (0.60) | A component the question marks as unnecessary |
 | `excess-components` | Simplicity | 0.40 | Far more components than a solid answer needs (more than max(2×, +8) the reference size) |
 
+### Data safety tips (no points)
+
+Lost events and duplicate processing do not show in a box-and-arrow diagram, so the engine also gives **tips**. They have severity `info`, penalty **0** and bucket `data-safety`: they appear in *Validate* and in the report's "Data safety" section, but never change the score. Each tip names the setting that fixes it (`settings`), and the report links to its explanation in the configuration guide.
+
+| Code | When | Fixed by |
+| --- | --- | --- |
+| `dual-write` | A component that offers *Publishing events* writes to a database (any operation except read) **and** publishes to a queue or stream, and does not use a transactional outbox | *Publishing events* = Transactional outbox (polling or CDC relay) |
+| `duplicate-delivery` | A component that offers *Idempotency* reads from a queue or stream whose delivery is not *at most once*, and has no idempotency | *Idempotency* = keys, de-duplication store or idempotent writes |
+| `idempotency-race` | An idempotent component writes to a database that enforces no matching unique constraint (request ids for keys / processed ids, any unique key for idempotent writes) and no conditional writes. Skipped when duplicates are tracked in a cache | *Unique constraints* on the database |
+
+A tip is skipped for components whose setting the question's rubric already checks, so the same advice is never given twice. Reports from engine 1.0 have no `dataSafety` list; the results page then hides the section.
+
 ## The report
 
-Every evaluation returns: score, rating, stars and label; per-category scores with plain-language deductions; every check with its status and evidence (the exact path found, or why none was found); requirement coverage (each requirement is linked to the checks that prove it); missing components; missing, invalid and disconnected connections; bottlenecks; unnecessary complexity; security concerns; strengths; weaknesses; and suggestions ranked by how many points they would recover. Findings carry node and edge ids, so the UI can highlight them on the canvas.
+Every evaluation returns: score, rating, stars and label; per-category scores with plain-language deductions; every check with its status and evidence (the exact path found, or why none was found); requirement coverage (each requirement is linked to the checks that prove it); missing components; missing, invalid and disconnected connections; bottlenecks; unnecessary complexity; security concerns; data-safety tips; strengths; weaknesses; and suggestions ranked by how many points they would recover. Findings carry node and edge ids, so the UI can highlight them on the canvas.
 
 ## Stars, rating, XP and levels
 

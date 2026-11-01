@@ -1,5 +1,5 @@
 import { getComponent } from '@arch-arena/shared';
-import type { Bi, Scene, SceneAccent, SceneEdge, SceneEdgeKind, SceneNode, SceneNodeState, Text } from './types';
+import type { Bi, Scene, SceneAccent, SceneEdge, SceneEdgeKind, SceneGroup, SceneNode, SceneNodeState, Text } from './types';
 
 /**
  * Tiny helpers for writing learning content compactly.
@@ -53,6 +53,9 @@ function parseEdge(input: EdgeInput): SceneEdge {
   return { from: from!.trim(), to: to!.trim(), kind, label, both: op === '<>' };
 }
 
-export function scene(cols: SceneNode[][], edges: EdgeInput[], caption: Bi): Scene {
-  return { cols, edges: edges.map(parseEdge), caption };
+/** A dashed box around nodes that belong together (one transaction, one service…). */
+export const group = (ids: string[], label: Text, tone: SceneGroup['tone'] = 'info'): SceneGroup => ({ ids, label, tone });
+
+export function scene(cols: SceneNode[][], edges: EdgeInput[], caption: Bi, groups?: SceneGroup[]): Scene {
+  return { cols, edges: edges.map(parseEdge), caption, ...(groups?.length ? { groups } : {}) };
 }

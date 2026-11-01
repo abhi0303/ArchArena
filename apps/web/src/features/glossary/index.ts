@@ -1,9 +1,10 @@
 import { TERMS_1 } from './terms-1';
 import { TERMS_2 } from './terms-2';
+import { TERMS_3 } from './terms-3';
 import type { GlossaryTerm } from './types';
 
 /** Every glossary term, sorted by title. */
-export const GLOSSARY: GlossaryTerm[] = [...TERMS_1, ...TERMS_2].sort((a, b) => a.title.localeCompare(b.title, 'en', { sensitivity: 'base' }));
+export const GLOSSARY: GlossaryTerm[] = [...TERMS_1, ...TERMS_2, ...TERMS_3].sort((a, b) => a.title.localeCompare(b.title, 'en', { sensitivity: 'base' }));
 
 const byId = new Map(GLOSSARY.map((t) => [t.id, t]));
 
