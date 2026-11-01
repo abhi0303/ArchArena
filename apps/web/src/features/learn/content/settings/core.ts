@@ -259,12 +259,12 @@ export const coreSettings: SettingGuide[] = [
   {
     key: 'idempotency',
     what: bi(
-      'A guarantee that doing the same request twice has the same effect as doing it once.',
-      'Guarantee ki same request do baar karne ka asar utna hi ho jitna ek baar karne ka.',
+      'A guarantee that doing the same request twice has the same effect as doing it once — whether the repeat comes from a double click, a client retry or a queue that delivers a message again.',
+      'Guarantee ki same request do baar karne ka asar utna hi ho jitna ek baar karne ka — chahe repeat double click se aaye, client retry se, ya queue ke message dobara deliver karne se.',
     ),
     why: bi(
-      'Networks lose responses, and clients and queues retry. Without idempotency a retried “pay ₹500” charges twice and a retried “send notification” sends two.',
-      'Network responses kho deta hai, aur clients aur queues retry karte hain. Idempotency na ho to retry hua “₹500 pay karo” do baar paise kaatega aur retry hua “notification bhejo” do notification bhejega.',
+      'Networks lose responses, and clients and queues retry. Queues deliver each message at least once, so every consumer sees duplicates sooner or later. Without idempotency a retried “pay ₹500” charges twice and a repeated “send notification” sends two.',
+      'Network responses kho deta hai, aur clients aur queues retry karte hain. Queues har message kam se kam ek baar deliver karti hain, to har consumer ko kabhi na kabhi duplicates milte hain. Idempotency na ho to retry hua “₹500 pay karo” do baar paise kaatega aur repeat hua “notification bhejo” do notification bhejega.',
     ),
     example: bi(
       'A lift button: pressing it five times still calls the lift once. A vending machine without that protection would drop five drinks and charge you five times.',
@@ -280,14 +280,56 @@ export const coreSettings: SettingGuide[] = [
         'Client request ke saath ek unique key bhejta hai. Server har key ka result save karta hai; same key se repeat aaye to dobara action nahi, saved result wapas milta hai. Stripe aur zyaadatar payment APIs aise hi kaam karte hain.',
       ),
       'dedupe-store': bi(
-        'The consumer records the IDs of messages it has already processed (in a cache or a table) and skips repeats. Typical for queue consumers with at-least-once delivery.',
-        'Consumer jo messages process kar chuka hai unki IDs (cache ya table mein) note karta hai aur repeat ko skip karta hai. At-least-once delivery wale queue consumers ke liye typical.',
+        'The consumer records the ids of messages it has already processed and skips repeats. Write the id in the same database transaction as the change (the Idempotent Consumer pattern), so a crash can never save one without the other. Typical for queue consumers with at-least-once delivery.',
+        'Consumer jo messages process kar chuka hai unki ids note karta hai aur repeat ko skip karta hai. Id ko change ke saath ek hi database transaction mein likho (Idempotent Consumer pattern), taaki crash kabhi ek ko save aur doosre ko unsaved na chhode. At-least-once delivery wale queue consumers ke liye typical.',
+      ),
+      'idempotent-writes': bi(
+        'Make the change itself safe to repeat: an INSERT that a unique key turns into a no-op the second time (ON CONFLICT DO NOTHING), an upsert, or a conditional update such as “set status to PAID only if it is PENDING”. No extra table, but it needs a natural unique key.',
+        'Change ko hi repeat-safe bana do: aisa INSERT jo unique key ki wajah se doosri baar kuch na kare (ON CONFLICT DO NOTHING), upsert, ya conditional update jaise “status ko PAID karo sirf agar woh PENDING ho”. Extra table nahi chahiye, par ek natural unique key chahiye.',
       ),
     },
     inChallenges: bi(
-      'Set it wherever retries or at-least-once queues are involved — especially payments, orders and notifications. Reviewers look for it next to any retry strategy.',
-      'Jahan bhi retries ya at-least-once queues hon wahan ise set karo — khaas kar payments, orders aur notifications. Reviewers har retry strategy ke saath ise dhoondte hain.',
+      'Set it wherever retries or at-least-once queues are involved — especially payments, orders and notifications. Reviewers look for it next to any retry strategy, and the review gives a tip when a consumer reads a queue without it. Keys and processed ids are only race-proof when the database enforces them with a unique constraint.',
+      'Jahan bhi retries ya at-least-once queues hon wahan ise set karo — khaas kar payments, orders aur notifications. Reviewers har retry strategy ke saath ise dhoondte hain, aur jab koi consumer bina iske queue padhta hai to review tip deta hai. Keys aur processed ids tabhi race-proof hain jab database unhe unique constraint se enforce kare.',
     ),
+    deepDive: [{ title: 'Idempotent Consumer pattern', to: '/prep/system-design/idempotent-consumer-pattern' }],
+  },
+  {
+    key: 'eventPublishing',
+    what: bi(
+      'How a service sends an event (such as “order placed”) after it saves data, so that other services — emails, search, analytics — hear about the change.',
+      'Service data save karne ke baad event (jaise “order placed”) kaise bhejti hai, taaki doosri services — emails, search, analytics — ko change ka pata chale.',
+    ),
+    why: bi(
+      'The database and the queue are two different systems, and no single transaction covers both. If the publish fails, or the server crashes between the two steps, the order is saved but nobody is told: no confirmation email, no shipment. If you publish first and the save then fails, everyone hears about an order that does not exist.',
+      'Database aur queue do alag systems hain, aur dono ko ek transaction cover nahi karta. Publish fail ho jaaye, ya dono steps ke beech server crash ho jaaye, to order save ho gaya par kisi ko bataya nahi gaya: na confirmation email, na shipment. Pehle publish karo aur phir save fail ho jaaye, to sabko aise order ki khabar milti hai jo exist hi nahi karta.',
+    ),
+    example: bi(
+      'Posting a letter. Dual write: you note “letter sent” in your diary and then walk to the post office — if it rains and you stay home, the diary says sent but the letter never left. Outbox: at the same moment you write the diary entry you drop the letter into your home’s outbox tray; a postman (the relay) empties the tray every few minutes and keeps coming back until the post office accepts the letter.',
+      'Chitthi bhejna. Dual write: aap diary mein “chitthi bhej di” likhte ho aur phir post office jaate ho — baarish hui aur ghar pe reh gaye, to diary kehti hai bhej di par chitthi kabhi nikli hi nahi. Outbox: diary entry likhte hi usi pal chitthi ghar ki outbox tray mein daal dete ho; ek postman (relay) har kuch minute tray khaali karta hai aur tab tak aata rehta hai jab tak post office chitthi accept na kar le.',
+    ),
+    options: {
+      direct: bi(
+        'The service saves the data, then publishes the event in a separate step. Simple, but a crash or broker outage between the two steps silently loses events (or sends “ghost” events for saves that were rolled back). Fine only when a lost event is harmless, such as an analytics ping.',
+        'Service data save karti hai, phir alag step mein event publish karti hai. Simple, par dono steps ke beech crash ya broker outage chupchaap events kho deta hai (ya rollback hue saves ke liye “ghost” events bhej deta hai). Sirf tab theek jab event khone se nuksaan na ho, jaise analytics ping.',
+      ),
+      'outbox-polling': bi(
+        'The service writes the data and an outbox row in the same database transaction, so both are saved or neither is. A relay checks the outbox table every second or so, publishes new rows, marks them sent and keeps retrying while the broker is down. Easy to build on any SQL database; adds a little delay and some polling load.',
+        'Service data aur ek outbox row ek hi database transaction mein likhti hai, to dono save hote hain ya koi nahi. Ek relay har second ke aas-paas outbox table check karta hai, nayi rows publish karta hai, unhe sent mark karta hai aur broker down ho to retry karta rehta hai. Kisi bhi SQL database pe banana aasaan; thoda delay aur thoda polling load badhta hai.',
+      ),
+      'outbox-cdc': bi(
+        'The same outbox table, but instead of polling, a change-data-capture tool such as Debezium reads the database’s transaction log (WAL / binlog) and publishes each new outbox row within milliseconds. Lower delay and no polling queries, but one more piece of infrastructure to run.',
+        'Wahi outbox table, par polling ki jagah Debezium jaisa change-data-capture tool database ka transaction log (WAL / binlog) padhta hai aur har nayi outbox row milliseconds mein publish karta hai. Kam delay aur polling queries nahi, par chalane ke liye infrastructure ka ek aur hissa.',
+      ),
+    },
+    inChallenges: bi(
+      'When a service both saves to a database and publishes to a queue or stream, the review shows a tip until you choose an outbox. Checkout, payment, booking, wallet and banking challenges give bonus credit for it. The relay can publish an event twice, so make the consumers idempotent too.',
+      'Jab service database mein save bhi karti hai aur queue ya stream pe publish bhi, to review tab tak tip dikhata hai jab tak aap outbox na chuno. Checkout, payment, booking, wallet aur banking challenges iske liye bonus credit dete hain. Relay event do baar bhi publish kar sakta hai, isliye consumers ko bhi idempotent banao.',
+    ),
+    deepDive: [
+      { title: 'Transactional Outbox pattern', to: '/prep/system-design/transactional-outbox-pattern' },
+      { title: 'Idempotent Consumer pattern', to: '/prep/system-design/idempotent-consumer-pattern' },
+    ],
   },
   {
     key: 'healthChecks',

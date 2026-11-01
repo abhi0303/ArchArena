@@ -40,7 +40,7 @@ C(id, category, points, title, rule, passText, failText, fixText, { critical?, o
 ```
 
 - Use selectors from `S` (`S.client`, `S.entry`, `S.service`, `S.cache`, `S.channel`, `S.nosql`, …), `anyOf(name, ...selectors)` for alternatives, and rule builders from `R` (`R.path`, `R.edge`, `R.async`, `R.guarded`, `R.redundant`, `R.prop`, `R.has`, `R.any`, `R.all`, …).
-- Reuse templates from `T` for common concerns: `T.entry()`, `T.scaleOut()`, `T.dbReplication()`, `T.observability()`, `T.rateLimit()`, `T.cdn()`, `T.auth()`, `T.shard()`, `T.idempotent(sel)`, `T.multiRegion(sel)`, `T.geoRouting()`, `T.dlq()`. Any field can be overridden: `T.cdn({ id: 'playback', pts: 1 })`.
+- Reuse templates from `T` for common concerns: `T.entry()`, `T.scaleOut()`, `T.dbReplication()`, `T.observability()`, `T.rateLimit()`, `T.cdn()`, `T.auth()`, `T.shard()`, `T.idempotent(sel)`, `T.multiRegion(sel)`, `T.geoRouting()`, `T.dlq()`, and the bonus-only `T.outbox(sel)` (events published through a transactional outbox) and `T.uniqueKeys(sel)` (the database enforces unique constraints). Bonus-only checks are `optional`: they add credit and never deduct, so a design without them scores the same. Any field can be overridden: `T.cdn({ id: 'playback', pts: 1 })`.
 - Prefer **flow rules** (`path`, `edge`, `async`, `guarded`) over presence (`has`). They test that components are actually wired correctly.
 - Mark a check `critical` only when the design is meaningless without it (for example "requests reach the database"). Critical failures cap the score at 50.
 - Write fail texts that explain the consequence and fix texts that say exactly what to add or connect. Avoid "you should consider…".

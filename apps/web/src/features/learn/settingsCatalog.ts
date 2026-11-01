@@ -37,8 +37,8 @@ export const SETTING_GROUPS: SettingGroup[] = [
     id: 'reliability',
     title: 'Reliability: when calls fail',
     icon: ShieldCheck,
-    intro: bi('What happens when another component is slow, broken or answers twice.', 'Jab doosra component slow ho, toota ho ya do baar jawab de, tab kya hota hai.'),
-    keys: ['timeout', 'retryStrategy', 'circuitBreaker', 'idempotency', 'healthChecks'],
+    intro: bi('What happens when another component is slow, broken, answers twice or an event goes missing.', 'Jab doosra component slow ho, toota ho, do baar jawab de ya koi event kho jaaye, tab kya hota hai.'),
+    keys: ['timeout', 'retryStrategy', 'circuitBreaker', 'idempotency', 'eventPublishing', 'healthChecks'],
   },
   {
     id: 'traffic',
@@ -56,6 +56,7 @@ export const SETTING_GROUPS: SettingGroup[] = [
       'replication',
       'consistency',
       'concurrencyControl',
+      'uniqueConstraints',
       'backups',
       'access',
       'dataModel',

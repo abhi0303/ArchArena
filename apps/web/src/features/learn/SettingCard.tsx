@@ -1,5 +1,6 @@
-import { Link2, Lightbulb, ListChecks, Target, TriangleAlert, Wand2 } from 'lucide-react';
+import { BookOpen, Link2, Lightbulb, ListChecks, Target, TriangleAlert, Wand2 } from 'lucide-react';
 import { useState } from 'react';
+import { Link } from 'react-router';
 import { useExplanation } from '@/components/LanguageToggle';
 import { cn } from '@/lib/cn';
 import { ComponentChip } from './parts';
@@ -160,6 +161,24 @@ export function SettingCard({
           <Block icon={<Target className="h-3.5 w-3.5" aria-hidden />} title="In challenges" tone="indigo">
             <InlineText text={t(guide.inChallenges)} />
           </Block>
+
+          {guide.deepDive?.length ? (
+            <p className="flex flex-wrap items-center gap-1.5 text-xs" data-testid="setting-deep-dive">
+              <span className="inline-flex items-center gap-1 font-medium text-slate-500 dark:text-slate-400">
+                <BookOpen className="h-3.5 w-3.5" aria-hidden /> Deep dive in Interview Prep:
+              </span>
+              {guide.deepDive.map((d) => (
+                <Link
+                  key={d.to}
+                  to={d.to}
+                  {...(compact ? { target: '_blank', rel: 'noreferrer' } : {})}
+                  className="rounded-full border border-indigo-200 bg-indigo-50 px-2 py-0.5 font-medium text-indigo-700 hover:border-indigo-300 hover:underline dark:border-indigo-900 dark:bg-indigo-950/40 dark:text-indigo-300"
+                >
+                  {d.title}
+                </Link>
+              ))}
+            </p>
+          ) : null}
         </div>
       )}
 

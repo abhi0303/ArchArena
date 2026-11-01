@@ -11,7 +11,7 @@ import {
   type ValidationResult,
 } from '@arch-arena/shared';
 import { ArrowLeftRight, ChevronDown, CircleCheck, CircleDashed, Copy, GraduationCap, Info, Replace, SlidersHorizontal, SquareStack, Trash2, Ungroup } from 'lucide-react';
-import { useState } from 'react';
+import { useLayoutEffect, useRef, useState } from 'react';
 import { ACCENTS, DynamicIcon } from '@/components/icons';
 import { useExplanation } from '@/components/LanguageToggle';
 import { Button } from '@/components/ui/Button';
@@ -101,7 +101,10 @@ function ComponentProperties({ node }: { node: ComponentNodeT }) {
   const update = useEditor((s) => s.updateNodeData);
   const duplicate = useEditor((s) => s.duplicateSelected);
   const remove = useEditor((s) => s.deleteSelected);
-  const [showAdvanced, setShowAdvanced] = useState(false);
+  // Open "Advanced settings" when one is already chosen, so badges on the canvas match what the panel shows.
+  const [showAdvanced, setShowAdvanced] = useState(() =>
+    (def?.properties ?? []).some((k) => getPropertyField(k)?.advanced && node.data.props[k] !== undefined && node.data.props[k] !== ''),
+  );
   const [learnOpen, setLearnOpen] = useState(false);
   const [replaceOpen, setReplaceOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -412,6 +415,14 @@ export function PropertiesPanel({ question, validation }: { question: QuestionDe
   const selectedEdges = edges.filter((e) => e.selected);
   const count = selectedNodes.length + selectedEdges.length;
 
+  // Each selection starts at the top of the panel. Otherwise the scroll position of the previous
+  // selection carries over and hides the header actions (Replace with…, Learn, Explain settings).
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const selectionKey = [...selectedNodes.map((n) => n.id), ...selectedEdges.map((e) => e.id)].join(',');
+  useLayoutEffect(() => {
+    if (scrollRef.current) scrollRef.current.scrollTop = 0;
+  }, [selectionKey]);
+
   let content: React.ReactNode;
   let title = 'Challenge';
   if (count === 0) {
@@ -486,7 +497,7 @@ export function PropertiesPanel({ question, validation }: { question: QuestionDe
       <div className="border-b border-slate-200 px-4 py-3 dark:border-slate-800">
         <h2 className="text-xs font-semibold uppercase tracking-wide text-slate-500">{title}</h2>
       </div>
-      <div className="scrollbar-thin flex-1 overflow-y-auto overscroll-contain p-4 pb-[max(1rem,env(safe-area-inset-bottom))]" data-testid="properties-panel">
+      <div ref={scrollRef} className="scrollbar-thin flex-1 overflow-y-auto overscroll-contain p-4 pb-[max(1rem,env(safe-area-inset-bottom))]" data-testid="properties-panel">
         {content}
       </div>
     </div>

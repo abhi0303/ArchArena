@@ -86,8 +86,25 @@ export const PROPERTY_FIELDS = {
     label: 'Idempotency',
     type: 'select',
     advanced: true,
-    options: [opt('none', 'None'), opt('idempotency-keys', 'Idempotency keys'), opt('dedupe-store', 'De-duplication store')],
-    help: 'Makes retries safe: processing the same request twice has the same effect as processing it once.',
+    options: [
+      opt('none', 'None'),
+      opt('idempotency-keys', 'Idempotency keys'),
+      opt('dedupe-store', 'De-duplication store (processed ids)'),
+      opt('idempotent-writes', 'Idempotent writes (unique key / upsert)'),
+    ],
+    help: 'Makes retries and duplicate messages safe: handling the same request or message twice has the same effect as handling it once.',
+  },
+  eventPublishing: {
+    key: 'eventPublishing',
+    label: 'Publishing events',
+    type: 'select',
+    advanced: true,
+    options: [
+      opt('direct', 'Directly after saving (dual write)'),
+      opt('outbox-polling', 'Transactional outbox · polling relay'),
+      opt('outbox-cdc', 'Transactional outbox · CDC relay'),
+    ],
+    help: 'How this component sends events after saving data. Saving and then publishing as two separate steps (a dual write) can lose events; a transactional outbox saves the event in the same database transaction and a relay publishes it.',
   },
   availability: {
     key: 'availability',
@@ -191,6 +208,19 @@ export const PROPERTY_FIELDS = {
       opt('conditional-writes', 'Conditional / atomic writes'),
     ],
     help: 'Prevents two concurrent writers from overwriting each other, e.g. selling the same seat twice.',
+  },
+  uniqueConstraints: {
+    key: 'uniqueConstraints',
+    label: 'Unique constraints',
+    type: 'select',
+    advanced: true,
+    options: [
+      opt('none', 'None'),
+      opt('business-keys', 'Business keys (email, seat per show…)'),
+      opt('request-ids', 'Request / message ids'),
+      opt('both', 'Business keys + request ids'),
+    ],
+    help: 'The database itself rejects a second row with the same key: one account per email, one booking per seat, one row per message id. It is the race-proof last line of defence against duplicates.',
   },
   backups: {
     key: 'backups',

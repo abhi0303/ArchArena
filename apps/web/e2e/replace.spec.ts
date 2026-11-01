@@ -42,3 +42,29 @@ test('replace a component without redoing its connections', async ({ page }) => 
   await expect(replaced.getByTestId('node-in-memory-cache')).toBeVisible();
   await expect(edges).toHaveCount(3);
 });
+
+test('the Properties panel starts at the top for each selection, so “Replace with…” is always in view', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 700 });
+  await page.goto('/challenges/url-shortener-basic/play');
+  const tour = page.getByRole('dialog', { name: 'Getting started tour' });
+  if (await tour.isVisible().catch(() => false)) await tour.getByRole('button', { name: 'Skip tour' }).first().click();
+
+  await nodeIdByType(page, 'web-client'); // wait for the starter canvas
+  const gateway = await addComponent(page, 'api-gateway');
+  const db = await addComponent(page, 'sql-db');
+  await autoArrange(page);
+  if (await tour.isVisible().catch(() => false)) await tour.getByRole('button', { name: 'Skip tour' }).first().click();
+  const panel = page.getByTestId('properties-panel');
+
+  // Open the database's advanced settings and scroll down to them.
+  await page.locator(`.react-flow__node[data-id="${db}"]`).click();
+  await panel.getByRole('button', { name: 'Advanced settings' }).click();
+  await panel.evaluate((el) => (el.scrollTop = el.scrollHeight));
+  await expect(page.getByTestId('replace-component')).not.toBeInViewport();
+
+  // Selecting another component shows its panel from the top.
+  await page.locator(`.react-flow__node[data-id="${gateway}"]`).click();
+  await expect(panel.getByText('API Gateway').first()).toBeVisible();
+  await expect(page.getByTestId('replace-component')).toBeInViewport();
+  expect(await panel.evaluate((el) => el.scrollTop)).toBe(0);
+});

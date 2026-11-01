@@ -3,7 +3,7 @@ import type { DiagramGraph, GraphNode, Selector } from '../diagram/graph';
 import type { DiagramSnapshot } from '../diagram/types';
 import type { Difficulty } from '../questions/types';
 import { isRedundant } from './rules';
-import type { Rubric, ScoreCategoryKey, StructuralIssue } from './types';
+import type { Rubric, Rule, ScoreCategoryKey, StructuralIssue } from './types';
 
 const has = (n: GraphNode | undefined, ...tags: string[]) => !!n?.def && tags.some((t) => n.def!.tags.includes(t as never));
 
@@ -330,8 +330,108 @@ export function analyzeStructure({ graph: g, diagram, rubric, difficulty }: Stru
     );
   }
 
+  issues.push(...dataSafetyTips(g, rubric));
+
   void diagram;
   return issues;
+}
+
+// ── Data safety tips ────────────────────────────────────────────────────────
+// Lost events and duplicate processing are invisible in a box-and-arrow diagram, so these
+// tips point at the settings that prevent them. They are advice only: penalty 0, never a score change.
+
+const OUTBOX = ['outbox-polling', 'outbox-cdc'];
+const IDEMPOTENT = ['idempotency-keys', 'dedupe-store', 'idempotent-writes'];
+
+const offers = (n: GraphNode, key: string) => !!n.def && (n.def.properties as string[]).includes(key);
+const isWritableDb = (n: GraphNode | undefined) => has(n, 'db') && !has(n, 'replica');
+const joinNames = (names: string[]) => (names.length > 1 ? `${names.slice(0, -1).join(', ')} and ${names.at(-1)}` : (names[0] ?? ''));
+
+/** Nodes whose `key` setting the rubric already checks; a tip there would only repeat that feedback. */
+function checkedByRubric(g: DiagramGraph, rubric: Rubric, key: string): Set<string> {
+  const ids = new Set<string>();
+  const walk = (r: Rule): void => {
+    if (r.kind === 'prop' && r.key === key) for (const n of g.match(r.sel)) ids.add(n.id);
+    if (r.kind === 'any' || r.kind === 'all') r.rules.forEach(walk);
+  };
+  rubric.checks.forEach((c) => walk(c.rule));
+  return ids;
+}
+
+function tip(code: string, title: string, message: string, fix: string, settings: string[], nodeIds: string[], edgeIds: string[]): StructuralIssue {
+  return { ...issue(code, 'info', 'reliability', 0, title, message, fix, nodeIds, edgeIds, 'data-safety'), settings };
+}
+
+function dataSafetyTips(g: DiagramGraph, rubric: Rubric): StructuralIssue[] {
+  const tips: StructuralIssue[] = [];
+  const publishingChecked = checkedByRubric(g, rubric, 'eventPublishing');
+  const idempotencyChecked = checkedByRubric(g, rubric, 'idempotency');
+  const uniqueChecked = checkedByRubric(g, rubric, 'uniqueConstraints');
+
+  for (const n of g.nodes) {
+    const out = g.edges.filter((e) => e.source === n.id && e.target !== n.id);
+    const writes = out.filter((e) => isWritableDb(g.node(e.target)) && e.props?.operation !== 'read');
+    const dbNames = joinNames([...new Set(writes.map((e) => g.labelOf(e.target)))]);
+
+    // 1. Dual write: saves to a database and publishes an event as two separate steps.
+    const publishes = out.filter((e) => has(g.node(e.target), 'channel'));
+    if (offers(n, 'eventPublishing') && !publishingChecked.has(n.id) && writes.length && publishes.length && !OUTBOX.includes(String(n.props.eventPublishing))) {
+      const channels = joinNames([...new Set(publishes.map((e) => g.labelOf(e.target)))]);
+      tips.push(
+        tip(
+          'dual-write',
+          'An event can be lost after a save',
+          `${n.label} saves to ${dbNames} and publishes to ${channels} as two separate steps (a dual write). If the publish fails, or ${n.label} crashes in between, the data is saved but the event is lost, and nothing that listens to ${channels} ever hears about it.`,
+          `Open ${n.label} → Advanced settings → set “Publishing events” to a transactional outbox: the event is saved in an outbox table in the same transaction as the data, and a relay publishes it.`,
+          ['eventPublishing'],
+          [n.id, ...writes.map((e) => e.target), ...publishes.map((e) => e.target)],
+          [...writes, ...publishes].map((e) => e.id),
+        ),
+      );
+    }
+
+    // 2. Duplicate messages: reads from a queue or stream that can deliver the same message twice.
+    const feeds = g.edges.filter((e) => e.target === n.id && e.source !== n.id && has(g.node(e.source), 'channel') && g.node(e.source)!.props.delivery !== 'at-most-once');
+    const idem = String(n.props.idempotency ?? 'none');
+    if (offers(n, 'idempotency') && !idempotencyChecked.has(n.id) && feeds.length && !IDEMPOTENT.includes(idem)) {
+      const channels = joinNames([...new Set(feeds.map((e) => g.labelOf(e.source)))]);
+      tips.push(
+        tip(
+          'duplicate-delivery',
+          'The same message can be processed twice',
+          `${n.label} reads from ${channels}, which delivers each message at least once: after a crash, a timeout or a retry, the same message arrives again. Without idempotency the change is applied twice, for example a double charge or two notifications.`,
+          `Open ${n.label} → Advanced settings → set “Idempotency”, for example a de-duplication store of processed message ids written in the same transaction as the change.`,
+          ['idempotency'],
+          [n.id, ...feeds.map((e) => e.source)],
+          feeds.map((e) => e.id),
+        ),
+      );
+    }
+
+    // 3. Race: a duplicate check stored in a database without a unique constraint on those keys.
+    const stores = writes.map((e) => g.node(e.target)!).filter((t) => offers(t, 'uniqueConstraints'));
+    const dedupesInCache = idem === 'dedupe-store' && out.some((e) => has(g.node(e.target), 'cache'));
+    if (IDEMPOTENT.includes(idem) && stores.length && !dedupesInCache && !uniqueChecked.has(n.id) && !stores.some((t) => uniqueChecked.has(t.id))) {
+      const needed = idem === 'idempotent-writes' ? ['business-keys', 'request-ids', 'both'] : ['request-ids', 'both'];
+      const safe = stores.some((t) => needed.includes(String(t.props.uniqueConstraints)) || t.props.concurrencyControl === 'conditional-writes');
+      if (!safe) {
+        const names = joinNames([...new Set(stores.map((t) => t.label))]);
+        const value = idem === 'idempotent-writes' ? '“Business keys”' : '“Request / message ids”';
+        tips.push(
+          tip(
+            'idempotency-race',
+            'The duplicate check is not race-proof',
+            `${n.label} skips repeats, but ${names} does not enforce those keys as unique. Two copies that arrive at the same moment can both pass a “have I seen this?” check and both be applied.`,
+            `Open ${names} → Advanced settings → set “Unique constraints” to ${value} (or both), so the database itself rejects the second copy.`,
+            ['uniqueConstraints'],
+            [n.id, ...stores.map((t) => t.id)],
+            writes.filter((e) => stores.some((t) => t.id === e.target)).map((e) => e.id),
+          ),
+        );
+      }
+    }
+  }
+  return tips;
 }
 
 /** Sums penalties per category, respecting per-code caps. */

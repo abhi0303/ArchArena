@@ -4,6 +4,7 @@ import {
   ArrowUpRight,
   Cable,
   ChevronDown,
+  DatabaseZap,
   GraduationCap,
   CircleCheck,
   CircleDashed,
@@ -198,14 +199,34 @@ function LearnLinks({ types, settings = [], className }: { types: string[]; sett
   );
 }
 
-function FindingList({ title, icon: Icon, items, tone, empty, rubric }: { title: string; icon: LucideIcon; items: Finding[]; tone: string; empty?: string; rubric?: Rubric }) {
+function FindingList({
+  title,
+  icon: Icon,
+  items,
+  tone,
+  empty,
+  rubric,
+  note,
+  testId,
+}: {
+  title: string;
+  icon: LucideIcon;
+  items: Finding[];
+  tone: string;
+  empty?: string;
+  rubric?: Rubric;
+  /** One line under the title, e.g. how the list affects the score. */
+  note?: string;
+  testId?: string;
+}) {
   if (!items.length && !empty) return null;
   return (
-    <section className="card p-5">
-      <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold">
+    <section className="card p-5" data-testid={testId}>
+      <h3 className={cn('flex items-center gap-2 text-sm font-semibold', note ? 'mb-1' : 'mb-3')}>
         <Icon className={cn('h-4 w-4', tone)} aria-hidden /> {title}
         {items.length > 0 && <span className="text-xs font-normal text-slate-400">({items.length})</span>}
       </h3>
+      {note && <p className="mb-3 text-xs text-slate-500 dark:text-slate-400">{note}</p>}
       {items.length === 0 ? (
         <p className="text-sm text-slate-500">{empty}</p>
       ) : (
@@ -215,7 +236,7 @@ function FindingList({ title, icon: Icon, items, tone, empty, rubric }: { title:
               <p className="font-medium">{f.title}</p>
               <p className="text-slate-600 dark:text-slate-300">{f.detail}</p>
               {f.fix && <p className="mt-1 text-slate-500">→ {f.fix}</p>}
-              <LearnLinks types={learnTypesForCheck(rubric, f.checkId)} settings={settingKeysForCheck(rubric, f.checkId)} />
+              <LearnLinks types={learnTypesForCheck(rubric, f.checkId)} settings={[...new Set([...settingKeysForCheck(rubric, f.checkId), ...(f.settings ?? [])])]} />
             </li>
           ))}
         </ul>
@@ -336,6 +357,18 @@ export function ReportDetails({ report, question }: { report: EvaluationReport; 
         <FindingList rubric={rubric} title="Scalability & availability: bottlenecks" icon={Gauge} items={report.bottlenecks} tone="text-amber-500" empty="No single points of failure detected on the main path." />
         <FindingList rubric={rubric} title="Security concerns" icon={ShieldAlert} items={report.securityConcerns} tone="text-rose-500" empty="No security concerns detected from the diagram." />
         <FindingList rubric={rubric} title="Unnecessary complexity" icon={Shrink} items={report.unnecessaryComplexity} tone="text-slate-500" empty="The design is focused." />
+        {report.dataSafety && (
+          <FindingList
+            rubric={rubric}
+            title="Data safety: lost events & duplicates"
+            icon={DatabaseZap}
+            items={report.dataSafety}
+            tone="text-sky-500"
+            note="Tips only — they never change your score."
+            empty="No lost-event or duplicate-processing risks spotted."
+            testId="report-data-safety"
+          />
+        )}
       </div>
       <p className="text-xs text-slate-500">
         Evaluated with rubric v{report.rubricVersion} · engine {report.engineVersion} · {report.stats.components} components, {report.stats.connections} connections. Some properties (like

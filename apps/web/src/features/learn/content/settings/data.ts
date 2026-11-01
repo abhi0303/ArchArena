@@ -117,6 +117,44 @@ export const dataSettings: SettingGuide[] = [
     ),
   },
   {
+    key: 'uniqueConstraints',
+    what: bi(
+      'A rule inside the database that a column, or a set of columns, can never hold the same value twice — for example one account per email, one booking per (show, seat), or one row per message id. A second insert with the same key is rejected.',
+      'Database ke andar ek rule ki ek column, ya columns ka set, kabhi same value do baar nahi rakh sakta — jaise har email ka ek hi account, har (show, seat) ki ek hi booking, ya har message id ki ek hi row. Same key ke saath doosra insert reject ho jaata hai.',
+    ),
+    why: bi(
+      'Application checks such as “does this email already exist?” have a gap: two requests at the same moment both see “no” and both insert. Only the database sees every write in order, so a unique constraint is the one check that cannot be raced. It also turns idempotency keys and processed-message ids into a real guarantee.',
+      'Application checks jaise “kya yeh email pehle se hai?” mein ek gap hota hai: ek hi pal mein aayi do requests dono “nahi” dekhti hain aur dono insert kar deti hain. Sirf database har write ko order mein dekhta hai, isliye unique constraint hi woh check hai jise race nahi kiya ja sakta. Yeh idempotency keys aur processed-message ids ko bhi asli guarantee banata hai.',
+    ),
+    example: bi(
+      'A cinema seat. Two cashiers at two counters both see seat F7 as free and both start selling it. A unique (show, seat) rule is the usher’s register: the ticket written in first wins, and the second cashier is told “F7 is already taken” and offers another seat.',
+      'Cinema ki seat. Do counters pe do cashiers seat F7 ko free dekhte hain aur dono use bechna shuru karte hain. Unique (show, seat) rule usher ka register hai: jo ticket pehle register mein likha gaya woh jeetta hai, aur doosre cashier ko bataya jaata hai “F7 pehle se booked hai”, to woh doosri seat offer karta hai.',
+    ),
+    options: {
+      none: bi(
+        'Only the primary key is unique. Duplicates of anything else (a second account for the same email, a payment saved twice) appear whenever two requests race.',
+        'Sirf primary key unique hai. Baaki kisi bhi cheez ke duplicates (same email ka doosra account, do baar save hua payment) tab aa jaate hain jab do requests race karein.',
+      ),
+      'business-keys': bi(
+        'Real-world rules enforced by the database: UNIQUE(email), UNIQUE(show_id, seat_id), UNIQUE(short_code). Stops double bookings, duplicate accounts and colliding short links even under heavy load.',
+        'Asli duniya ke rules database enforce karta hai: UNIQUE(email), UNIQUE(show_id, seat_id), UNIQUE(short_code). Bahut load mein bhi double bookings, duplicate accounts aur takraate short links rokta hai.',
+      ),
+      'request-ids': bi(
+        'Retries and duplicate messages are rejected by id: UNIQUE(idempotency_key) for API requests, or PRIMARY KEY(consumer, message_id) in a processed-messages table. This is what makes idempotency race-proof.',
+        'Retries aur duplicate messages id se reject hote hain: API requests ke liye UNIQUE(idempotency_key), ya processed-messages table mein PRIMARY KEY(consumer, message_id). Yahi idempotency ko race-proof banata hai.',
+      ),
+      both: bi(
+        'Business rules and request ids together — the usual choice for payments, orders, bookings and ledgers.',
+        'Business rules aur request ids dono saath — payments, orders, bookings aur ledgers ke liye aam choice.',
+      ),
+    },
+    inChallenges: bi(
+      'Checkout, payment, booking, wallet and banking challenges give bonus credit for it, and a unique short code counts as collision-safe in the URL shortener. When a service uses idempotency keys, the review gives a tip if the database does not enforce them. On a sharded or NoSQL database the unique key must include the shard / partition key, because each shard checks only its own rows (DynamoDB-style stores use a conditional put instead).',
+      'Checkout, payment, booking, wallet aur banking challenges iske liye bonus credit dete hain, aur URL shortener mein unique short code collision-safe maana jaata hai. Jab service idempotency keys use karti hai aur database unhe enforce nahi karta, to review tip deta hai. Sharded ya NoSQL database pe unique key mein shard / partition key honi chahiye, kyunki har shard sirf apni rows check karta hai (DynamoDB jaise stores iski jagah conditional put use karte hain).',
+    ),
+    deepDive: [{ title: 'Idempotent Consumer pattern', to: '/prep/system-design/idempotent-consumer-pattern' }],
+  },
+  {
     key: 'backups',
     what: bi(
       'Saved copies of the database that you can restore from later.',

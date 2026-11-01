@@ -33,9 +33,13 @@ export const messagingSettings: SettingGuide[] = [
       ),
     },
     inChallenges: bi(
-      'One financial streaming challenge checks for Exactly once. With At least once, set Idempotency on the consumer to stay safe.',
-      'Ek financial streaming challenge Exactly once check karta hai. At least once ho to safe rehne ke liye consumer pe Idempotency set karo.',
+      'One financial streaming challenge checks for Exactly once. With At least once, set Idempotency on the consumer to stay safe — the review gives a tip for every consumer that has none.',
+      'Ek financial streaming challenge Exactly once check karta hai. At least once ho to safe rehne ke liye consumer pe Idempotency set karo — jis consumer pe yeh nahi hai uske liye review tip deta hai.',
     ),
+    deepDive: [
+      { title: 'Idempotent Consumer pattern', to: '/prep/system-design/idempotent-consumer-pattern' },
+      { title: 'Transactional Outbox pattern', to: '/prep/system-design/transactional-outbox-pattern' },
+    ],
   },
   {
     key: 'ordering',

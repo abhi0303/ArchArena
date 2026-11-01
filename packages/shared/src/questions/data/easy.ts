@@ -96,11 +96,12 @@ export const easyQuestions: QuestionDefinition[] = [
           title: 'Short codes cannot collide',
           rule: R.any(
             R.has(S.idGen),
+            R.prop(S.db, 'uniqueConstraints', ['business-keys', 'both']),
             R.prop(S.db, 'concurrencyControl', ['conditional-writes', 'serializable', 'optimistic', 'pessimistic-locks']),
           ),
-          pass: 'Code generation is collision-safe (ID generator or conditional/unique writes).',
+          pass: 'Code generation is collision-safe (ID generator, a unique constraint on the code, or conditional writes).',
           fail: 'Nothing guarantees uniqueness of short codes, so two URLs could receive the same code.',
-          fix: 'Use an ID generator (base62 of a unique ID) or set the database’s Concurrency control to conditional/unique writes so duplicates are rejected and retried.',
+          fix: 'Use an ID generator (base62 of a unique ID), or set the database’s Unique constraints to business keys (a UNIQUE short code) so a collision is rejected and retried with a new code.',
         }),
         ck({
           id: 'redirect-cache',

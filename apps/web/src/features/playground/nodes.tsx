@@ -3,6 +3,7 @@ import { Handle, NodeResizer, Position, type NodeProps } from '@xyflow/react';
 import { memo, useState } from 'react';
 import { ACCENTS, DynamicIcon } from '@/components/icons';
 import { cn } from '@/lib/cn';
+import { patternBadges } from './badges';
 import type { ComponentNodeT, GroupNodeT, NoteNodeT } from './model';
 import { useEditor } from './store';
 
@@ -35,6 +36,7 @@ export const ComponentNode = memo(function ComponentNode({ id, data, selected }:
   const accent = ACCENTS[def?.accent ?? 'slate']!;
   const highlight = useEditor((s) => s.highlights[id]);
   const chips = configChips(data.props);
+  const badges = patternBadges(data.props);
   return (
     <div
       className={cn(
@@ -55,6 +57,25 @@ export const ComponentNode = memo(function ComponentNode({ id, data, selected }:
           {def?.label}
           {chips.length > 0 && <span className="ml-1 text-indigo-600 dark:text-indigo-400">· {chips.join(' · ')}</span>}
         </div>
+        {badges.length > 0 && (
+          <div className="mt-1 flex flex-wrap gap-1" data-testid="node-badges">
+            {badges.map((b) => (
+              <span
+                key={b.key}
+                title={b.title}
+                data-testid={`node-badge-${b.key}`}
+                className={cn(
+                  'rounded px-1 py-px text-[9px] font-semibold leading-tight ring-1',
+                  b.tone === 'good'
+                    ? 'bg-emerald-50 text-emerald-700 ring-emerald-200 dark:bg-emerald-950/50 dark:text-emerald-300 dark:ring-emerald-900'
+                    : 'bg-amber-50 text-amber-800 ring-amber-200 dark:bg-amber-950/50 dark:text-amber-300 dark:ring-amber-900',
+                )}
+              >
+                {b.label}
+              </span>
+            ))}
+          </div>
+        )}
       </div>
       <Handles />
     </div>

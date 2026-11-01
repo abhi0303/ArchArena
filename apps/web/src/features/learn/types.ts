@@ -114,4 +114,6 @@ export interface SettingGuide {
   goodValues?: Bi;
   /** Practical advice for challenges (what the evaluator rewards). */
   inChallenges: Bi;
+  /** Interview prep answers that explain the idea in depth. */
+  deepDive?: { title: string; to: string }[];
 }

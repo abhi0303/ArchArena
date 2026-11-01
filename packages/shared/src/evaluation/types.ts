@@ -153,7 +153,7 @@ export interface EvaluationInput {
 }
 
 export type IssueSeverity = 'error' | 'warning' | 'info';
-export type FindingBucket = 'invalid-connection' | 'bottleneck' | 'complexity' | 'security' | 'disconnected';
+export type FindingBucket = 'invalid-connection' | 'bottleneck' | 'complexity' | 'security' | 'disconnected' | 'data-safety';
 
 export interface StructuralIssue {
   code: string;
@@ -167,6 +167,8 @@ export interface StructuralIssue {
   nodeIds: string[];
   edgeIds: string[];
   bucket?: FindingBucket;
+  /** Component settings that fix this issue (linked to the configuration guide). */
+  settings?: string[];
 }
 
 export interface CheckOutcome {
@@ -225,6 +227,8 @@ export interface Finding {
   nodeIds: string[];
   edgeIds: string[];
   checkId?: string;
+  /** Component settings that fix this finding (linked to the configuration guide). */
+  settings?: string[];
 }
 
 export interface Suggestion {
@@ -253,6 +257,8 @@ export interface EvaluationReport {
   bottlenecks: Finding[];
   unnecessaryComplexity: Finding[];
   securityConcerns: Finding[];
+  /** Tips about lost events and duplicate processing. They never change the score. Missing in reports from engine 1.0. */
+  dataSafety?: Finding[];
   strengths: string[];
   weaknesses: string[];
   suggestions: Suggestion[];
